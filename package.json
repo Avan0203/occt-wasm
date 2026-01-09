@@ -1,0 +1,16 @@
+{
+    "name": "occt-wasm",
+    "version": "1.0.0",
+    "description": "OCCT WASM",
+    "main": "index.js",
+    "scripts": {
+        "prepare": "tsx scripts/setupLib.ts",
+        "build": "cd build && emcmake cmake .. -G Ninja && cmake --build .",
+        "build:win": "call source\\emsdk\\emsdk_env.bat && pnpm build",
+        "build:unix": "source source/emsdk/emsdk_env.sh && pnpm build"
+    },
+    "devDependencies": {
+        "@types/node": "^25.0.3",
+        "tsx": "^4.21.0"
+    }
+}
