@@ -4,6 +4,7 @@
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeTorus.hxx>
+#include <BRepBuilderAPI_Command.hxx>
 #include <BRepBuilderAPI_MakeShape.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Ax2.hxx>
@@ -20,8 +21,20 @@ namespace GeometryBindings {
 // Note: Shape() is non-const, so we use a lambda wrapper in each binding
 
 void registerBindings() {
+    // ========== Base classes (must be registered first) ==========
+    // Register BRepBuilderAPI_Command base class
+    class_<BRepBuilderAPI_Command>("BRepBuilderAPI_Command")
+        .function("isDone", &BRepBuilderAPI_Command::IsDone)
+        ;
+    
+    // Register BRepBuilderAPI_MakeShape intermediate base class
+    class_<BRepBuilderAPI_MakeShape, base<BRepBuilderAPI_Command>>("BRepBuilderAPI_MakeShape")
+        .function("shape", optional_override([](BRepBuilderAPI_MakeShape& self) -> TopoDS_Shape {
+            return self.Shape();
+        }))
+        ;
     // ========== Box (BRepPrimAPI_MakeBox) ==========
-    class_<BRepPrimAPI_MakeBox>("Box")
+    class_<BRepPrimAPI_MakeBox, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeBox")
         .constructor<>()
         .constructor<double, double, double>()
         .constructor<const gp_Pnt&, double, double, double>()
@@ -39,7 +52,7 @@ void registerBindings() {
 
     // ========== Sphere (BRepPrimAPI_MakeSphere) ==========
     // Note: BRepPrimAPI_MakeSphere has no Init methods, only constructors
-    class_<BRepPrimAPI_MakeSphere>("Sphere")
+    class_<BRepPrimAPI_MakeSphere, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeSphere")
         .constructor<double>()
         .constructor<const gp_Pnt&, double>()
         .constructor<const gp_Ax2&, double>()
@@ -57,7 +70,7 @@ void registerBindings() {
 
     // ========== Cylinder (BRepPrimAPI_MakeCylinder) ==========
     // Note: BRepPrimAPI_MakeCylinder has no Init methods, only constructors
-    class_<BRepPrimAPI_MakeCylinder>("Cylinder")
+    class_<BRepPrimAPI_MakeCylinder, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeCylinder")
         .constructor<double, double>()
         .constructor<const gp_Ax2&, double, double>()
         .constructor<double, double, double>()
@@ -70,7 +83,7 @@ void registerBindings() {
 
     // ========== Cone (BRepPrimAPI_MakeCone) ==========
     // Note: BRepPrimAPI_MakeCone has no Init methods, only constructors
-    class_<BRepPrimAPI_MakeCone>("Cone")
+    class_<BRepPrimAPI_MakeCone, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeCone")
         .constructor<double, double, double>()
         .constructor<const gp_Ax2&, double, double, double>()
         .constructor<double, double, double, double>()
@@ -83,7 +96,7 @@ void registerBindings() {
 
     // ========== Torus (BRepPrimAPI_MakeTorus) ==========
     // Note: BRepPrimAPI_MakeTorus has no Init methods, only constructors
-    class_<BRepPrimAPI_MakeTorus>("Torus")
+    class_<BRepPrimAPI_MakeTorus, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeTorus")
         .constructor<double, double>()
         .constructor<const gp_Ax2&, double, double>()
         .constructor<double, double, double>()

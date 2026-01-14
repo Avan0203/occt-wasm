@@ -13,7 +13,11 @@ using namespace emscripten;
 
 namespace UtilsBindings {
 
-// Helper function to convert TopTools_IndexedMapOfShape to JavaScript array
+/**
+ * 将 TopTools_IndexedMapOfShape 转换为 JavaScript 数组
+ * @param map - 形状索引映射表
+ * @returns JavaScript 数组，包含所有形状对象
+ */
 val mapShapesToArray(const TopTools_IndexedMapOfShape& map) {
     val result = val::array();
     for (int i = 1; i <= map.Extent(); i++) {
@@ -22,75 +26,121 @@ val mapShapesToArray(const TopTools_IndexedMapOfShape& map) {
     return result;
 }
 
-// Extract vertices from shape
+/**
+ * 从形状中提取所有顶点
+ * @param shape - 要提取顶点的形状对象
+ * @returns JavaScript 数组，包含所有顶点对象
+ */
 val extractVertices(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_VERTEX, map);
     return mapShapesToArray(map);
 }
 
-// Extract edges from shape
+/**
+ * 从形状中提取所有边
+ * @param shape - 要提取边的形状对象
+ * @returns JavaScript 数组，包含所有边对象
+ */
 val extractEdges(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_EDGE, map);
     return mapShapesToArray(map);
 }
 
-// Extract faces from shape
+/**
+ * 从形状中提取所有面
+ * @param shape - 要提取面的形状对象
+ * @returns JavaScript 数组，包含所有面对象
+ */
 val extractFaces(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_FACE, map);
     return mapShapesToArray(map);
 }
 
-// Extract wires from shape
+/**
+ * 从形状中提取所有线框
+ * @param shape - 要提取线框的形状对象
+ * @returns JavaScript 数组，包含所有线框对象
+ */
 val extractWires(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_WIRE, map);
     return mapShapesToArray(map);
 }
 
-// Extract shells from shape
+/**
+ * 从形状中提取所有壳体
+ * @param shape - 要提取壳体的形状对象
+ * @returns JavaScript 数组，包含所有壳体对象
+ */
 val extractShells(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_SHELL, map);
     return mapShapesToArray(map);
 }
 
-// Extract solids from shape
+/**
+ * 从形状中提取所有实体
+ * @param shape - 要提取实体的形状对象
+ * @returns JavaScript 数组，包含所有实体对象
+ */
 val extractSolids(const TopoDS_Shape& shape) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, TopAbs_SOLID, map);
     return mapShapesToArray(map);
 }
 
-// Count shapes of specific type
+/**
+ * 统计形状中指定类型的子形状数量
+ * @param shape - 要统计的形状对象
+ * @param type - 形状类型枚举（如 TopAbs_VERTEX, TopAbs_EDGE 等）
+ * @returns 指定类型子形状的数量
+ */
 int countShapes(const TopoDS_Shape& shape, TopAbs_ShapeEnum type) {
     TopTools_IndexedMapOfShape map;
     TopExp::MapShapes(shape, type, map);
     return map.Extent();
 }
 
-// Check if shape is valid (using IsNull as validation check)
+/**
+ * 检查形状是否有效
+ * 通过检查形状是否为空来判断有效性
+ * @param shape - 要检查的形状对象
+ * @returns 如果形状有效返回 true，否则返回 false
+ */
 bool isValid(const TopoDS_Shape& shape) {
     return !shape.IsNull();
 }
 
-// Clean shape
+/**
+ * 清理形状
+ * 移除形状中的冗余几何信息和拓扑信息
+ * @param shape - 要清理的形状对象（会被修改）
+ */
 void cleanShape(TopoDS_Shape& shape) {
     BRepTools::Clean(shape);
 }
 
-// Write shape to BRep format (returns as string, not file)
-// Note: This is a placeholder - actual file writing will be in Exporter module
+/**
+ * 将形状写入 BRep 格式文件
+ * 注意：这是一个占位函数，实际的文件写入功能将在 Exporter 模块中实现
+ * @param shape - 要写入的形状对象
+ * @param filename - 输出文件名
+ * @returns 如果写入成功返回 true，否则返回 false
+ */
 bool writeBRep(const TopoDS_Shape& shape, const std::string& filename) {
     return BRepTools::Write(shape, filename.c_str());
 }
 
+/**
+ * 注册所有工具函数到 Emscripten 绑定系统
+ * 包括 TopExp、TopExp_Explorer 和 BRepTools 的相关方法
+ */
 void registerBindings() {
-    // ========== TopExp static methods ==========
+    // ========== TopExp 静态方法 ==========
     class_<TopExp>("TopExp")
-        .class_function("mapShapes", static_cast<void(*)(const TopoDS_Shape&, TopAbs_ShapeEnum, TopTools_IndexedMapOfShape&)>(&TopExp::MapShapes))
         .class_function("extractVertices", &extractVertices)
         .class_function("extractEdges", &extractEdges)
         .class_function("extractFaces", &extractFaces)
@@ -100,8 +150,8 @@ void registerBindings() {
         .class_function("countShapes", &countShapes)
         ;
 
-    // ========== TopExp_Explorer ==========
-    class_<TopExp_Explorer>("Explorer")
+    // ========== TopExp_Explorer 类 ==========
+    class_<TopExp_Explorer>("TopExp_Explorer")
         .constructor<>()
         .constructor<const TopoDS_Shape&, TopAbs_ShapeEnum, TopAbs_ShapeEnum>()
         .function("init", &TopExp_Explorer::Init)
@@ -110,13 +160,15 @@ void registerBindings() {
         .function("current", &TopExp_Explorer::Current)
         .function("reInit", &TopExp_Explorer::ReInit)
         .function("value", &TopExp_Explorer::Value)
+        .function("clear", &TopExp_Explorer::Clear)
+        .function("depth", &TopExp_Explorer::Depth)
         ;
 
-    // ========== BRepTools static methods ==========
+    // ========== BRepTools 静态方法 ==========
     class_<BRepTools>("BRepTools")
         .class_function("isValid", &isValid)
-        .class_function("clean", &cleanShape)
-        .class_function("write", &writeBRep)
+        .class_function("cleanShape", &cleanShape)
+        .class_function("writeBRep", &writeBRep)
         ;
 }
 

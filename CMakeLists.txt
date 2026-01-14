@@ -25,11 +25,11 @@ set(OCCT_TOOLKITS
     # FoundationClasses
     TKernel TKMath
     # ModelingData 
-    TKG2d TKG3d TKGeomBase TKBRep
+    TKBRep TKG3d TKG2d TKGeomBase
     # ModelingAlgorithms
-    TKGeomAlgo TKTopAlgo TKPrim TKBO TKBool TKHLR TKFillet TKOffset TKFeat TKMesh
+    TKGeomAlgo TKTopAlgo TKPrim TKBO TKBool TKHLR TKFillet TKOffset TKFeat TKMesh TKShHealing
     # DataExchange
-    TKDE TKXSBase TKDESTEP TKDEIGES TKDESTL
+    # TKDE TKXSBase TKDESTEP TKDEIGES TKDESTL
 )
 
 # ------------------------------------------------------------
@@ -104,8 +104,15 @@ configure_file(
 # 7. User sources
 # ------------------------------------------------------------
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/brep/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/brep/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cxx"
 )
 
 # ------------------------------------------------------------
@@ -138,7 +145,7 @@ if(EMSCRIPTEN)
         -sINITIAL_HEAP=64MB
         -sALLOW_MEMORY_GROWTH=1
         -sMAXIMUM_MEMORY=4GB
-        -sENVIRONMENT="web"
+        -sENVIRONMENT=web,worker
         --bind
         --emit-tsd "${TARGET}.d.ts"
     )

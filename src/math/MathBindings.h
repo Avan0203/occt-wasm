@@ -11,6 +11,7 @@ class gp_Trsf;
 class gp_Ax1;
 class gp_Ax2;
 class gp_Mat;
+class gp_Quaternion;
 
 namespace MathBindings {
     void registerBindings();

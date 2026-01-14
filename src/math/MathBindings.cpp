@@ -1,14 +1,17 @@
 #include "MathBindings.h"
+#include <emscripten/bind.h>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <gp_XYZ.hxx>
 #include <gp_Trsf.hxx>
+#include <gp_TrsfForm.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Ax2.hxx>
 #include <gp_Mat.hxx>
 #include <gp_Dir.hxx>
 #include <gp_Ax3.hxx>
-#include <emscripten/bind.h>
+#include <gp_Quaternion.hxx>
+#include <gp_EulerSequence.hxx>
 
 using namespace emscripten;
 
@@ -33,7 +36,7 @@ val xyzToArray(const gp_XYZ& xyz) {
 
 void registerBindings() {
     // ========== Point3 (gp_Pnt) ==========
-    class_<gp_Pnt>("Point3")
+    class_<gp_Pnt>("gp_Pnt")
         .constructor<>()
         .constructor<double, double, double>()
         .constructor<const gp_XYZ&>()
@@ -53,7 +56,7 @@ void registerBindings() {
         ;
 
     // ========== Vector3 (gp_Vec) ==========
-    class_<gp_Vec>("Vector3")
+    class_<gp_Vec>("gp_Vec")
         .constructor<>()
         .constructor<double, double, double>()
         .constructor<const gp_XYZ&>()
@@ -86,7 +89,7 @@ void registerBindings() {
         ;
 
     // ========== XYZ (gp_XYZ) ==========
-    class_<gp_XYZ>("XYZ")
+    class_<gp_XYZ>("gp_XYZ")
         .constructor<>()
         .constructor<double, double, double>()
         .function("x", &gp_XYZ::X)
@@ -112,7 +115,7 @@ void registerBindings() {
         ;
 
     // ========== Matrix4 (gp_Trsf) ==========
-    class_<gp_Trsf>("Matrix4")
+    class_<gp_Trsf>("gp_Trsf")
         .constructor<>()
         .function("setTranslation", 
             optional_override([](gp_Trsf& self, const gp_Vec& vec) {
@@ -146,7 +149,7 @@ void registerBindings() {
         ;
 
     // ========== Axis1 (gp_Ax1) ==========
-    class_<gp_Ax1>("Axis1")
+    class_<gp_Ax1>("gp_Ax1")
         .constructor<>()
         .constructor<const gp_Pnt&, const gp_Dir&>()
         .function("location", &gp_Ax1::Location)
@@ -160,7 +163,7 @@ void registerBindings() {
         ;
 
     // ========== Axis2 (gp_Ax2) ==========
-    class_<gp_Ax2>("Axis2")
+    class_<gp_Ax2>("gp_Ax2")
         .constructor<>()
         .constructor<const gp_Pnt&, const gp_Dir&>()
         .constructor<const gp_Pnt&, const gp_Dir&, const gp_Dir&>()
@@ -176,8 +179,104 @@ void registerBindings() {
         .function("transformed", &gp_Ax2::Transformed)
         ;
 
+    // ========== Axis3 (gp_Ax3) ==========
+    class_<gp_Ax3>("gp_Ax3")
+        .constructor<>()
+        .constructor<const gp_Ax2&>()
+        .constructor<const gp_Pnt&, const gp_Dir&>()
+        .constructor<const gp_Pnt&, const gp_Dir&, const gp_Dir&>()
+        .function("location", &gp_Ax3::Location)
+        .function("direction", &gp_Ax3::Direction)
+        .function("xDirection", &gp_Ax3::XDirection)
+        .function("yDirection", &gp_Ax3::YDirection)
+        .function("setLocation", &gp_Ax3::SetLocation)
+        .function("setDirection", &gp_Ax3::SetDirection)
+        .function("setXDirection", &gp_Ax3::SetXDirection)
+        .function("setYDirection", &gp_Ax3::SetYDirection)
+        .function("transform", &gp_Ax3::Transform)
+        .function("transformed", &gp_Ax3::Transformed)
+        ;
+
+    // ========== Quaternion (gp_Quaternion) ==========
+    class_<gp_Quaternion>("gp_Quaternion")
+        .constructor<>()
+        .constructor<double, double, double, double>()
+        .constructor<const gp_Vec&, const gp_Vec&>()
+        .constructor<const gp_Vec&, const gp_Vec&, const gp_Vec&>()
+        .constructor<const gp_Vec&, double>()
+        .constructor<const gp_Mat&>()
+        .function("set", select_overload<void(double, double, double, double)>(&gp_Quaternion::Set))
+        .function("set", select_overload<void(const gp_Quaternion&)>(&gp_Quaternion::Set))
+        .function("x", &gp_Quaternion::X)
+        .function("y", &gp_Quaternion::Y)
+        .function("z", &gp_Quaternion::Z)
+        .function("w", &gp_Quaternion::W)
+        .function("setIdent", &gp_Quaternion::SetIdent)
+        .function("isEqual", &gp_Quaternion::IsEqual)
+        // SetRotation overloads
+        .function("setRotation", select_overload<void(const gp_Vec&, const gp_Vec&)>(&gp_Quaternion::SetRotation))
+        .function("setRotationWithHelp", select_overload<void(const gp_Vec&, const gp_Vec&, const gp_Vec&)>(&gp_Quaternion::SetRotation))
+        // Vector and Angle
+        .function("setVectorAndAngle", &gp_Quaternion::SetVectorAndAngle)
+        .function("getVectorAndAngle",
+            optional_override([](const gp_Quaternion& self) -> val {
+                gp_Vec axis;
+                double angle;
+                self.GetVectorAndAngle(axis, angle);
+                val result = val::object();
+                result.set("axis", axis);
+                result.set("angle", angle);
+                return result;
+            }))
+        // Euler Angles
+        .function("setEulerAngles", &gp_Quaternion::SetEulerAngles)
+        .function("getEulerAngles",
+            optional_override([](const gp_Quaternion& self, gp_EulerSequence order) -> val {
+                double alpha, beta, gamma;
+                self.GetEulerAngles(order, alpha, beta, gamma);
+                val result = val::array();
+                result.call<void>("push", alpha);
+                result.call<void>("push", beta);
+                result.call<void>("push", gamma);
+                return result;
+            }))
+        // Matrix conversion
+        .function("setMatrix", &gp_Quaternion::SetMatrix)
+        .function("getMatrix", &gp_Quaternion::GetMatrix)
+        // Normalization
+        .function("normalize", &gp_Quaternion::Normalize)
+        .function("normalized", &gp_Quaternion::Normalized)
+        .function("stabilizeLength", &gp_Quaternion::StabilizeLength)
+        // Reverse/Conjugate
+        .function("reverse", &gp_Quaternion::Reverse)
+        .function("reversed", &gp_Quaternion::Reversed)
+        // Invert
+        .function("invert", &gp_Quaternion::Invert)
+        .function("inverted", &gp_Quaternion::Inverted)
+        // Norm
+        .function("norm", &gp_Quaternion::Norm)
+        .function("squareNorm", &gp_Quaternion::SquareNorm)
+        // Scale
+        .function("scale", &gp_Quaternion::Scale)
+        .function("scaled", &gp_Quaternion::Scaled)
+        // Arithmetic operations
+        .function("add", &gp_Quaternion::Add)
+        .function("added", &gp_Quaternion::Added)
+        .function("subtract", &gp_Quaternion::Subtract)
+        .function("subtracted", &gp_Quaternion::Subtracted)
+        .function("multiply", select_overload<void(const gp_Quaternion&)>(&gp_Quaternion::Multiply))
+        .function("multiplied", &gp_Quaternion::Multiplied)
+        .function("multiplyVector", select_overload<gp_Vec(const gp_Vec&) const>(&gp_Quaternion::Multiply))
+        // Dot product
+        .function("dot", &gp_Quaternion::Dot)
+        // Rotation angle
+        .function("getRotationAngle", &gp_Quaternion::GetRotationAngle)
+        // Negate
+        .function("negated", &gp_Quaternion::Negated)
+        ;
+
     // ========== Matrix3 (gp_Mat) ==========
-    class_<gp_Mat>("Matrix3")
+    class_<gp_Mat>("gp_Mat")
         .constructor<>()
         .constructor<const gp_XYZ&, const gp_XYZ&, const gp_XYZ&>()
         .function("setValue", &gp_Mat::SetValue)
@@ -209,7 +308,7 @@ void registerBindings() {
         ;
 
     // ========== Dir (gp_Dir) - helper for Axis ==========
-    class_<gp_Dir>("Dir")
+    class_<gp_Dir>("gp_Dir")
         .constructor<>()
         .constructor<double, double, double>()
         .constructor<const gp_XYZ&>()
@@ -223,6 +322,49 @@ void registerBindings() {
         .function("reversed", &gp_Dir::Reversed)
         .function("transform", &gp_Dir::Transform)
         .function("transformed", &gp_Dir::Transformed)
+        ;
+
+    // ========== TrsfForm (gp_TrsfForm) ==========
+    enum_<gp_TrsfForm>("gp_TrsfForm")
+        .value("gp_Identity", gp_Identity)
+        .value("gp_Rotation", gp_Rotation)
+        .value("gp_Translation", gp_Translation)
+        .value("gp_PntMirror", gp_PntMirror)
+        .value("gp_Ax1Mirror", gp_Ax1Mirror)
+        .value("gp_Ax2Mirror", gp_Ax2Mirror)
+        .value("gp_Scale", gp_Scale)
+        .value("gp_CompoundTrsf", gp_CompoundTrsf)
+        .value("gp_Other", gp_Other)
+        ;
+
+    // ========== EulerSequence (gp_EulerSequence) ==========
+    enum_<gp_EulerSequence>("gp_EulerSequence")
+        .value("gp_EulerAngles", gp_EulerAngles)
+        .value("gp_YawPitchRoll", gp_YawPitchRoll)
+        .value("gp_Extrinsic_XYZ", gp_Extrinsic_XYZ)
+        .value("gp_Extrinsic_XZY", gp_Extrinsic_XZY)
+        .value("gp_Extrinsic_YZX", gp_Extrinsic_YZX)
+        .value("gp_Extrinsic_YXZ", gp_Extrinsic_YXZ)
+        .value("gp_Extrinsic_ZXY", gp_Extrinsic_ZXY)
+        .value("gp_Extrinsic_ZYX", gp_Extrinsic_ZYX)
+        .value("gp_Intrinsic_XYZ", gp_Intrinsic_XYZ)
+        .value("gp_Intrinsic_XZY", gp_Intrinsic_XZY)
+        .value("gp_Intrinsic_YZX", gp_Intrinsic_YZX)
+        .value("gp_Intrinsic_YXZ", gp_Intrinsic_YXZ)
+        .value("gp_Intrinsic_ZXY", gp_Intrinsic_ZXY)
+        .value("gp_Intrinsic_ZYX", gp_Intrinsic_ZYX)
+        .value("gp_Extrinsic_XYX", gp_Extrinsic_XYX)
+        .value("gp_Extrinsic_XZX", gp_Extrinsic_XZX)
+        .value("gp_Extrinsic_YZY", gp_Extrinsic_YZY)
+        .value("gp_Extrinsic_YXY", gp_Extrinsic_YXY)
+        .value("gp_Extrinsic_ZXZ", gp_Extrinsic_ZXZ)
+        .value("gp_Extrinsic_ZYZ", gp_Extrinsic_ZYZ)
+        .value("gp_Intrinsic_XYX", gp_Intrinsic_XYX)
+        .value("gp_Intrinsic_XZX", gp_Intrinsic_XZX)
+        .value("gp_Intrinsic_YZY", gp_Intrinsic_YZY)
+        .value("gp_Intrinsic_YXY", gp_Intrinsic_YXY)
+        .value("gp_Intrinsic_ZXZ", gp_Intrinsic_ZXZ)
+        .value("gp_Intrinsic_ZYZ", gp_Intrinsic_ZYZ)
         ;
 }
 
