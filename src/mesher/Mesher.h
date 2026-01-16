@@ -29,13 +29,13 @@ public:
     static std::vector<TopoDS_Face> getFaces(const TopoDS_Shape& shape);
     
     // Triangulate a face
-    static MeshResult triangulateFace(const TopoDS_Face& face, double deflection = 0.01);
+    static MeshResult triangulateFace(const TopoDS_Face& face, double deflection = 0.01, double angleDeviation = 0.5);
     
     // Discretize an edge
     static EdgeDiscretizationResult discretizeEdge(const TopoDS_Edge& edge, double deflection = 0.01);
     
     // Mesh entire shape (all faces)
-    static MeshResult meshShape(const TopoDS_Shape& shape, double deflection = 0.01);
+    static MeshResult meshShape(const TopoDS_Shape& shape, double deflection = 0.01, double angleDeviation = 0.5);
 };
 
 #endif // MESHER_H

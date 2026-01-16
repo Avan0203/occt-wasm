@@ -122,8 +122,8 @@ void registerBindings() {
                 return facesToArray(faces);
             }))
         .class_function("triangulateFace", 
-            optional_override([](const TopoDS_Face& face, double deflection) -> val {
-                MeshResult result = Mesher::triangulateFace(face, deflection);
+            optional_override([](const TopoDS_Face& face, double deflection, double angleDeviation) -> val {
+                MeshResult result = Mesher::triangulateFace(face, deflection, angleDeviation);
                 return meshResultToObject(result);
             }))
         .class_function("discretizeEdge",
@@ -132,8 +132,8 @@ void registerBindings() {
                 return edgeResultToObject(result);
             }))
         .class_function("meshShape",
-            optional_override([](const TopoDS_Shape& shape, double deflection) -> val {
-                MeshResult result = Mesher::meshShape(shape, deflection);
+            optional_override([](const TopoDS_Shape& shape, double deflection, double angleDeviation) -> val {
+                MeshResult result = Mesher::meshShape(shape, deflection, angleDeviation);
                 return meshResultToObject(result);
             }))
         ;

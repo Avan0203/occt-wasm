@@ -3,6 +3,7 @@ import { meshShape } from '../../common/occt-loader';
 import { ThreeRenderer } from '../../common/three-renderer';
 import { createGeometryFromMesh, createMeshFromGeometry } from '../../common/shape-converter';
 import * as THREE from 'three';
+import { MainModule } from 'public/occt-wasm';
 
 let renderer: ThreeRenderer | null = null;
 
@@ -17,10 +18,12 @@ const colors = {
 /**
  * 创建 Box
  */
-async function createBox(occtModule: any): Promise<THREE.Mesh> {
+async function createBox(occtModule: MainModule): Promise<THREE.Mesh> {
   const makeBox = new occtModule.BRepPrimAPI_MakeBox(2, 2, 2);
   const shape = makeBox.shape();
   const meshData = await meshShape(shape, 1);
+  shape.deleteLater();
+  makeBox.deleteLater();
 
   return createMeshFromGeometry(
     createGeometryFromMesh(meshData),
@@ -45,6 +48,8 @@ async function createSphere(occtModule: any): Promise<THREE.Mesh> {
     metalness: 0.3,
     roughness: 0.7,
   });
+  shape.deleteLater();
+  makeSphere.deleteLater();
   return createMeshFromGeometry(geometry, material);
 }
 
@@ -61,6 +66,9 @@ async function createCylinder(occtModule: any): Promise<THREE.Mesh> {
     metalness: 0.3,
     roughness: 0.7,
   });
+
+  shape.deleteLater();
+  makeCylinder.deleteLater();
   return createMeshFromGeometry(geometry, material);
 }
 
@@ -71,6 +79,8 @@ async function createCone(occtModule: any): Promise<THREE.Mesh> {
   const makeCone = new occtModule.BRepPrimAPI_MakeCone(1.5, 0.5, 3);
   const shape = makeCone.shape();
   const meshData = await meshShape(shape, 1);
+  shape.deleteLater();
+  makeCone.deleteLater();
   const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.cone,
@@ -87,6 +97,8 @@ async function createTorus(occtModule: any): Promise<THREE.Mesh> {
   const makeTorus = new occtModule.BRepPrimAPI_MakeTorus(1.5, 0.5);
   const shape = makeTorus.shape();
   const meshData = await meshShape(shape, 1);
+  shape.deleteLater();
+  makeTorus.deleteLater();
   const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.torus,

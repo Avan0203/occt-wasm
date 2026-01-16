@@ -2,7 +2,7 @@
 // 建议：将 occt-wasm.js 和 occt-wasm.d.ts 放在 src/occt/ 目录
 // 将 occt-wasm.wasm 放在 public/occt/ 目录
 // 这样 JS 文件可以被 Vite 作为模块处理，wasm 文件可以通过绝对路径访问
-import MainModuleFactory, { TopoDS_Shape } from '../../public/occt-wasm.js';
+import MainModuleFactory, { MainModule, TopoDS_Shape } from '../../public/occt-wasm.js';
 // 尝试从 src 目录导入（推荐方式）
 
 let moduleInstance: any = null;
@@ -53,7 +53,7 @@ export async function loadOCCTModule(): Promise<any> {
 /**
  * 获取已加载的模块实例
  */
-export function getOCCTModule(): any {
+export function getOCCTModule(): MainModule {
   if (!moduleInstance) {
     throw new Error('OCCT module not loaded. Call loadOCCTModule() first.');
   }
@@ -63,7 +63,7 @@ export function getOCCTModule(): any {
 /**
  * 网格化形状
  */
-export async function meshShape(shape: TopoDS_Shape, deflection: number = 0.01): Promise<{
+export async function meshShape(shape: TopoDS_Shape, lineDeflection: number = 0.1, angularDeflection: number = 0.5): Promise<{
   positions: Float32Array;
   indices: Uint32Array;
   normals: Float32Array;
@@ -71,7 +71,7 @@ export async function meshShape(shape: TopoDS_Shape, deflection: number = 0.01):
 }> {
   try {
     console.log('[OCCT] ========== meshShape START ==========');
-    console.log('[OCCT] Step 1: Starting meshShape, deflection:', deflection);
+    console.log('[OCCT] Step 1: Starting meshShape, deflection:', lineDeflection);
     
     // ========== 注释大法：如果卡在这里，说明 getOCCTModule 有问题 ==========
     const module = getOCCTModule();
@@ -90,7 +90,7 @@ export async function meshShape(shape: TopoDS_Shape, deflection: number = 0.01):
     console.log('[OCCT] Step 7.1: Creating Promise wrapper...');
     const meshResult = await Promise.resolve().then(() => {
       console.log('[OCCT] Step 7.2: Inside Promise.then, calling C++ function...');
-      const result = module.Mesher.meshShape(shape, deflection);
+      const result = module.Mesher.meshShape(shape, lineDeflection, angularDeflection);
       console.log('[OCCT] Step 7.3: C++ function returned');
       return result;
     });

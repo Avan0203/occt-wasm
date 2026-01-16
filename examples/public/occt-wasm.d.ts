@@ -568,9 +568,9 @@ interface EmbindModule {
     getVertices(_0: TopoDS_Shape): any;
     getEdges(_0: TopoDS_Shape): any;
     getFaces(_0: TopoDS_Shape): any;
-    triangulateFace(_0: TopoDS_Face, _1: number): any;
+    triangulateFace(_0: TopoDS_Face, _1: number, _2: number): any;
     discretizeEdge(_0: TopoDS_Edge, _1: number): any;
-    meshShape(_0: TopoDS_Shape, _1: number): any;
+    meshShape(_0: TopoDS_Shape, _1: number, _2: number): any;
   };
 }
 

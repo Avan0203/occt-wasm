@@ -53,7 +53,7 @@ std::vector<TopoDS_Face> Mesher::getFaces(const TopoDS_Shape& shape) {
     return faces;
 }
 
-MeshResult Mesher::triangulateFace(const TopoDS_Face& face, double deflection) {
+MeshResult Mesher::triangulateFace(const TopoDS_Face& face, double deflection, double angleDeviation) {
     MeshResult result;
     
     // Ensure the face has triangulation
@@ -62,7 +62,7 @@ MeshResult Mesher::triangulateFace(const TopoDS_Face& face, double deflection) {
     
     if (triangulation.IsNull()) {
         // Create triangulation if it doesn't exist
-        BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, deflection * 0.1, Standard_True);
+        BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, angleDeviation, Standard_True);
         triangulation = BRep_Tool::Triangulation(face, loc);
         
         if (triangulation.IsNull()) {
@@ -243,11 +243,11 @@ EdgeDiscretizationResult Mesher::discretizeEdge(const TopoDS_Edge& edge, double 
     return result;
 }
 
-MeshResult Mesher::meshShape(const TopoDS_Shape& shape, double deflection) {
+MeshResult Mesher::meshShape(const TopoDS_Shape& shape, double deflection, double angleDeviation) {
     MeshResult result;
     
     // Ensure the shape has triangulation
-    BRepMesh_IncrementalMesh mesher(shape, deflection, Standard_False, deflection * 0.1, Standard_True);
+    BRepMesh_IncrementalMesh mesher(shape, deflection, Standard_False, angleDeviation, Standard_True);
     
     // Get all faces
     std::vector<TopoDS_Face> faces = getFaces(shape);
@@ -256,7 +256,7 @@ MeshResult Mesher::meshShape(const TopoDS_Shape& shape, double deflection) {
     Standard_Integer vertexOffset = 0;
     
     for (const TopoDS_Face& face : faces) {
-        MeshResult faceResult = triangulateFace(face, deflection);
+        MeshResult faceResult = triangulateFace(face, deflection, angleDeviation);
         
         if (faceResult.positions.empty()) {
             continue;
