@@ -109,8 +109,13 @@ void registerBindings() {
     // ========== Location (TopLoc_Location) ==========
     class_<TopLoc_Location>("TopLoc_Location")
         .constructor<>()
-        .constructor<const gp_Trsf&>()
         .constructor<const TopLoc_Location&>()
+        .function(
+            "initWithTrsf",
+            optional_override([](const gp_Trsf& trsf) -> TopLoc_Location {
+                return TopLoc_Location(trsf);
+            })
+        )
         .function("isIdentity", &TopLoc_Location::IsIdentity)
         .function("identity", &TopLoc_Location::Identity)
         .function("transformation", &TopLoc_Location::Transformation)

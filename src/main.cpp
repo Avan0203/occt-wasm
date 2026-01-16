@@ -5,7 +5,7 @@
 #include "geometry/GeometryBindings.h"
 #include "brep/BRepBindings.h"
 #include "utils/UtilsBindings.h"
-// #include "mesher/MesherBindings.h"
+#include "mesher/MesherBindings.h"
 // #include "loader/LoaderBindings.h"
 // #include "exporter/ExporterBindings.h"
 
@@ -16,7 +16,7 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     BRepBindings::registerBindings();
     GeometryBindings::registerBindings();
     UtilsBindings::registerBindings();
-    // MesherBindings::registerBindings();
+    MesherBindings::registerBindings();
     // LoaderBindings::registerBindings();
     // ExporterBindings::registerBindings();
 }

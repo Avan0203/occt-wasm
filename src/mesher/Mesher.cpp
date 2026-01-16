@@ -135,11 +135,10 @@ MeshResult Mesher::triangulateFace(const TopoDS_Face& face, double deflection) {
         result.normals.reserve(nbNodes * 3);
         for (Standard_Integer i = 1; i <= nbNodes; i++) {
             gp_Vec normalVec(0.0, 0.0, 0.0);
-            const Poly_Array1OfTriangle& triangles = triangulation->Triangles();
             
             // Find triangles containing this node
             for (Standard_Integer j = 1; j <= nbTriangles; j++) {
-                Poly_Triangle triangle = triangles(j);
+                Poly_Triangle triangle = triangulation->Triangle(j);
                 Standard_Integer n1, n2, n3;
                 triangle.Get(n1, n2, n3);
                 

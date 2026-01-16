@@ -35,77 +35,128 @@ void registerBindings() {
         ;
     // ========== Box (BRepPrimAPI_MakeBox) ==========
     class_<BRepPrimAPI_MakeBox, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeBox")
-        .constructor<>()
         .constructor<double, double, double>()
-        .constructor<const gp_Pnt&, double, double, double>()
-        .constructor<const gp_Pnt&, const gp_Pnt&>()
-        .constructor<const gp_Ax2&, double, double, double>()
-        .function("init", select_overload<void(double, double, double)>(&BRepPrimAPI_MakeBox::Init))
-        .function("initWithPoint", select_overload<void(const gp_Pnt&, double, double, double)>(&BRepPrimAPI_MakeBox::Init))
-        .function("initWithPoints", select_overload<void(const gp_Pnt&, const gp_Pnt&)>(&BRepPrimAPI_MakeBox::Init))
-        .function("initWithAxes", select_overload<void(const gp_Ax2&, double, double, double)>(&BRepPrimAPI_MakeBox::Init))
         .function("shape", optional_override([](BRepPrimAPI_MakeBox& self) -> TopoDS_Shape {
             return self.Shape();
         }))
         .function("isDone", &BRepPrimAPI_MakeBox::IsDone)
-        ;
+        .class_function("createWithPoint", optional_override([](const gp_Pnt& p, double dx, double dy, double dz) {
+            BRepPrimAPI_MakeBox box(p, dx, dy, dz);
+            box.Build();
+            return box;
+        }))
+        .class_function("createWithPoints", optional_override([](const gp_Pnt& p1, const gp_Pnt& p2) {
+            BRepPrimAPI_MakeBox box(p1, p2);
+            box.Build();
+            return box;
+        }))
+        .class_function("createWithAxes", optional_override([](const gp_Ax2& ax2, double dx, double dy, double dz) {
+            BRepPrimAPI_MakeBox box(ax2, dx, dy, dz);
+            box.Build();
+            return box;
+        }));
 
     // ========== Sphere (BRepPrimAPI_MakeSphere) ==========
-    // Note: BRepPrimAPI_MakeSphere has no Init methods, only constructors
     class_<BRepPrimAPI_MakeSphere, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeSphere")
         .constructor<double>()
-        .constructor<const gp_Pnt&, double>()
-        .constructor<const gp_Ax2&, double>()
-        .constructor<double, double>()
-        .constructor<const gp_Pnt&, double, double>()
-        .constructor<const gp_Ax2&, double, double>()
-        .constructor<double, double, double>()
-        .constructor<const gp_Pnt&, double, double, double>()
-        .constructor<const gp_Ax2&, double, double, double>()
         .function("shape", optional_override([](BRepPrimAPI_MakeSphere& self) -> TopoDS_Shape {
             return self.Shape();
         }))
         .function("isDone", &BRepPrimAPI_MakeSphere::IsDone)
-        ;
+        .class_function("createWithPoint", optional_override([](const gp_Pnt& center, double radius) {
+            BRepPrimAPI_MakeSphere sphere(center, radius);
+            sphere.Build();
+            return sphere;
+        }))
+        .class_function("createWithAxes", optional_override([](const gp_Ax2& ax2, double radius) {
+            BRepPrimAPI_MakeSphere sphere(ax2, radius);
+            sphere.Build();
+            return sphere;
+        }))
+        .class_function("createWithRadiusAndAngle", optional_override([](double radius, double angle) {
+            BRepPrimAPI_MakeSphere sphere(radius, angle);
+            sphere.Build();
+            return sphere;
+        }))
+        .class_function("createWithPointAndAngle", optional_override([](const gp_Pnt& center, double radius, double angle) {
+            BRepPrimAPI_MakeSphere sphere(center, radius, angle);
+            sphere.Build();
+            return sphere;
+        }))
+        .class_function("createWithAxesAndAngle", optional_override([](const gp_Ax2& ax2, double radius, double angle) {
+            BRepPrimAPI_MakeSphere sphere(ax2, radius, angle);
+            sphere.Build();
+            return sphere;
+        }));
 
     // ========== Cylinder (BRepPrimAPI_MakeCylinder) ==========
-    // Note: BRepPrimAPI_MakeCylinder has no Init methods, only constructors
     class_<BRepPrimAPI_MakeCylinder, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeCylinder")
-        .constructor<double, double>()
-        .constructor<const gp_Ax2&, double, double>()
-        .constructor<double, double, double>()
-        .constructor<const gp_Ax2&, double, double, double>()
-        .function("shape", optional_override([](BRepPrimAPI_MakeCylinder& self) -> TopoDS_Shape {
-            return self.Shape();
-        }))
-        .function("isDone", &BRepPrimAPI_MakeCylinder::IsDone)
-        ;
+    .constructor<double, double>()
+    .function("shape", optional_override([](BRepPrimAPI_MakeCylinder& self) -> TopoDS_Shape {
+        return self.Shape();
+    }))
+    .function("isDone", &BRepPrimAPI_MakeCylinder::IsDone)
+    .class_function("createWithAxes", optional_override([](const gp_Ax2& ax2, double radius, double height) {
+        BRepPrimAPI_MakeCylinder cyl(ax2, radius, height);
+        cyl.Build();
+        return cyl;
+    }))
+    .class_function("createWithRadiusHeightAndAngle", optional_override([](double radius, double height, double angle) {
+        BRepPrimAPI_MakeCylinder cyl(radius, height, angle);
+        cyl.Build();
+        return cyl;
+    }))
+    .class_function("createWithAxesAndAngle", optional_override([](const gp_Ax2& ax2, double radius, double height, double angle) {
+        BRepPrimAPI_MakeCylinder cyl(ax2, radius, height, angle);
+        cyl.Build();
+        return cyl;
+    }));
 
     // ========== Cone (BRepPrimAPI_MakeCone) ==========
-    // Note: BRepPrimAPI_MakeCone has no Init methods, only constructors
     class_<BRepPrimAPI_MakeCone, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeCone")
-        .constructor<double, double, double>()
-        .constructor<const gp_Ax2&, double, double, double>()
-        .constructor<double, double, double, double>()
-        .constructor<const gp_Ax2&, double, double, double, double>()
-        .function("shape", optional_override([](BRepPrimAPI_MakeCone& self) -> TopoDS_Shape {
-            return self.Shape();
-        }))
-        .function("isDone", &BRepPrimAPI_MakeCone::IsDone)
-        ;
+    .constructor<double, double, double>()
+    .function("shape", optional_override([](BRepPrimAPI_MakeCone& self) -> TopoDS_Shape {
+        return self.Shape();
+    }))
+    .function("isDone", &BRepPrimAPI_MakeCone::IsDone)
+    .class_function("createWithAxes", optional_override([](const gp_Ax2& ax2, double radius1, double radius2, double height) {
+        BRepPrimAPI_MakeCone cone(ax2, radius1, radius2, height);
+        cone.Build();
+        return cone;
+    }))
+    .class_function("createWithAngle", optional_override([](double radius1, double radius2, double height, double angle) {
+        BRepPrimAPI_MakeCone cone(radius1, radius2, height, angle);
+        cone.Build();
+        return cone;
+    }))
+    .class_function("createWithAxesAndAngle", optional_override([](const gp_Ax2& ax2, double radius1, double radius2, double height, double angle) {
+        BRepPrimAPI_MakeCone cone(ax2, radius1, radius2, height, angle);
+        cone.Build();
+        return cone;
+    }));
 
     // ========== Torus (BRepPrimAPI_MakeTorus) ==========
-    // Note: BRepPrimAPI_MakeTorus has no Init methods, only constructors
     class_<BRepPrimAPI_MakeTorus, base<BRepBuilderAPI_MakeShape>>("BRepPrimAPI_MakeTorus")
-        .constructor<double, double>()
-        .constructor<const gp_Ax2&, double, double>()
-        .constructor<double, double, double>()
-        .constructor<const gp_Ax2&, double, double, double>()
-        .function("shape", optional_override([](BRepPrimAPI_MakeTorus& self) -> TopoDS_Shape {
-            return self.Shape();
-        }))
-        .function("isDone", &BRepPrimAPI_MakeTorus::IsDone)
-        ;
+    .constructor<double, double>()
+    .function("shape", optional_override([](BRepPrimAPI_MakeTorus& self) -> TopoDS_Shape {
+        return self.Shape();
+    }))
+    .function("isDone", &BRepPrimAPI_MakeTorus::IsDone)
+    .class_function("createWithAxes", optional_override([](const gp_Ax2& ax2, double R1, double R2) {
+        BRepPrimAPI_MakeTorus torus(ax2, R1, R2);
+        torus.Build();
+        return torus;
+    }))
+    .class_function("createWithAngle", optional_override([](double R1, double R2, double angle) {
+        BRepPrimAPI_MakeTorus torus(R1, R2, angle);
+        torus.Build();
+        return torus;
+    }))
+    .class_function("createWithAxesAndAngle", optional_override([](const gp_Ax2& ax2, double R1, double R2, double angle) {
+        BRepPrimAPI_MakeTorus torus(ax2, R1, R2, angle);
+        torus.Build();
+        return torus;
+    }));
 }
 
 } // namespace GeometryBindings

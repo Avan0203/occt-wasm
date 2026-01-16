@@ -113,6 +113,8 @@ file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/*.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/*.cxx"
 )
 
 # ------------------------------------------------------------

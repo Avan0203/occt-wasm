@@ -1,5 +1,7 @@
 node_modules/
 build/
-source
+source/emsdk/
 .vscode/
 *.log
+examples/dist/
+examples/node_modules/
