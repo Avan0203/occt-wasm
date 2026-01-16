@@ -10,11 +10,16 @@ router.register(boxShowCase);
 async function initApp() {
   const container = document.getElementById('viewer-container')!;
   const caseList = document.getElementById('case-list')!;
+  const sidebar = document.getElementById('sidebar')!;
+  const sidebarToggle = document.getElementById('sidebar-toggle')!;
 
-  if (!container || !caseList) {
+  if (!container || !caseList || !sidebar || !sidebarToggle) {
     console.error('Required DOM elements not found');
     return;
   }
+
+  // 初始化侧边栏折叠功能
+  initSidebarToggle(sidebar, sidebarToggle, container);
 
   // 显示加载提示
   container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 18px;">Loading OCCT module...</div>';
@@ -97,6 +102,37 @@ async function initApp() {
           }
         }
       });
+    });
+  }
+
+  function initSidebarToggle(sidebar: HTMLElement, toggle: HTMLElement, viewerContainer: HTMLElement) {
+    let isCollapsed = false;
+
+    toggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // 防止事件冒泡
+      isCollapsed = !isCollapsed;
+      
+      if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+        toggle.textContent = '›';
+        toggle.setAttribute('aria-label', 'Expand sidebar');
+      } else {
+        sidebar.classList.remove('collapsed');
+        toggle.textContent = '‹';
+        toggle.setAttribute('aria-label', 'Collapse sidebar');
+      }
+      
+      // 强制设置宽度，确保生效
+      if (isCollapsed) {
+        sidebar.style.width = '15px';
+        sidebar.style.minWidth = '15px';
+        sidebar.style.maxWidth = '15px';
+      } else {
+        sidebar.style.width = '300px';
+        sidebar.style.minWidth = '300px';
+        sidebar.style.maxWidth = '300px';
+      }
     });
   }
 }

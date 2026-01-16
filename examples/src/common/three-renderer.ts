@@ -8,6 +8,7 @@ export class ThreeRenderer {
   private controls: OrbitControls;
   private container: HTMLElement;
   private animationId: number | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -42,8 +43,8 @@ export class ThreeRenderer {
     const axesHelper = new THREE.AxesHelper(2);
     this.scene.add(axesHelper);
 
-    // 处理窗口大小变化
-    window.addEventListener('resize', this.handleResize.bind(this));
+    // 使用 ResizeObserver 观察容器尺寸变化
+    this.initResizeObserver();
 
     // 开始渲染循环
     this.animate();
@@ -60,8 +61,8 @@ export class ThreeRenderer {
 
     // 创建渐变：从上到下，从灰色到白色
     const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#e0e0e0'); // 顶部：浅灰色
-    gradient.addColorStop(1, '#ffffff'); // 底部：白色
+    gradient.addColorStop(0, '#121212'); // 顶部：浅灰色
+    gradient.addColorStop(0.6, '#ffffff'); // 底部：白色
 
     context.fillStyle = gradient;
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -87,18 +88,35 @@ export class ThreeRenderer {
     this.scene.add(directionalLight2);
   }
 
-  private handleResize(): void {
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
+  /**
+   * 初始化 ResizeObserver 来观察容器尺寸变化
+   */
+  private initResizeObserver(): void {
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            this.handleResize(width, height);
+          }
+        }
+      });
+      this.resizeObserver.observe(this.container);
+    } else {
+      // 降级方案：使用 window resize 事件
+      window.addEventListener('resize', () => {
+        this.handleResize(this.container.clientWidth, this.container.clientHeight);
+      });
+    }
+  }
 
+  /**
+   * 处理容器尺寸变化
+   */
+  private handleResize(width: number, height: number): void {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
-    
-    // 更新渐变背景纹理尺寸（如果需要）
-    if (this.scene.background instanceof THREE.Texture) {
-      // 渐变背景是固定的，不需要更新
-    }
   }
 
   private animate(): void {
@@ -185,7 +203,11 @@ export class ThreeRenderer {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
     }
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    // 断开 ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
     this.clear();
     this.renderer.dispose();
     this.controls.dispose();
