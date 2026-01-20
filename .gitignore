@@ -5,3 +5,4 @@ source/emsdk/
 *.log
 examples/dist/
 examples/node_modules/
+build_test/

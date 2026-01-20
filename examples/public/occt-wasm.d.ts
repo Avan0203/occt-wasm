@@ -1,5 +1,6 @@
 // TypeScript bindings for emscripten-generated code.  Automatically generated at compile time.
 interface WasmModule {
+  _main(_0: number, _1: number): number;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
@@ -284,6 +285,7 @@ export interface TopoDS_Face extends TopoDS_Shape {
 }
 
 export interface TopoDS_Edge extends TopoDS_Shape {
+  getCurveType(): GeomAbs_CurveType;
 }
 
 export interface TopoDS_Vertex extends TopoDS_Shape {
@@ -310,6 +312,11 @@ export interface TopAbs_OrientationValue<T extends number> {
   value: T;
 }
 export type TopAbs_Orientation = TopAbs_OrientationValue<0>|TopAbs_OrientationValue<1>|TopAbs_OrientationValue<2>|TopAbs_OrientationValue<3>;
+
+export interface GeomAbs_CurveTypeValue<T extends number> {
+  value: T;
+}
+export type GeomAbs_CurveType = GeomAbs_CurveTypeValue<0>|GeomAbs_CurveTypeValue<1>|GeomAbs_CurveTypeValue<2>|GeomAbs_CurveTypeValue<3>|GeomAbs_CurveTypeValue<4>|GeomAbs_CurveTypeValue<5>|GeomAbs_CurveTypeValue<6>|GeomAbs_CurveTypeValue<7>|GeomAbs_CurveTypeValue<8>;
 
 export interface BRepBuilderAPI_Command extends ClassHandle {
   isDone(): boolean;
@@ -375,6 +382,14 @@ export interface Uint32Vector extends ClassHandle {
   size(): number;
   get(_0: number): number | undefined;
   set(_0: number, _1: number): boolean;
+}
+
+export interface StringVector extends ClassHandle {
+  push_back(_0: EmbindString): void;
+  resize(_0: number, _1: EmbindString): void;
+  size(): number;
+  get(_0: number): string | undefined;
+  set(_0: number, _1: EmbindString): boolean;
 }
 
 export type MeshResult = {
@@ -500,6 +515,7 @@ interface EmbindModule {
   };
   TopAbs_ShapeEnum: {TopAbs_COMPOUND: TopAbs_ShapeEnumValue<0>, TopAbs_COMPSOLID: TopAbs_ShapeEnumValue<1>, TopAbs_SOLID: TopAbs_ShapeEnumValue<2>, TopAbs_SHELL: TopAbs_ShapeEnumValue<3>, TopAbs_FACE: TopAbs_ShapeEnumValue<4>, TopAbs_WIRE: TopAbs_ShapeEnumValue<5>, TopAbs_EDGE: TopAbs_ShapeEnumValue<6>, TopAbs_VERTEX: TopAbs_ShapeEnumValue<7>};
   TopAbs_Orientation: {TopAbs_FORWARD: TopAbs_OrientationValue<0>, TopAbs_REVERSED: TopAbs_OrientationValue<1>, TopAbs_INTERNAL: TopAbs_OrientationValue<2>, TopAbs_EXTERNAL: TopAbs_OrientationValue<3>};
+  GeomAbs_CurveType: {GeomAbs_Line: GeomAbs_CurveTypeValue<0>, GeomAbs_Circle: GeomAbs_CurveTypeValue<1>, GeomAbs_Ellipse: GeomAbs_CurveTypeValue<2>, GeomAbs_Hyperbola: GeomAbs_CurveTypeValue<3>, GeomAbs_Parabola: GeomAbs_CurveTypeValue<4>, GeomAbs_BezierCurve: GeomAbs_CurveTypeValue<5>, GeomAbs_BSplineCurve: GeomAbs_CurveTypeValue<6>, GeomAbs_OffsetCurve: GeomAbs_CurveTypeValue<7>, GeomAbs_OtherCurve: GeomAbs_CurveTypeValue<8>};
   BRepBuilderAPI_Command: {};
   BRepBuilderAPI_MakeShape: {};
   BRepPrimAPI_MakeBox: {
@@ -558,6 +574,9 @@ interface EmbindModule {
   Uint32Vector: {
     new(): Uint32Vector;
   };
+  StringVector: {
+    new(): StringVector;
+  };
   MeshResultVector: {
     new(): MeshResultVector;
   };
@@ -569,8 +588,10 @@ interface EmbindModule {
     getEdges(_0: TopoDS_Shape): any;
     getFaces(_0: TopoDS_Shape): any;
     triangulateFace(_0: TopoDS_Face, _1: number, _2: number): any;
-    discretizeEdge(_0: TopoDS_Edge, _1: number): any;
+    discretizeEdge(_0: TopoDS_Edge, _1: number, _2: number): any;
     meshShape(_0: TopoDS_Shape, _1: number, _2: number): any;
+    getWires(_0: TopoDS_Shape): any;
+    shapeToBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
   };
 }
 

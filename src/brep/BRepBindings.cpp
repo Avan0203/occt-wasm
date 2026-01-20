@@ -15,6 +15,9 @@
 #include <TopExp_Explorer.hxx>
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <GeomAbs_CurveType.hxx>
+#include <BRep_Tool.hxx>
 #include <emscripten/bind.h>
 
 using namespace emscripten;
@@ -103,6 +106,15 @@ val getChildren(const TopoDS_Shape& shape) {
         result.set(index++, it.Value());
     }
     return result;
+}
+
+// Helper function to get curve type of an edge
+GeomAbs_CurveType getCurveType(const TopoDS_Edge& edge) {
+    if (BRep_Tool::Degenerated(edge)) {
+        return GeomAbs_OtherCurve;
+    }
+    BRepAdaptor_Curve curve(edge);
+    return curve.GetType();
 }
 
 void registerBindings() {
@@ -220,6 +232,7 @@ void registerBindings() {
     class_<TopoDS_Edge, base<TopoDS_Shape>>("TopoDS_Edge")
         .constructor<>()
         .constructor<const TopoDS_Edge&>()
+        .function("getCurveType", &getCurveType)
         ;
 
     // ========== Vertex (TopoDS_Vertex) ==========
@@ -270,6 +283,19 @@ void registerBindings() {
         .value("TopAbs_REVERSED", TopAbs_REVERSED)
         .value("TopAbs_INTERNAL", TopAbs_INTERNAL)
         .value("TopAbs_EXTERNAL", TopAbs_EXTERNAL)
+        ;
+
+    // ========== CurveType enum ==========
+    enum_<GeomAbs_CurveType>("GeomAbs_CurveType")
+        .value("GeomAbs_Line", GeomAbs_Line)
+        .value("GeomAbs_Circle", GeomAbs_Circle)
+        .value("GeomAbs_Ellipse", GeomAbs_Ellipse)
+        .value("GeomAbs_Hyperbola", GeomAbs_Hyperbola)
+        .value("GeomAbs_Parabola", GeomAbs_Parabola)
+        .value("GeomAbs_BezierCurve", GeomAbs_BezierCurve)
+        .value("GeomAbs_BSplineCurve", GeomAbs_BSplineCurve)
+        .value("GeomAbs_OffsetCurve", GeomAbs_OffsetCurve)
+        .value("GeomAbs_OtherCurve", GeomAbs_OtherCurve)
         ;
 }
 
