@@ -27,38 +27,25 @@ struct EdgeDiscretizationResult {
 
 // BRep result structures
 struct BRepVertex {
-    std::string hash;
-    std::vector<float> value;          // [x, y, z]
-    bool isBRep;                       // true for original BRep vertices, false for discretized vertices
+    std::vector<float> position;       // [x, y, z]
     TopoDS_Vertex shape;               // pointer to TopoDS_Vertex or null (empty shape)
 };
 
 struct BRepEdge {
-    std::string hash;
-    std::string start;                 // hash of start vertex
-    std::string end;                   // hash of end vertex
-    std::vector<std::string> value;    // complete discretized segment data, vertex hashes from start to end
+    std::vector<float> position;       // [x1,y1,z1, x2,y2,z2, ...] - discretized edge points
     GeomAbs_CurveType type;            // curve type enum
-    TopoDS_Edge shape;                 // pointer to TopoDS_Edge
-};
-
-struct BRepWire {
-    std::string hash;
-    std::vector<std::string> value;    // edges hashes
-    TopoDS_Wire shape;                 // pointer to TopoDS_Wire
+    TopoDS_Edge shape;                 // pointer to TopoDS_Edge or null (empty shape)
 };
 
 struct BRepFace {
-    std::string hash;
-    std::vector<std::string> path;     // outer wire hashes
-    std::vector<std::string> holes;    // hole wire hashes
-    TopoDS_Face shape;                 // pointer to TopoDS_Face
+    std::vector<float> position;       // [x1,y1,z1, x2,y2,z2, ...] - triangulated mesh vertices
+    std::vector<uint32_t> index;       // [i1,i2,i3, i4,i5,i6, ...] - triangle indices
+    TopoDS_Face shape;                 // pointer to TopoDS_Face or null (empty shape)
 };
 
 struct BRepResult {
     std::vector<BRepVertex> vertices;
     std::vector<BRepEdge> edges;
-    std::vector<BRepWire> wires;
     std::vector<BRepFace> faces;
 };
 
@@ -81,6 +68,12 @@ public:
     
     // Generate BRep result from a shape
     static BRepResult shapeToBRepResult(const TopoDS_Shape& shape, double lineDeflection = 0.01, double angleDeviation = 0.5);
+    
+    // Triangulate a polygon with holes using Delaunay triangulation
+    // path: outer boundary points [x1,y1,z1, x2,y2,z2, ...]
+    // holes: array of hole boundaries, each hole is [x1,y1,z1, x2,y2,z2, ...]
+    // Returns MeshResult with positions and indices
+    static MeshResult triangulatePolygon(const std::vector<float>& path, const std::vector<std::vector<float>>& holes, double deflection = 0.01);
 };
 
 #endif // MESHER_H

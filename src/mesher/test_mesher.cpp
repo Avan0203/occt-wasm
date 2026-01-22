@@ -11,62 +11,44 @@ void printBRepResult(const BRepResult& result) {
     std::cout << "\n--- Vertices (" << result.vertices.size() << ") ---" << std::endl;
     for (size_t i = 0; i < result.vertices.size(); ++i) {
         const auto& v = result.vertices[i];
-        std::cout << "  [" << i << "] hash: " << v.hash 
-                  << ", value: [" << std::fixed << std::setprecision(3)
-                  << v.value[0] << ", " << v.value[1] << ", " << v.value[2] << "]"
-                  << ", isBRep: " << (v.isBRep ? "true" : "false")
-                  << ", shape: " << (v.shape.IsNull() ? "null" : "TopoDS_Vertex") << std::endl;
+        if (v.position.size() >= 3) {
+            std::cout << "  [" << i << "] position: [" << std::fixed << std::setprecision(3)
+                      << v.position[0] << ", " << v.position[1] << ", " << v.position[2] << "]"
+                      << ", shape: " << (v.shape.IsNull() ? "null" : "TopoDS_Vertex") << std::endl;
+        }
     }
     
     std::cout << "\n--- Edges (" << result.edges.size() << ") ---" << std::endl;
     for (size_t i = 0; i < result.edges.size(); ++i) {
         const auto& e = result.edges[i];
-        std::cout << "  [" << i << "] hash: " << e.hash 
-                  << ", type: " << static_cast<int>(e.type)
-                  << ", start: " << e.start << ", end: " << e.end
-                  << ", polyline size: " << e.value.size()
+        size_t pointCount = e.position.size() / 3;
+        std::cout << "  [" << i << "] type: " << static_cast<int>(e.type)
+                  << ", points: " << pointCount
                   << ", shape: " << (e.shape.IsNull() ? "null" : "TopoDS_Edge") << std::endl;
-        if (e.value.size() <= 10) {
-            std::cout << "    polyline: ";
-            for (const auto& vh : e.value) {
-                std::cout << vh << " ";
+        if (pointCount <= 5 && e.position.size() >= 3) {
+            std::cout << "    position: ";
+            for (size_t j = 0; j < e.position.size(); j += 3) {
+                if (j > 0) std::cout << " -> ";
+                std::cout << "[" << std::fixed << std::setprecision(2)
+                          << e.position[j] << ", " << e.position[j+1] << ", " << e.position[j+2] << "]";
             }
             std::cout << std::endl;
         }
     }
     
-    std::cout << "\n--- Wires (" << result.wires.size() << ") ---" << std::endl;
-    for (size_t i = 0; i < result.wires.size(); ++i) {
-        const auto& w = result.wires[i];
-        std::cout << "  [" << i << "] hash: " << w.hash 
-                  << ", edges (" << w.value.size() << "): ";
-        for (const auto& eh : w.value) {
-            std::cout << eh << " ";
-        }
-        std::cout << ", shape: " << (w.shape.IsNull() ? "null" : "TopoDS_Wire") << std::endl;
-    }
-    
     std::cout << "\n--- Faces (" << result.faces.size() << ") ---" << std::endl;
     for (size_t i = 0; i < result.faces.size(); ++i) {
         const auto& f = result.faces[i];
-        std::cout << "  [" << i << "] hash: " << f.hash 
+        size_t vertexCount = f.position.size() / 3;
+        size_t triangleCount = f.index.size() / 3;
+        std::cout << "  [" << i << "] vertices: " << vertexCount
+                  << ", triangles: " << triangleCount
                   << ", shape: " << (f.shape.IsNull() ? "null" : "TopoDS_Face") << std::endl;
-        std::cout << "    path (" << f.path.size() << "): ";
-        for (const auto& wh : f.path) {
-            std::cout << wh << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "    holes (" << f.holes.size() << "): ";
-        for (const auto& wh : f.holes) {
-            std::cout << wh << " ";
-        }
-        std::cout << std::endl;
     }
     
     std::cout << "\n========== Summary ==========" << std::endl;
     std::cout << "Total vertices: " << result.vertices.size() << std::endl;
     std::cout << "Total edges: " << result.edges.size() << std::endl;
-    std::cout << "Total wires: " << result.wires.size() << std::endl;
     std::cout << "Total faces: " << result.faces.size() << std::endl;
 }
 

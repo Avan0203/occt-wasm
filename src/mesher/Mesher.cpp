@@ -21,6 +21,9 @@
 #include <BRepTools_WireExplorer.hxx>
 #include <ShapeAnalysis.hxx>
 #include <Geom_Curve.hxx>
+#include <BRepBuilderAPI_MakePolygon.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <Geom_Plane.hxx>
 #include <sstream>
 #include <iomanip>
 #include <unordered_map>
@@ -331,20 +334,6 @@ MeshResult Mesher::meshShape(const TopoDS_Shape& shape, double lineDeflection, d
     return result;
 }
 
-// Helper function to generate 6-digit hex hash (like color code)
-static std::string generateHexHash(int counter) {
-    std::ostringstream ss;
-    ss << std::hex << std::uppercase << std::setfill('0') << std::setw(6) << counter;
-    return ss.str();
-}
-
-// Helper function to generate hash string from coordinates (used for checking duplicates)
-static std::string coordinateHash(float x, float y, float z) {
-    std::ostringstream ss;
-    ss << std::fixed << std::setprecision(6)
-       << x << "_" << y << "_" << z;
-    return ss.str();
-}
 
 // Helper function to get curve type of an edge
 static GeomAbs_CurveType getCurveType(const TopoDS_Edge& edge) {
@@ -358,145 +347,190 @@ static GeomAbs_CurveType getCurveType(const TopoDS_Edge& edge) {
 BRepResult Mesher::shapeToBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
     BRepResult result;
 
-    // ===== Hash counter (6-digit hex, starting from 1) =====
-    int hashCounter = 1;
-
-    // ===== IndexedMap（唯一正确的 ID 系统） =====
-    TopTools_IndexedMapOfShape vMap, eMap, wMap, fMap;
-    TopExp::MapShapes(shape, TopAbs_VERTEX, vMap);
-    TopExp::MapShapes(shape, TopAbs_EDGE,   eMap);
-    TopExp::MapShapes(shape, TopAbs_WIRE,   wMap);
-    TopExp::MapShapes(shape, TopAbs_FACE,   fMap);
-
-    // ===== Vertex =====
-    std::unordered_map<int, std::string> vertexIndexToHash;  // Map from IndexedMap index to hash
-    for (int i = 1; i <= vMap.Extent(); ++i) {
-        TopoDS_Vertex v = TopoDS::Vertex(vMap(i));
+    // ===== Extract all vertices =====
+    std::vector<TopoDS_Vertex> vertices = getVertices(shape);
+    for (const TopoDS_Vertex& v : vertices) {
         gp_Pnt p = BRep_Tool::Pnt(v);
-
-        BRepVertex out;
-        out.hash = generateHexHash(hashCounter++);
-        out.value = { (float)p.X(), (float)p.Y(), (float)p.Z() };
-        out.isBRep = true;
-        out.shape = v;  // Set shape to TopoDS_Vertex
-
-        result.vertices.push_back(out);
-        vertexIndexToHash[i] = out.hash;
+        BRepVertex brepVertex;
+        brepVertex.position = { (float)p.X(), (float)p.Y(), (float)p.Z() };
+        brepVertex.shape = v;
+        result.vertices.push_back(brepVertex);
     }
 
-    // ===== Edge =====
-    std::unordered_map<int, std::string> edgeIndexToHash;  // Map from IndexedMap index to hash
-
-    for (int i = 1; i <= eMap.Extent(); ++i) {
-        TopoDS_Edge edge = TopoDS::Edge(eMap(i));
-        if (BRep_Tool::Degenerated(edge)) continue;
+    // ===== Extract and discretize all edges =====
+    std::vector<TopoDS_Edge> edges = getEdges(shape);
+    for (const TopoDS_Edge& edge : edges) {
+        if (BRep_Tool::Degenerated(edge)) {
+            continue;
+        }
 
         // Discretize edge to get all points
         EdgeDiscretizationResult disc = discretizeEdge(edge, lineDeflection, angleDeviation);
-        if (disc.positions.size() < 6) continue; // Need at least 2 points (6 floats)
-
-        BRepEdge out;
-        out.hash = generateHexHash(hashCounter++);
-        out.type = getCurveType(edge);
-        out.shape = edge;  // Set shape to TopoDS_Edge
-
-        std::vector<std::string> polyline;
-
-        // Process all discretized points
-        for (size_t k = 0; k < disc.positions.size(); k += 3) {
-            float x = disc.positions[k];
-            float y = disc.positions[k + 1];
-            float z = disc.positions[k + 2];
-
-            // Check if this vertex already exists (check both BRep and non-BRep vertices)
-            bool found = false;
-            std::string vh;
-            for (auto& v : result.vertices) {
-                if (v.value.size() == 3 &&
-                    std::abs(v.value[0] - x) < 1e-6 &&
-                    std::abs(v.value[1] - y) < 1e-6 &&
-                    std::abs(v.value[2] - z) < 1e-6) {
-                    vh = v.hash;
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                BRepVertex discVertex;
-                discVertex.hash = generateHexHash(hashCounter++);
-                discVertex.value = { x, y, z };
-                discVertex.isBRep = false;
-                discVertex.shape = TopoDS_Vertex();  // Empty shape (null)
-                result.vertices.push_back(discVertex);
-                vh = discVertex.hash;
-            }
-
-            polyline.push_back(vh);
+        if (disc.positions.size() < 6) { // Need at least 2 points (6 floats)
+            continue;
         }
 
-        // Set start and end from polyline
-        if (!polyline.empty()) {
-            out.start = polyline.front();
-            out.end   = polyline.back();
-        }
-        out.value = polyline;
-
-        result.edges.push_back(out);
-        edgeIndexToHash[i] = out.hash;
+        BRepEdge brepEdge;
+        brepEdge.position = disc.positions; // Direct copy of discretized positions
+        brepEdge.type = getCurveType(edge);
+        brepEdge.shape = edge;
+        result.edges.push_back(brepEdge);
     }
 
-    // ===== Wire（顺序必须用 WireExplorer） =====
-    std::unordered_map<int, std::string> wireIndexToHash;  // Map from IndexedMap index to hash
-    for (int i = 1; i <= wMap.Extent(); ++i) {
-        TopoDS_Wire wire = TopoDS::Wire(wMap(i));
-
-        BRepWire out;
-        out.hash = generateHexHash(hashCounter++);
-        out.shape = wire;  // Set shape to TopoDS_Wire
-
-        BRepTools_WireExplorer we(wire);
-        for (; we.More(); we.Next()) {
-            int eIdx = eMap.FindIndex(we.Current());
-            if (eIdx > 0 && edgeIndexToHash.count(eIdx)) {
-                out.value.push_back(edgeIndexToHash[eIdx]);
-            }
+    // ===== Extract and triangulate all faces =====
+    std::vector<TopoDS_Face> faces = getFaces(shape);
+    for (const TopoDS_Face& face : faces) {
+        // Triangulate the face
+        MeshResult meshResult = triangulateFace(face, lineDeflection, angleDeviation);
+        
+        if (meshResult.positions.empty() || meshResult.indices.empty()) {
+            continue;
         }
 
-        if (!out.value.empty()) {
-            result.wires.push_back(out);
-            wireIndexToHash[i] = out.hash;
-        }
+        BRepFace brepFace;
+        brepFace.position = meshResult.positions; // Triangulated mesh vertices
+        brepFace.index = meshResult.indices;      // Triangle indices
+        brepFace.shape = face;
+        result.faces.push_back(brepFace);
     }
 
-    // ===== Face =====
-    for (int i = 1; i <= fMap.Extent(); ++i) {
-        TopoDS_Face face = TopoDS::Face(fMap(i));
+    return result;
+}
 
-        BRepFace out;
-        out.hash = generateHexHash(hashCounter++);
-        out.shape = face;  // Set shape to TopoDS_Face
-
-        TopoDS_Wire outer = ShapeAnalysis::OuterWire(face);
-
-        TopExp_Explorer ex(face, TopAbs_WIRE);
-        for (; ex.More(); ex.Next()) {
-            TopoDS_Wire w = TopoDS::Wire(ex.Current());
-            int wIdx = wMap.FindIndex(w);
-            if (wIdx <= 0 || !wireIndexToHash.count(wIdx)) continue;
-
-            std::string wh = wireIndexToHash[wIdx];
-            if (w.IsSame(outer)) {
-                out.path.push_back(wh);
-            } else {
-                out.holes.push_back(wh);
+MeshResult Mesher::triangulatePolygon(const std::vector<float>& path, const std::vector<std::vector<float>>& holes, double deflection) {
+    MeshResult result;
+    
+    // Validate input
+    if (path.size() < 9) { // Need at least 3 points (3 * 3 coordinates)
+        return result; // Return empty result
+    }
+    
+    if (path.size() % 3 != 0) {
+        return result; // Invalid point data
+    }
+    
+    try {
+        // Create outer boundary wire from path points
+        BRepBuilderAPI_MakePolygon outerPolygon;
+        Standard_Integer nbPoints = static_cast<Standard_Integer>(path.size() / 3);
+        
+        for (Standard_Integer i = 0; i < nbPoints; i++) {
+            Standard_Real x = static_cast<Standard_Real>(path[i * 3]);
+            Standard_Real y = static_cast<Standard_Real>(path[i * 3 + 1]);
+            Standard_Real z = static_cast<Standard_Real>(path[i * 3 + 2]);
+            outerPolygon.Add(gp_Pnt(x, y, z));
+        }
+        outerPolygon.Close();
+        
+        if (!outerPolygon.IsDone()) {
+            return result;
+        }
+        
+        TopoDS_Wire outerWire = outerPolygon.Wire();
+        
+        // Create face from outer wire
+        // Use the first three points to define a plane
+        gp_Pnt p1(static_cast<Standard_Real>(path[0]), 
+                  static_cast<Standard_Real>(path[1]), 
+                  static_cast<Standard_Real>(path[2]));
+        gp_Pnt p2(static_cast<Standard_Real>(path[3]), 
+                  static_cast<Standard_Real>(path[4]), 
+                  static_cast<Standard_Real>(path[5]));
+        gp_Pnt p3(static_cast<Standard_Real>(path[6]), 
+                  static_cast<Standard_Real>(path[7]), 
+                  static_cast<Standard_Real>(path[8]));
+        
+        gp_Vec v1(p1, p2);
+        gp_Vec v2(p1, p3);
+        gp_Vec normal = v1.Crossed(v2);
+        
+        Handle(Geom_Plane) geomPlane;
+        if (normal.Magnitude() < Precision::Confusion()) {
+            // Points are collinear, use default plane
+            geomPlane = new Geom_Plane(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1));
+        } else {
+            // Create plane from the three points
+            normal.Normalize();
+            gp_Pln plane(p1, gp_Dir(normal));
+            geomPlane = new Geom_Plane(plane);
+        }
+        
+        BRepBuilderAPI_MakeFace faceMaker(geomPlane, outerWire);
+        
+        // Add holes
+        for (const auto& hole : holes) {
+            if (hole.size() < 9 || hole.size() % 3 != 0) {
+                continue; // Skip invalid holes
+            }
+            
+            BRepBuilderAPI_MakePolygon holePolygon;
+            Standard_Integer nbHolePoints = static_cast<Standard_Integer>(hole.size() / 3);
+            
+            for (Standard_Integer i = 0; i < nbHolePoints; i++) {
+                Standard_Real x = static_cast<Standard_Real>(hole[i * 3]);
+                Standard_Real y = static_cast<Standard_Real>(hole[i * 3 + 1]);
+                Standard_Real z = static_cast<Standard_Real>(hole[i * 3 + 2]);
+                holePolygon.Add(gp_Pnt(x, y, z));
+            }
+            holePolygon.Close();
+            
+            if (holePolygon.IsDone()) {
+                faceMaker.Add(holePolygon.Wire());
             }
         }
-
-        if (!out.path.empty()) {
-            result.faces.push_back(out);
+        
+        if (!faceMaker.IsDone()) {
+            return result;
+        }
+        
+        TopoDS_Face face = faceMaker.Face();
+        
+        // Triangulate the face using OCCT's Delaunay triangulation
+        BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, 0.5, Standard_True);
+        
+        // Extract triangulation result
+        TopLoc_Location location;
+        Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(face, location);
+        
+        if (triangulation.IsNull()) {
+            return result;
+        }
+        
+        // Apply transformation if needed
+        gp_Trsf trsf = location.Transformation();
+        Standard_Boolean hasTransform = (trsf.Form() != gp_Identity);
+        
+        Standard_Integer nbNodes = triangulation->NbNodes();
+        Standard_Integer nbTriangles = triangulation->NbTriangles();
+        
+        result.positions.reserve(nbNodes * 3);
+        result.indices.reserve(nbTriangles * 3);
+        
+        // Extract positions
+        for (Standard_Integer i = 1; i <= nbNodes; i++) {
+            gp_Pnt pnt = triangulation->Node(i);
+            if (hasTransform) {
+                pnt.Transform(trsf);
+            }
+            result.positions.push_back(static_cast<float>(pnt.X()));
+            result.positions.push_back(static_cast<float>(pnt.Y()));
+            result.positions.push_back(static_cast<float>(pnt.Z()));
+        }
+        
+        // Extract indices (convert from 1-based to 0-based)
+        for (Standard_Integer i = 1; i <= nbTriangles; i++) {
+            Poly_Triangle triangle = triangulation->Triangle(i);
+            Standard_Integer n1, n2, n3;
+            triangle.Get(n1, n2, n3);
+            result.indices.push_back(static_cast<uint32_t>(n1 - 1));
+            result.indices.push_back(static_cast<uint32_t>(n2 - 1));
+            result.indices.push_back(static_cast<uint32_t>(n3 - 1));
         }
     }
-
+    catch (Standard_Failure const&) {
+        // Return empty result on failure
+        return result;
+    }
+    
     return result;
 }

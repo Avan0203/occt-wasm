@@ -5571,11 +5571,27 @@ function __emval_get_global(name) {
   return Emval.toHandle(globalThis[name]);
 }
 
+function __emval_get_property(handle, key) {
+  handle >>>= 0;
+  key >>>= 0;
+  handle = Emval.toValue(handle);
+  key = Emval.toValue(key);
+  return Emval.toHandle(handle[key]);
+}
+
 function __emval_incref(handle) {
   handle >>>= 0;
   if (handle > 9) {
     emval_handles[handle + 1] += 1;
   }
+}
+
+function __emval_instanceof(object, constructor) {
+  object >>>= 0;
+  constructor >>>= 0;
+  object = Emval.toValue(object);
+  constructor = Emval.toValue(constructor);
+  return object instanceof constructor;
 }
 
 function __emval_invoke(caller, handle, methodName, destructorsRef, args) {
@@ -6187,7 +6203,9 @@ var wasmImports = {
   /** @export */ _emval_create_invoker: __emval_create_invoker,
   /** @export */ _emval_decref: __emval_decref,
   /** @export */ _emval_get_global: __emval_get_global,
+  /** @export */ _emval_get_property: __emval_get_property,
   /** @export */ _emval_incref: __emval_incref,
+  /** @export */ _emval_instanceof: __emval_instanceof,
   /** @export */ _emval_invoke: __emval_invoke,
   /** @export */ _emval_new_array: __emval_new_array,
   /** @export */ _emval_new_cstring: __emval_new_cstring,

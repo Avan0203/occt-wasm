@@ -45,10 +45,16 @@ val vectorToTypedArray<uint32_t>(const std::vector<uint32_t>& vec) {
 // Convert MeshResult to JavaScript object
 val meshResultToObject(const MeshResult& result) {
     val obj = val::object();
-    obj.set("positions", vectorToTypedArray(result.positions));
-    obj.set("indices", vectorToTypedArray(result.indices));
-    obj.set("normals", vectorToTypedArray(result.normals));
-    obj.set("uvs", vectorToTypedArray(result.uvs));
+    // Always set positions and indices, even if empty (use empty arrays instead of null)
+    val positionsVal = vectorToTypedArray(result.positions);
+    val indicesVal = vectorToTypedArray(result.indices);
+    val normalsVal = vectorToTypedArray(result.normals);
+    val uvsVal = vectorToTypedArray(result.uvs);
+    
+    obj.set("positions", positionsVal.isNull() ? val::global("Float32Array").new_(0) : positionsVal);
+    obj.set("indices", indicesVal.isNull() ? val::global("Uint32Array").new_(0) : indicesVal);
+    obj.set("normals", normalsVal.isNull() ? val::global("Float32Array").new_(0) : normalsVal);
+    obj.set("uvs", uvsVal.isNull() ? val::global("Float32Array").new_(0) : uvsVal);
     return obj;
 }
 
@@ -92,13 +98,11 @@ val brepResultToObject(const BRepResult& result) {
     val vertices = val::array();
     for (const auto& v : result.vertices) {
         val vertex = val::object();
-        vertex.set("hash", v.hash);
-        val value = val::array();
-        for (float coord : v.value) {
-            value.call<void>("push", coord);
+        val position = val::array();
+        for (float coord : v.position) {
+            position.call<void>("push", coord);
         }
-        vertex.set("value", value);
-        vertex.set("isBRep", v.isBRep);
+        vertex.set("position", position);
         // Set shape: TopoDS_Vertex or null
         if (v.shape.IsNull()) {
             vertex.set("shape", val::null());
@@ -113,14 +117,8 @@ val brepResultToObject(const BRepResult& result) {
     val edges = val::array();
     for (const auto& e : result.edges) {
         val edge = val::object();
-        edge.set("hash", e.hash);
-        edge.set("start", e.start);
-        edge.set("end", e.end);
-        val value = val::array();
-        for (const std::string& hash : e.value) {
-            value.call<void>("push", hash);
-        }
-        edge.set("value", value);
+        val position = vectorToTypedArray(e.position);
+        edge.set("position", position.isNull() ? val::global("Float32Array").new_(0) : position);
         edge.set("type", static_cast<int>(e.type));
         // Set shape: TopoDS_Edge or null
         if (e.shape.IsNull()) {
@@ -132,41 +130,14 @@ val brepResultToObject(const BRepResult& result) {
     }
     obj.set("edges", edges);
     
-    // Convert wires
-    val wires = val::array();
-    for (const auto& w : result.wires) {
-        val wire = val::object();
-        wire.set("hash", w.hash);
-        val value = val::array();
-        for (const std::string& hash : w.value) {
-            value.call<void>("push", hash);
-        }
-        wire.set("value", value);
-        // Set shape: TopoDS_Wire or null
-        if (w.shape.IsNull()) {
-            wire.set("shape", val::null());
-        } else {
-            wire.set("shape", w.shape);
-        }
-        wires.call<void>("push", wire);
-    }
-    obj.set("wires", wires);
-    
     // Convert faces
     val faces = val::array();
     for (const auto& f : result.faces) {
         val face = val::object();
-        face.set("hash", f.hash);
-        val path = val::array();
-        for (const std::string& hash : f.path) {
-            path.call<void>("push", hash);
-        }
-        face.set("path", path);
-        val holes = val::array();
-        for (const std::string& hash : f.holes) {
-            holes.call<void>("push", hash);
-        }
-        face.set("holes", holes);
+        val position = vectorToTypedArray(f.position);
+        val index = vectorToTypedArray(f.index);
+        face.set("position", position.isNull() ? val::global("Float32Array").new_(0) : position);
+        face.set("index", index.isNull() ? val::global("Uint32Array").new_(0) : index);
         // Set shape: TopoDS_Face or null
         if (f.shape.IsNull()) {
             face.set("shape", val::null());
@@ -184,7 +155,6 @@ void registerBindings() {
     // Register vector types for use in value objects
     register_vector<float>("FloatVector");
     register_vector<uint32_t>("Uint32Vector");
-    register_vector<std::string>("StringVector");
     
     // ========== MeshResult ==========
     value_object<MeshResult>("MeshResult")
@@ -248,6 +218,57 @@ void registerBindings() {
             optional_override([](const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) -> val {
                 BRepResult result = Mesher::shapeToBRepResult(shape, lineDeflection, angleDeviation);
                 return brepResultToObject(result);
+            }))
+        .class_function("triangulatePolygon",
+            optional_override([](val pathArray, val holesArray, double deflection) -> val {
+                // Convert JavaScript array (or TypedArray) to std::vector<float>
+                std::vector<float> path;
+                if (!pathArray.isNull()) {
+                    // Check if it's an array or TypedArray
+                    bool isArray = pathArray.isArray();
+                    bool isTypedArray = pathArray.instanceof(val::global("Float32Array")) ||
+                                       pathArray.instanceof(val::global("Array"));
+                    
+                    if (isArray || isTypedArray) {
+                        Standard_Integer length = pathArray["length"].as<Standard_Integer>();
+                        if (length > 0) {
+                            path.reserve(length);
+                            for (Standard_Integer i = 0; i < length; i++) {
+                                path.push_back(pathArray[i].as<float>());
+                            }
+                        }
+                    }
+                }
+                
+                // Convert JavaScript array of arrays to std::vector<std::vector<float>>
+                std::vector<std::vector<float>> holes;
+                if (!holesArray.isNull() && holesArray.isArray()) {
+                    Standard_Integer nbHoles = holesArray["length"].as<Standard_Integer>();
+                    holes.reserve(nbHoles);
+                    for (Standard_Integer i = 0; i < nbHoles; i++) {
+                        val holeArray = holesArray[i];
+                        if (!holeArray.isNull()) {
+                            bool isHoleArray = holeArray.isArray();
+                            bool isHoleTypedArray = holeArray.instanceof(val::global("Float32Array")) ||
+                                                   holeArray.instanceof(val::global("Array"));
+                            
+                            if (isHoleArray || isHoleTypedArray) {
+                                std::vector<float> hole;
+                                Standard_Integer holeLength = holeArray["length"].as<Standard_Integer>();
+                                if (holeLength > 0) {
+                                    hole.reserve(holeLength);
+                                    for (Standard_Integer j = 0; j < holeLength; j++) {
+                                        hole.push_back(holeArray[j].as<float>());
+                                    }
+                                    holes.push_back(hole);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                MeshResult result = Mesher::triangulatePolygon(path, holes, deflection);
+                return meshResultToObject(result);
             }))
         ;
 }

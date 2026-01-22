@@ -384,14 +384,6 @@ export interface Uint32Vector extends ClassHandle {
   set(_0: number, _1: number): boolean;
 }
 
-export interface StringVector extends ClassHandle {
-  push_back(_0: EmbindString): void;
-  resize(_0: number, _1: EmbindString): void;
-  size(): number;
-  get(_0: number): string | undefined;
-  set(_0: number, _1: EmbindString): boolean;
-}
-
 export type MeshResult = {
   positions: FloatVector,
   indices: Uint32Vector,
@@ -574,9 +566,6 @@ interface EmbindModule {
   Uint32Vector: {
     new(): Uint32Vector;
   };
-  StringVector: {
-    new(): StringVector;
-  };
   MeshResultVector: {
     new(): MeshResultVector;
   };
@@ -592,6 +581,7 @@ interface EmbindModule {
     meshShape(_0: TopoDS_Shape, _1: number, _2: number): any;
     getWires(_0: TopoDS_Shape): any;
     shapeToBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
+    triangulatePolygon(_0: any, _1: any, _2: number): any;
   };
 }
 
