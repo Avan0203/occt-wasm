@@ -136,8 +136,10 @@ val brepResultToObject(const BRepResult& result) {
         val face = val::object();
         val position = vectorToTypedArray(f.position);
         val index = vectorToTypedArray(f.index);
+        val uvs = vectorToTypedArray(f.uvs);
         face.set("position", position.isNull() ? val::global("Float32Array").new_(0) : position);
         face.set("index", index.isNull() ? val::global("Uint32Array").new_(0) : index);
+        face.set("uvs", uvs.isNull() ? val::global("Float32Array").new_(0) : uvs);
         // Set shape: TopoDS_Face or null
         if (f.shape.IsNull()) {
             face.set("shape", val::null());

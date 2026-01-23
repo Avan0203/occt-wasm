@@ -1,11 +1,13 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 
 export class ThreeRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private controls: OrbitControls;
+  private controls: TrackballControls;
   private container: HTMLElement;
   private animationId: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -32,9 +34,10 @@ export class ThreeRenderer {
     container.appendChild(this.renderer.domElement);
 
     // 创建控制器
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    this.controls = new TrackballControls(this.camera, this.renderer.domElement);
+    this.controls.rotateSpeed = 5.0;
+    this.controls.zoomSpeed = 0.8;
+    this.controls.dynamicDampingFactor = 0.2;
 
     // 添加灯光
     this.setupLights();
@@ -117,6 +120,15 @@ export class ThreeRenderer {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+
+    this.scene.traverse((object) => {
+      if (object instanceof Line2 || object instanceof LineSegments2) {
+        const material = Array.isArray((object as THREE.Mesh).material) ? (object as THREE.Mesh).material as THREE.Material[] : [(object as THREE.Mesh).material];
+        material.forEach((mat) => {
+          (mat as THREE.ShaderMaterial).uniforms.resolution.value.set(width, height);
+        });
+      }
+    })
   }
 
   private animate(): void {

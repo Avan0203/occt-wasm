@@ -22,6 +22,7 @@ export interface Edge extends BRep {
 export interface Face extends BRep {
     position: number[]; // 存放顶点
     index: number[]; // 存放索引
+    uvs: number[]; // 存放UV
 }
 
 // 案例数据

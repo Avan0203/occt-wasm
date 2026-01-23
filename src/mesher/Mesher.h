@@ -40,6 +40,7 @@ struct BRepEdge {
 struct BRepFace {
     std::vector<float> position;       // [x1,y1,z1, x2,y2,z2, ...] - triangulated mesh vertices
     std::vector<uint32_t> index;       // [i1,i2,i3, i4,i5,i6, ...] - triangle indices
+    std::vector<float> uvs;            // [u1,v1, u2,v2, ...] - UV coordinates for texture mapping (optional)
     TopoDS_Face shape;                 // pointer to TopoDS_Face or null (empty shape)
 };
 

@@ -20,6 +20,8 @@
 #include <BRepTools.hxx>
 #include <BRepTools_WireExplorer.hxx>
 #include <ShapeAnalysis.hxx>
+#include <Poly_Polygon3D.hxx>
+#include <Poly_PolygonOnTriangulation.hxx>
 #include <Geom_Curve.hxx>
 #include <BRepBuilderAPI_MakePolygon.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -79,18 +81,18 @@ std::vector<TopoDS_Wire> Mesher::getWires(const TopoDS_Shape& shape) {
 MeshResult Mesher::triangulateFace(const TopoDS_Face& face, double deflection, double angleDeviation) {
     MeshResult result;
     
-    // Ensure the face has triangulation
+    // Always regenerate triangulation with the specified parameters
+    // This ensures consistency with edge discretization
     TopLoc_Location loc;
     Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(face, loc);
     
+    // Force regeneration with new parameters
+    // Note: BRepMesh_IncrementalMesh will update existing triangulation if parameters differ
+    BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, angleDeviation, Standard_True);
+    triangulation = BRep_Tool::Triangulation(face, loc);
+    
     if (triangulation.IsNull()) {
-        // Create triangulation if it doesn't exist
-        BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, angleDeviation, Standard_True);
-        triangulation = BRep_Tool::Triangulation(face, loc);
-        
-        if (triangulation.IsNull()) {
-            return result; // Return empty result
-        }
+        return result; // Return empty result
     }
     
     const gp_Trsf& trsf = loc.Transformation();
@@ -347,6 +349,11 @@ static GeomAbs_CurveType getCurveType(const TopoDS_Edge& edge) {
 BRepResult Mesher::shapeToBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
     BRepResult result;
 
+    // ===== CRITICAL: First, mesh the entire shape with unified parameters =====
+    // This ensures all edges and faces use the same discretization parameters
+    // and the edge discretization matches the face boundary discretization
+    BRepMesh_IncrementalMesh mesher(shape, lineDeflection, Standard_False, angleDeviation, Standard_True);
+
     // ===== Extract all vertices =====
     std::vector<TopoDS_Vertex> vertices = getVertices(shape);
     for (const TopoDS_Vertex& v : vertices) {
@@ -357,30 +364,79 @@ BRepResult Mesher::shapeToBRepResult(const TopoDS_Shape& shape, double lineDefle
         result.vertices.push_back(brepVertex);
     }
 
-    // ===== Extract and discretize all edges =====
+    // ===== Extract edge discretization from mesh result =====
+    // CRITICAL: Extract edges from the meshed shape to ensure consistency with face boundaries
+    // BRepMesh_IncrementalMesh has already discretized all edges with the same parameters
     std::vector<TopoDS_Edge> edges = getEdges(shape);
     for (const TopoDS_Edge& edge : edges) {
         if (BRep_Tool::Degenerated(edge)) {
             continue;
         }
 
-        // Discretize edge to get all points
-        EdgeDiscretizationResult disc = discretizeEdge(edge, lineDeflection, angleDeviation);
-        if (disc.positions.size() < 6) { // Need at least 2 points (6 floats)
+        BRepEdge brepEdge;
+        brepEdge.type = getCurveType(edge);
+        brepEdge.shape = edge;
+
+        // Try to get polygon from mesh result first (most accurate, matches face boundaries)
+        TopLoc_Location loc;
+        Handle(Poly_Polygon3D) polygon3D = BRep_Tool::Polygon3D(edge, loc);
+        
+        if (!polygon3D.IsNull()) {
+            // Extract points from Poly_Polygon3D (from mesh result)
+            const TColgp_Array1OfPnt& nodes = polygon3D->Nodes();
+            brepEdge.position.reserve(nodes.Length() * 3);
+            
+            for (Standard_Integer i = nodes.Lower(); i <= nodes.Upper(); i++) {
+                gp_Pnt pnt = nodes.Value(i);
+                if (!loc.IsIdentity()) {
+                    pnt.Transform(loc.Transformation());
+                }
+                brepEdge.position.push_back(static_cast<float>(pnt.X()));
+                brepEdge.position.push_back(static_cast<float>(pnt.Y()));
+                brepEdge.position.push_back(static_cast<float>(pnt.Z()));
+            }
+        } else {
+            // Fallback: Try PolygonOnTriangulation (for edges on faces)
+            Handle(Poly_Triangulation) triangulation;
+            Handle(Poly_PolygonOnTriangulation) polygonOnTri;
+            BRep_Tool::PolygonOnTriangulation(edge, polygonOnTri, triangulation, loc);
+            
+            if (!polygonOnTri.IsNull() && !triangulation.IsNull()) {
+                const TColStd_Array1OfInteger& indices = polygonOnTri->Nodes();
+                brepEdge.position.reserve(indices.Length() * 3);
+                
+                for (Standard_Integer i = indices.Lower(); i <= indices.Upper(); i++) {
+                    gp_Pnt pnt = triangulation->Node(indices.Value(i));
+                    if (!loc.IsIdentity()) {
+                        pnt.Transform(loc.Transformation());
+                    }
+                    brepEdge.position.push_back(static_cast<float>(pnt.X()));
+                    brepEdge.position.push_back(static_cast<float>(pnt.Y()));
+                    brepEdge.position.push_back(static_cast<float>(pnt.Z()));
+                }
+            } else {
+                // Final fallback: Use discretizeEdge (should not happen if meshing worked)
+                EdgeDiscretizationResult disc = discretizeEdge(edge, lineDeflection, angleDeviation);
+                if (disc.positions.size() >= 6) {
+                    brepEdge.position = disc.positions;
+                } else {
+                    continue; // Skip edge if we can't get points
+                }
+            }
+        }
+
+        if (brepEdge.position.size() < 6) { // Need at least 2 points (6 floats)
             continue;
         }
 
-        BRepEdge brepEdge;
-        brepEdge.position = disc.positions; // Direct copy of discretized positions
-        brepEdge.type = getCurveType(edge);
-        brepEdge.shape = edge;
         result.edges.push_back(brepEdge);
     }
 
     // ===== Extract and triangulate all faces =====
+    // After meshing, faces are already triangulated with the same parameters
     std::vector<TopoDS_Face> faces = getFaces(shape);
     for (const TopoDS_Face& face : faces) {
-        // Triangulate the face
+        // Extract triangulation (already generated with unified parameters)
         MeshResult meshResult = triangulateFace(face, lineDeflection, angleDeviation);
         
         if (meshResult.positions.empty() || meshResult.indices.empty()) {
@@ -390,6 +446,7 @@ BRepResult Mesher::shapeToBRepResult(const TopoDS_Shape& shape, double lineDefle
         BRepFace brepFace;
         brepFace.position = meshResult.positions; // Triangulated mesh vertices
         brepFace.index = meshResult.indices;      // Triangle indices
+        brepFace.uvs = meshResult.uvs;            // UV coordinates for texture mapping
         brepFace.shape = face;
         result.faces.push_back(brepFace);
     }

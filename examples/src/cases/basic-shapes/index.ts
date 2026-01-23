@@ -1,7 +1,7 @@
 import { Case, CaseContext } from '../../router';
 import { meshShape } from '../../common/occt-loader';
 import { ThreeRenderer } from '../../common/three-renderer';
-import { createGeometryFromMesh, createMeshFromGeometry } from '../../common/shape-converter';
+import { BrepMeshGroup, createBrepMesh } from '../../common/shape-converter';
 import * as THREE from 'three';
 import { MainModule } from 'public/occt-wasm';
 
@@ -18,15 +18,16 @@ const colors = {
 /**
  * 创建 Box
  */
-async function createBox(occtModule: MainModule): Promise<THREE.Mesh> {
+async function createBox(occtModule: MainModule): Promise<BrepMeshGroup> {
   const makeBox = new occtModule.BRepPrimAPI_MakeBox(2, 2, 2);
   const shape = makeBox.shape();
-  const meshData = await meshShape(shape, 1);
   shape.deleteLater();
   makeBox.deleteLater();
 
-  return createMeshFromGeometry(
-    createGeometryFromMesh(meshData),
+  console.log(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5));
+
+  return createBrepMesh(
+    occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5),
     new THREE.MeshStandardMaterial({
       color: colors.box,
       metalness: 0.3,
@@ -38,11 +39,9 @@ async function createBox(occtModule: MainModule): Promise<THREE.Mesh> {
 /**
  * 创建 Sphere
  */
-async function createSphere(occtModule: any): Promise<THREE.Mesh> {
+async function createSphere(occtModule: MainModule): Promise<BrepMeshGroup> {
   const makeSphere = new occtModule.BRepPrimAPI_MakeSphere(1.5);
   const shape = makeSphere.shape();
-  const meshData = await meshShape(shape, 1);
-  const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.sphere,
     metalness: 0.3,
@@ -50,17 +49,15 @@ async function createSphere(occtModule: any): Promise<THREE.Mesh> {
   });
   shape.deleteLater();
   makeSphere.deleteLater();
-  return createMeshFromGeometry(geometry, material);
+  return createBrepMesh(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
  * 创建 Cylinder
  */
-async function createCylinder(occtModule: any): Promise<THREE.Mesh> {
+async function createCylinder(occtModule: MainModule): Promise<BrepMeshGroup> {
   const makeCylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 3);
   const shape = makeCylinder.shape();
-  const meshData = await meshShape(shape, 1);
-  const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.cylinder,
     metalness: 0.3,
@@ -69,43 +66,39 @@ async function createCylinder(occtModule: any): Promise<THREE.Mesh> {
 
   shape.deleteLater();
   makeCylinder.deleteLater();
-  return createMeshFromGeometry(geometry, material);
+  return createBrepMesh(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
  * 创建 Cone
  */
-async function createCone(occtModule: any): Promise<THREE.Mesh> {
+async function createCone(occtModule: MainModule): Promise<BrepMeshGroup> {
   const makeCone = new occtModule.BRepPrimAPI_MakeCone(1.5, 0.5, 3);
   const shape = makeCone.shape();
-  const meshData = await meshShape(shape, 1);
   shape.deleteLater();
   makeCone.deleteLater();
-  const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.cone,
     metalness: 0.3,
     roughness: 0.7,
   });
-  return createMeshFromGeometry(geometry, material);
+  return createBrepMesh(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
  * 创建 Torus
  */
-async function createTorus(occtModule: any): Promise<THREE.Mesh> {
+async function createTorus(occtModule: any): Promise<BrepMeshGroup> {
   const makeTorus = new occtModule.BRepPrimAPI_MakeTorus(1.5, 0.5);
   const shape = makeTorus.shape();
-  const meshData = await meshShape(shape, 1);
   shape.deleteLater();
   makeTorus.deleteLater();
-  const geometry = createGeometryFromMesh(meshData);
   const material = new THREE.MeshStandardMaterial({
     color: colors.torus,
     metalness: 0.3,
     roughness: 0.7,
   });
-  return createMeshFromGeometry(geometry, material);
+  return createBrepMesh(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 
