@@ -12,6 +12,9 @@
 #include <gp_Ax3.hxx>
 #include <gp_Quaternion.hxx>
 #include <gp_EulerSequence.hxx>
+#include <gp_Lin.hxx>
+#include <gp_Circ.hxx>
+#include <gp_Pln.hxx>
 
 using namespace emscripten;
 
@@ -364,6 +367,56 @@ void registerBindings() {
         .value("gp_Intrinsic_YXY", gp_Intrinsic_YXY)
         .value("gp_Intrinsic_ZXZ", gp_Intrinsic_ZXZ)
         .value("gp_Intrinsic_ZYZ", gp_Intrinsic_ZYZ)
+        ;
+
+    // ========== Line (gp_Lin) ==========
+    class_<gp_Lin>("gp_Lin")
+        .constructor<>()
+        .constructor<const gp_Ax1&>()
+        .constructor<const gp_Pnt&, const gp_Dir&>()
+        .function("location", &gp_Lin::Location)
+        .function("direction", &gp_Lin::Direction)
+        .function("setLocation", &gp_Lin::SetLocation)
+        .function("setDirection", &gp_Lin::SetDirection)
+        .function("reverse", &gp_Lin::Reverse)
+        .function("reversed", &gp_Lin::Reversed)
+        .function("transform", &gp_Lin::Transform)
+        .function("transformed", &gp_Lin::Transformed)
+        ;
+
+    // ========== Circle (gp_Circ) ==========
+    class_<gp_Circ>("gp_Circ")
+        .constructor<>()
+        .constructor<const gp_Ax2&, double>()
+        .function("location", &gp_Circ::Location)
+        .function("axis", &gp_Circ::Axis)
+        .function("xAxis", &gp_Circ::XAxis)
+        .function("yAxis", &gp_Circ::YAxis)
+        .function("position", &gp_Circ::Position)
+        .function("radius", &gp_Circ::Radius)
+        .function("setAxis", &gp_Circ::SetAxis)
+        .function("setLocation", &gp_Circ::SetLocation)
+        .function("setPosition", &gp_Circ::SetPosition)
+        .function("setRadius", &gp_Circ::SetRadius)
+        .function("transform", &gp_Circ::Transform)
+        .function("transformed", &gp_Circ::Transformed)
+        ;
+
+    // ========== Plane (gp_Pln) ==========
+    class_<gp_Pln>("gp_Pln")
+        .constructor<>()
+        .constructor<const gp_Ax3&>()
+        .constructor<const gp_Pnt&, const gp_Dir&>()
+        .function("location", &gp_Pln::Location)
+        .function("axis", &gp_Pln::Axis)
+        .function("xAxis", &gp_Pln::XAxis)
+        .function("yAxis", &gp_Pln::YAxis)
+        .function("position", &gp_Pln::Position)
+        .function("setAxis", &gp_Pln::SetAxis)
+        .function("setLocation", &gp_Pln::SetLocation)
+        .function("setPosition", &gp_Pln::SetPosition)
+        .function("transform", &gp_Pln::Transform)
+        .function("transformed", &gp_Pln::Transformed)
         ;
 }
 

@@ -224,6 +224,45 @@ export interface gp_EulerSequenceValue<T extends number> {
 }
 export type gp_EulerSequence = gp_EulerSequenceValue<0>|gp_EulerSequenceValue<1>|gp_EulerSequenceValue<2>|gp_EulerSequenceValue<3>|gp_EulerSequenceValue<4>|gp_EulerSequenceValue<5>|gp_EulerSequenceValue<6>|gp_EulerSequenceValue<7>|gp_EulerSequenceValue<8>|gp_EulerSequenceValue<9>|gp_EulerSequenceValue<10>|gp_EulerSequenceValue<11>|gp_EulerSequenceValue<12>|gp_EulerSequenceValue<13>|gp_EulerSequenceValue<14>|gp_EulerSequenceValue<15>|gp_EulerSequenceValue<16>|gp_EulerSequenceValue<17>|gp_EulerSequenceValue<19>|gp_EulerSequenceValue<18>|gp_EulerSequenceValue<20>|gp_EulerSequenceValue<21>|gp_EulerSequenceValue<22>|gp_EulerSequenceValue<23>|gp_EulerSequenceValue<24>|gp_EulerSequenceValue<25>;
 
+export interface gp_Lin extends ClassHandle {
+  location(): gp_Pnt;
+  direction(): gp_Dir;
+  setLocation(_0: gp_Pnt): void;
+  setDirection(_0: gp_Dir): void;
+  reverse(): void;
+  reversed(): gp_Lin;
+  transform(_0: gp_Trsf): void;
+  transformed(_0: gp_Trsf): gp_Lin;
+}
+
+export interface gp_Circ extends ClassHandle {
+  location(): gp_Pnt;
+  axis(): gp_Ax1;
+  xAxis(): gp_Ax1;
+  yAxis(): gp_Ax1;
+  position(): gp_Ax2;
+  radius(): number;
+  setAxis(_0: gp_Ax1): void;
+  setLocation(_0: gp_Pnt): void;
+  setPosition(_0: gp_Ax2): void;
+  setRadius(_0: number): void;
+  transform(_0: gp_Trsf): void;
+  transformed(_0: gp_Trsf): gp_Circ;
+}
+
+export interface gp_Pln extends ClassHandle {
+  location(): gp_Pnt;
+  axis(): gp_Ax1;
+  xAxis(): gp_Ax1;
+  yAxis(): gp_Ax1;
+  position(): gp_Ax3;
+  setAxis(_0: gp_Ax1): void;
+  setLocation(_0: gp_Pnt): void;
+  setPosition(_0: gp_Ax3): void;
+  transform(_0: gp_Trsf): void;
+  transformed(_0: gp_Trsf): gp_Pln;
+}
+
 export interface TopLoc_Location extends ClassHandle {
   isIdentity(): boolean;
   identity(): void;
@@ -325,6 +364,7 @@ export interface BRepBuilderAPI_Command extends ClassHandle {
   isDone(): boolean;
   isDone(): boolean;
   isDone(): boolean;
+  isDone(): boolean;
 }
 
 export interface BRepBuilderAPI_MakeShape extends BRepBuilderAPI_Command {
@@ -349,6 +389,37 @@ export interface BRepPrimAPI_MakeCone extends BRepBuilderAPI_MakeShape {
 
 export interface BRepPrimAPI_MakeTorus extends BRepBuilderAPI_MakeShape {
   shape(): TopoDS_Shape;
+}
+
+export interface BRepPrimAPI_MakePrism extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  firstShape(): TopoDS_Shape;
+  lastShape(): TopoDS_Shape;
+}
+
+export interface BRepBuilderAPI_MakeEdge extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  isDone(): boolean;
+  edge(): TopoDS_Edge;
+  vertex1(): TopoDS_Vertex;
+  vertex2(): TopoDS_Vertex;
+}
+
+export interface BRepBuilderAPI_MakeWire extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  isDone(): boolean;
+  wire(): TopoDS_Wire;
+  addEdge(_0: TopoDS_Edge): void;
+  addWire(_0: TopoDS_Wire): void;
+  edge(): TopoDS_Edge;
+  vertex(): TopoDS_Vertex;
+}
+
+export interface BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  isDone(): boolean;
+  face(): TopoDS_Face;
+  addWire(_0: TopoDS_Wire): void;
 }
 
 export interface TopExp extends ClassHandle {
@@ -464,6 +535,20 @@ interface EmbindModule {
   };
   gp_TrsfForm: {gp_Identity: gp_TrsfFormValue<0>, gp_Rotation: gp_TrsfFormValue<1>, gp_Translation: gp_TrsfFormValue<2>, gp_PntMirror: gp_TrsfFormValue<3>, gp_Ax1Mirror: gp_TrsfFormValue<4>, gp_Ax2Mirror: gp_TrsfFormValue<5>, gp_Scale: gp_TrsfFormValue<6>, gp_CompoundTrsf: gp_TrsfFormValue<7>, gp_Other: gp_TrsfFormValue<8>};
   gp_EulerSequence: {gp_EulerAngles: gp_EulerSequenceValue<0>, gp_YawPitchRoll: gp_EulerSequenceValue<1>, gp_Extrinsic_XYZ: gp_EulerSequenceValue<2>, gp_Extrinsic_XZY: gp_EulerSequenceValue<3>, gp_Extrinsic_YZX: gp_EulerSequenceValue<4>, gp_Extrinsic_YXZ: gp_EulerSequenceValue<5>, gp_Extrinsic_ZXY: gp_EulerSequenceValue<6>, gp_Extrinsic_ZYX: gp_EulerSequenceValue<7>, gp_Intrinsic_XYZ: gp_EulerSequenceValue<8>, gp_Intrinsic_XZY: gp_EulerSequenceValue<9>, gp_Intrinsic_YZX: gp_EulerSequenceValue<10>, gp_Intrinsic_YXZ: gp_EulerSequenceValue<11>, gp_Intrinsic_ZXY: gp_EulerSequenceValue<12>, gp_Intrinsic_ZYX: gp_EulerSequenceValue<13>, gp_Extrinsic_XYX: gp_EulerSequenceValue<14>, gp_Extrinsic_XZX: gp_EulerSequenceValue<15>, gp_Extrinsic_YZY: gp_EulerSequenceValue<16>, gp_Extrinsic_YXY: gp_EulerSequenceValue<17>, gp_Extrinsic_ZXZ: gp_EulerSequenceValue<19>, gp_Extrinsic_ZYZ: gp_EulerSequenceValue<18>, gp_Intrinsic_XYX: gp_EulerSequenceValue<20>, gp_Intrinsic_XZX: gp_EulerSequenceValue<21>, gp_Intrinsic_YZY: gp_EulerSequenceValue<22>, gp_Intrinsic_YXY: gp_EulerSequenceValue<23>, gp_Intrinsic_ZXZ: gp_EulerSequenceValue<24>, gp_Intrinsic_ZYZ: gp_EulerSequenceValue<25>};
+  gp_Lin: {
+    new(): gp_Lin;
+    new(_0: gp_Ax1): gp_Lin;
+    new(_0: gp_Pnt, _1: gp_Dir): gp_Lin;
+  };
+  gp_Circ: {
+    new(): gp_Circ;
+    new(_0: gp_Ax2, _1: number): gp_Circ;
+  };
+  gp_Pln: {
+    new(): gp_Pln;
+    new(_0: gp_Ax3): gp_Pln;
+    new(_0: gp_Pnt, _1: gp_Dir): gp_Pln;
+  };
   TopLoc_Location: {
     new(): TopLoc_Location;
     new(_0: TopLoc_Location): TopLoc_Location;
@@ -541,6 +626,41 @@ interface EmbindModule {
     createWithAxes(_0: gp_Ax2, _1: number, _2: number): BRepPrimAPI_MakeTorus;
     createWithAngle(_0: number, _1: number, _2: number): BRepPrimAPI_MakeTorus;
     createWithAxesAndAngle(_0: gp_Ax2, _1: number, _2: number, _3: number): BRepPrimAPI_MakeTorus;
+  };
+  BRepPrimAPI_MakePrism: {
+    new(_0: TopoDS_Shape, _1: gp_Vec): BRepPrimAPI_MakePrism;
+    createWithVector(_0: TopoDS_Shape, _1: gp_Vec): BRepPrimAPI_MakePrism;
+    createWithVectorAndOptions(_0: TopoDS_Shape, _1: gp_Vec, _2: boolean, _3: boolean): BRepPrimAPI_MakePrism;
+    createWithDirection(_0: TopoDS_Shape, _1: gp_Dir): BRepPrimAPI_MakePrism;
+    createWithDirectionAndOptions(_0: TopoDS_Shape, _1: gp_Dir, _2: boolean, _3: boolean, _4: boolean): BRepPrimAPI_MakePrism;
+  };
+  BRepBuilderAPI_MakeEdge: {
+    new(_0: gp_Pnt, _1: gp_Pnt): BRepBuilderAPI_MakeEdge;
+    createFromVertices(_0: TopoDS_Vertex, _1: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
+    createFromLine(_0: gp_Lin): BRepBuilderAPI_MakeEdge;
+    createFromLineParams(_0: gp_Lin, _1: number, _2: number): BRepBuilderAPI_MakeEdge;
+    createFromLineAndPoints(_0: gp_Lin, _1: gp_Pnt, _2: gp_Pnt): BRepBuilderAPI_MakeEdge;
+    createFromLineAndVertices(_0: gp_Lin, _1: TopoDS_Vertex, _2: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
+    createFromCircle(_0: gp_Circ): BRepBuilderAPI_MakeEdge;
+    createFromCircleParams(_0: gp_Circ, _1: number, _2: number): BRepBuilderAPI_MakeEdge;
+    createFromCircleAndPoints(_0: gp_Circ, _1: gp_Pnt, _2: gp_Pnt): BRepBuilderAPI_MakeEdge;
+    createFromCircleAndVertices(_0: gp_Circ, _1: TopoDS_Vertex, _2: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
+  };
+  BRepBuilderAPI_MakeWire: {
+    new(): BRepBuilderAPI_MakeWire;
+    new(_0: TopoDS_Edge): BRepBuilderAPI_MakeWire;
+    new(_0: TopoDS_Edge, _1: TopoDS_Edge): BRepBuilderAPI_MakeWire;
+    new(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: TopoDS_Edge): BRepBuilderAPI_MakeWire;
+    new(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: TopoDS_Edge, _3: TopoDS_Edge): BRepBuilderAPI_MakeWire;
+    createFromWire(_0: TopoDS_Wire): BRepBuilderAPI_MakeWire;
+    createFromWireAndEdge(_0: TopoDS_Wire, _1: TopoDS_Edge): BRepBuilderAPI_MakeWire;
+  };
+  BRepBuilderAPI_MakeFace: {
+    new(): BRepBuilderAPI_MakeFace;
+    new(_0: TopoDS_Face): BRepBuilderAPI_MakeFace;
+    createFromWire(_0: TopoDS_Wire, _1: boolean): BRepBuilderAPI_MakeFace;
+    createFromPlane(_0: gp_Pln): BRepBuilderAPI_MakeFace;
+    createFromPlaneAndWire(_0: gp_Pln, _1: TopoDS_Wire, _2: boolean): BRepBuilderAPI_MakeFace;
   };
   TopExp: {
     extractVertices(_0: TopoDS_Shape): any;

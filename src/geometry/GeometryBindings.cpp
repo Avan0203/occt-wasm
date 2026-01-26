@@ -26,7 +26,6 @@ void registerBindings() {
     class_<BRepBuilderAPI_Command>("BRepBuilderAPI_Command")
         .function("isDone", &BRepBuilderAPI_Command::IsDone)
         ;
-    
     // Register BRepBuilderAPI_MakeShape intermediate base class
     class_<BRepBuilderAPI_MakeShape, base<BRepBuilderAPI_Command>>("BRepBuilderAPI_MakeShape")
         .function("shape", optional_override([](BRepBuilderAPI_MakeShape& self) -> TopoDS_Shape {
@@ -157,6 +156,7 @@ void registerBindings() {
         torus.Build();
         return torus;
     }));
+
 }
 
 } // namespace GeometryBindings

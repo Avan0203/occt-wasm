@@ -51,6 +51,7 @@ async function load(context: CaseContext): Promise<void> {
 function unload(context: CaseContext): void {
     if (renderer) {
         renderer.dispose();
+        renderer.clear();
         renderer = null;
     }
 }

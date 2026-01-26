@@ -2,13 +2,14 @@
  * @Author: wuyifan wuyifan@udschina.com
  * @Date: 2026-01-20 15:22:16
  * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-23 17:53:44
+ * @LastEditTime: 2026-01-26 16:34:20
  * @FilePath: \occt-wasm\examples\src\common\shape-converter.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import * as THREE from 'three';
-import { Line2, LineGeometry, LineMaterial } from 'three/addons';
+import { Line2, LineMaterial, LineSegmentsGeometry, LineSegments2 } from 'three/addons';
 import type { BRepResult } from './BRepResult';
+import { TopoDS_Shape } from 'public/occt-wasm';
 
 export interface MeshData {
   positions: Float32Array;
@@ -52,9 +53,18 @@ export function parseBRepResult(result: BRepResult) {
 
   count = 0;
   edges.forEach((edge, index) => {
-    lineBuffer.push(...edge.position);
-    lineGeo.groups.push({ start: count, count: edge.position.length / 3, materialIndex: index, shape: edge.shape } as THREE.GeometryGroup);
-    count += edge.position.length / 3;
+    let lineSegments: number[] = [];
+    if (edge.position.length > 6) {
+      // 将LineLoop转换成LineSegment
+      lineSegments = convertLineLoopToLineSegments(edge.position);
+    } else {
+      lineSegments = edge.position;
+    }
+
+    lineBuffer.push(...lineSegments);
+
+    lineGeo.groups.push({ start: count, count: lineSegments.length / 3, materialIndex: index, shape: edge.shape } as THREE.GeometryGroup);
+    count += lineSegments.length / 3;
   });
 
   lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(lineBuffer, 3));
@@ -90,26 +100,77 @@ export function parseBRepResult(result: BRepResult) {
   return { points: pointGeo, lines: lineGeo, faces: faceGeo };
 }
 
+/**
+ * @description: 将LineLoop转换成LineSegment
+ * @param {number[]} position 位置数组
+ * @return {number[]}
+ * @example
+ * 例如将LineLoop四个点分为1,2,3,4，
+ * 转换后变成，1,2,2,3,3,4
+ */
+function convertLineLoopToLineSegments(position: number[]): number[] {
+  const result: number[] = [];
+  // 每个点由 3 个分量组成 (x, y, z)
+  const stride = 3;
+  const count = position.length / stride;
+  // 少于 2 个点，无法形成线段
+  if (count < 2) return result;
+
+  for (let i = 0; i < count - 1; i++) {
+    const a = i * stride;
+    const b = (i + 1) * stride;
+
+    // 当前点 -> 下一个点
+    result.push(
+      position[a], position[a + 1], position[a + 2],
+      position[b], position[b + 1], position[b + 2]
+    );
+  }
+  return result;
+}
+
 
 const pointMaterial = new THREE.PointsMaterial({ color: 0x000000, size: 0.01 });
 const lineMaterial = new LineMaterial({ color: 0x000000, linewidth: 2 });
 const faceMaterial = new THREE.MeshStandardMaterial({ color: 0x4a90e2 });
 
 
-export type BrepMeshGroup = THREE.Group & { faces: THREE.Mesh, points: THREE.Points, lines: Line2 };
+
+export interface BrepMeshGroup extends THREE.Group {
+  faces: THREE.Mesh;
+  points: THREE.Points;
+  lines: LineSegments2;
+  dispose: () => void;
+}
 
 export function createBrepMesh(brepResult: BRepResult, material: THREE.Material = faceMaterial): BrepMeshGroup {
   const { points, lines, faces } = parseBRepResult(brepResult);
   const group = new THREE.Group() as BrepMeshGroup;
   const facesMesh = new THREE.Mesh(faces, material);
   const pointsMesh = new THREE.Points(points, pointMaterial);
-  const lineGeometry = new LineGeometry().setPositions(lines.attributes.position.array as unknown as number[]);
-  const linesMesh = new Line2(lineGeometry, lineMaterial);
+  const lineGeometry = new LineSegmentsGeometry().setPositions(lines.attributes.position.array as unknown as number[]);
+  const linesMesh = new LineSegments2(lineGeometry, lineMaterial);
   group.faces = facesMesh;
   group.points = pointsMesh;
   group.lines = linesMesh;
   group.add(pointsMesh);
   group.add(linesMesh);
   group.add(facesMesh);
+
+  group.dispose = () => {
+    facesMesh.geometry.groups.forEach((group) => {
+      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    });
+    facesMesh.geometry.dispose();
+    facesMesh.material.dispose();
+    pointsMesh.geometry.groups.forEach((group) => {
+      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    });
+    pointsMesh.geometry.dispose();
+    linesMesh.geometry.groups.forEach((group) => {
+      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    });
+    linesMesh.geometry.dispose();
+  }
   return group;
 }
