@@ -5,7 +5,8 @@
     "main": "index.js",
     "scripts": {
         "prepare": "tsx scripts/setupLib.ts",
-        "build": "cd build && emcmake cmake .. -G Ninja && cmake --build .",
+        "clean:build": "tsx scripts/cleanBuild.ts",
+        "build": "pnpm clean:build && cd build && emcmake cmake .. -G Ninja && cmake --build .",
         "build:win": "call source\\emsdk\\emsdk_env.bat && pnpm build",
         "build:unix": "source source/emsdk/emsdk_env.sh && pnpm build",
         "examples:dev": "cd examples && vite",

@@ -422,6 +422,18 @@ export interface BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
   addWire(_0: TopoDS_Wire): void;
 }
 
+export interface FilletBuilder extends ClassHandle {
+  addConstantRadius(_0: number, _1: TopoDS_Edge): void;
+  addVariableRadius(_0: number, _1: number, _2: TopoDS_Edge): void;
+  build(): TopoDS_Shape;
+}
+
+export interface ChamferBuilder extends ClassHandle {
+  addEqual(_0: number, _1: TopoDS_Edge): void;
+  addDistances(_0: number, _1: number, _2: TopoDS_Edge, _3: TopoDS_Face): void;
+  build(): TopoDS_Shape;
+}
+
 export interface TopExp extends ClassHandle {
 }
 
@@ -661,6 +673,12 @@ interface EmbindModule {
     createFromWire(_0: TopoDS_Wire, _1: boolean): BRepBuilderAPI_MakeFace;
     createFromPlane(_0: gp_Pln): BRepBuilderAPI_MakeFace;
     createFromPlaneAndWire(_0: gp_Pln, _1: TopoDS_Wire, _2: boolean): BRepBuilderAPI_MakeFace;
+  };
+  FilletBuilder: {
+    new(_0: TopoDS_Shape): FilletBuilder;
+  };
+  ChamferBuilder: {
+    new(_0: TopoDS_Shape): ChamferBuilder;
   };
   TopExp: {
     extractVertices(_0: TopoDS_Shape): any;

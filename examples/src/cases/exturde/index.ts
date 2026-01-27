@@ -2,7 +2,7 @@
  * @Author: wuyifan wuyifan@udschina.com
  * @Date: 2026-01-20 15:24:26
  * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-26 17:57:06
+ * @LastEditTime: 2026-01-27 17:49:22
  * @FilePath: \occt-wasm\examples\src\cases\box-show\index.ts
 //  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -70,7 +70,8 @@ async function load(context: CaseContext): Promise<void> {
         const dir = new THREE.Vector3(0, 6, 0);
 
         const material = new THREE.MeshMatcapMaterial({
-            matcap: texture
+            matcap: texture,
+            color:"#51a3ff"
         });
 
         let group: BrepMeshGroup | null = null;

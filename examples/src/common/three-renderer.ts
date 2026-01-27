@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { BrepMeshGroup } from './shape-converter';
+import { LineMaterial } from 'three/examples/jsm/Addons.js';
+
+let colorIndex = 0;
 
 export class ThreeRenderer {
   private scene: THREE.Scene;
@@ -11,6 +15,9 @@ export class ThreeRenderer {
   private container: HTMLElement;
   private animationId: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private GPUPickScene: THREE.Scene;
+  private objectMap = new WeakMap<THREE.Object3D, THREE.Object3D>();
+  private pickRelationMap = new Map<number, THREE.GeometryGroup>
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -38,6 +45,8 @@ export class ThreeRenderer {
     this.controls.rotateSpeed = 5.0;
     this.controls.zoomSpeed = 0.8;
     this.controls.dynamicDampingFactor = 0.2;
+
+    this.GPUPickScene = new THREE.Scene();
 
     // 添加灯光
     this.setupLights();
@@ -135,6 +144,7 @@ export class ThreeRenderer {
     this.animationId = requestAnimationFrame(() => this.animate());
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
+    // this.renderer.render(this.GPUPickScene, this.camera);
   }
 
   /**
@@ -142,6 +152,10 @@ export class ThreeRenderer {
    */
   add(object: THREE.Object3D): void {
     this.scene.add(object);
+
+    const pickObject = this.createPickObject(object);
+    this.GPUPickScene.add(pickObject);
+    this.objectMap.set(object, pickObject);
   }
 
   /**
@@ -149,6 +163,18 @@ export class ThreeRenderer {
    */
   remove(object: THREE.Object3D): void {
     this.scene.remove(object);
+    const pickObject = this.objectMap.get(object);
+    if (pickObject) {
+      this.GPUPickScene.remove(pickObject);
+      this.objectMap.delete(object);
+
+      pickObject.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).material !== undefined) {
+          const material: THREE.Material[] = Array.isArray((child as THREE.Mesh).material) ? (child as THREE.Mesh).material as THREE.Material[] : [(child as THREE.Mesh).material as THREE.Material];
+          material.forEach((mat) => mat.dispose());
+        }
+      });
+    }
   }
 
   /**
@@ -220,6 +246,10 @@ export class ThreeRenderer {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+
+    this.scene.children.forEach((child) => {
+      (child as BrepMeshGroup)?.dispose();
+    })
     this.clear();
     this.renderer.dispose();
     this.controls.dispose();
@@ -227,4 +257,87 @@ export class ThreeRenderer {
       this.container.removeChild(this.renderer.domElement);
     }
   }
+
+  private createPickObject(obj: THREE.Object3D): THREE.Object3D {
+    const pickObject = obj.clone(true);
+
+    pickObject.traverse((child: THREE.Object3D) => {
+      if ((child as any).material !== undefined) {
+        colorIndex+=20;
+        const id = colorIndex;
+        const rgb = id2color(id);
+        const color = new THREE.Color().setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
+        if (child instanceof THREE.Mesh) {
+          child.material = (child.geometry as THREE.BufferGeometry).groups.map((group) => {
+            this.pickRelationMap.set(id, group);
+            return new THREE.MeshBasicMaterial({ color })
+          });
+        } else if (child instanceof LineSegments2) {
+          (child as any).material = ((child.geometry as THREE.BufferGeometry).groups.map((group) => {
+            this.pickRelationMap.set(id, group);
+            return new LineMaterial({ color, linewidth: 2 })
+          })) as LineMaterial[];
+        } else if (child instanceof THREE.Points) {
+          child.material = (child.geometry as THREE.BufferGeometry).groups.map((group) => {
+            this.pickRelationMap.set(id, group);
+            return new THREE.PointsMaterial({ color, size: 0.1 })
+          });
+        }
+      }
+    });
+
+    return pickObject;
+  }
+}
+
+
+function color2id(r: number, g: number, b: number): number {
+  return (r << 16) | (g << 8) | b;
+}
+
+function id2color(id: number): [number, number, number] {
+  const r = (id >> 16) & 0xff;
+  const g = (id >> 8) & 0xff;
+  const b = id & 0xff;
+  return [r, g, b];
+}
+
+function createSpiralOrder(w: number, h: number, ret: number[] = []) {
+  let u = 0;
+  let d = h - 1;
+  let l = 0;
+  let r = w - 1;
+  ret.length = 0;
+  while (true) {
+    // moving right
+    for (let i = l; i <= r; ++i) {
+      ret.push(u * w + i);
+    }
+    if (++u > d) {
+      break;
+    }
+    // moving down
+    for (let i = u; i <= d; ++i) {
+      ret.push(i * w + r);
+    }
+    if (--r < l) {
+      break;
+    }
+    // moving left
+    for (let i = r; i >= l; --i) {
+      ret.push(d * w + i);
+    }
+    if (--d < u) {
+      break;
+    }
+    // moving up
+    for (let i = d; i >= u; --i) {
+      ret.push(i * w + l);
+    }
+    if (++l > r) {
+      break;
+    }
+  }
+  ret.reverse();
+  return ret;
 }

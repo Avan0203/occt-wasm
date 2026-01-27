@@ -4,6 +4,7 @@
 #include "math/MathBindings.h"
 #include "geometry/GeometryBindings.h"
 #include "geometry/PrimApiBindings.h"
+#include "geometry/FilletChamferBindings.h"
 #include "brep/BRepBindings.h"
 #include "utils/UtilsBindings.h"
 #include "mesher/MesherBindings.h"
@@ -17,6 +18,7 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     BRepBindings::registerBindings();
     GeometryBindings::registerBindings();
     PrimApiBindings::registerBindings();
+    FilletChamferBindings::registerBindings();
     UtilsBindings::registerBindings();
     MesherBindings::registerBindings();
     // LoaderBindings::registerBindings();

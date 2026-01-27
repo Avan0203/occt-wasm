@@ -36,6 +36,8 @@ class Router {
   private currentContext: CaseContext | null = null;
   private occtModule: any = null; // OCCT 模块实例（全局单例）
   private gui: GUI;
+  private container: HTMLElement | null = null;
+  private hashChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.gui = new GUI({ width: 300 });
@@ -104,6 +106,28 @@ class Router {
     this.currentCase = caseItem;
     this.currentContext = context;
     await caseItem.load(context);
+
+    // 更新案例列表的选中状态
+    this.updateCaseListActiveState(caseId);
+  }
+
+  /**
+   * 更新案例列表的选中状态
+   */
+  private updateCaseListActiveState(caseId: string): void {
+    const caseList = document.getElementById('case-list');
+    if (!caseList) return;
+
+    // 移除所有active状态
+    caseList.querySelectorAll('.case-item').forEach((item) => {
+      item.classList.remove('active');
+    });
+
+    // 添加当前案例的active状态
+    const currentItem = caseList.querySelector(`[data-case-id="${caseId}"]`);
+    if (currentItem) {
+      currentItem.classList.add('active');
+    }
   }
 
   /**
@@ -125,6 +149,85 @@ class Router {
    */
   isOCCTModuleLoaded(): boolean {
     return this.occtModule !== null && this.occtModule !== undefined;
+  }
+
+  /**
+   * 初始化hash路由
+   * @param container 容器元素
+   */
+  initHashRouter(container: HTMLElement): void {
+    this.container = container;
+    
+    // 监听hash变化
+    this.hashChangeHandler = () => {
+      this.handleHashChange();
+    };
+    window.addEventListener('hashchange', this.hashChangeHandler);
+    
+    // 初始化时处理一次hash
+    this.handleHashChange();
+  }
+
+  /**
+   * 处理hash变化
+   */
+  private async handleHashChange(): Promise<void> {
+    if (!this.container) return;
+    
+    const hash = this.getHashFromUrl();
+    const caseId = hash || this.getFirstCaseId();
+    
+    if (caseId && this.cases.has(caseId)) {
+      try {
+        await this.navigateTo(caseId, this.container);
+        // 更新hash（如果当前hash与caseId不一致）
+        if (hash !== caseId) {
+          this.setHash(caseId);
+        }
+      } catch (error) {
+        console.error('Failed to navigate to case from hash:', error);
+      }
+    } else if (caseId) {
+      // hash对应的案例不存在，使用第一个案例
+      const firstCaseId = this.getFirstCaseId();
+      if (firstCaseId) {
+        await this.navigateTo(firstCaseId, this.container);
+        this.setHash(firstCaseId);
+      }
+    }
+  }
+
+  /**
+   * 从URL获取hash值（去掉#号）
+   */
+  getHashFromUrl(): string {
+    const hash = window.location.hash;
+    return hash ? hash.substring(1) : '';
+  }
+
+  /**
+   * 设置hash值
+   */
+  setHash(caseId: string): void {
+    window.location.hash = caseId;
+  }
+
+  /**
+   * 获取第一个案例的ID
+   */
+  getFirstCaseId(): string {
+    const cases = this.getAllCases();
+    return cases.length > 0 ? cases[0].id : '';
+  }
+
+  /**
+   * 销毁hash路由监听
+   */
+  destroyHashRouter(): void {
+    if (this.hashChangeHandler) {
+      window.removeEventListener('hashchange', this.hashChangeHandler);
+      this.hashChangeHandler = null;
+    }
   }
 }
 

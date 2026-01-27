@@ -1,7 +1,5 @@
 import { router } from './router';
-import { basicShapesCase } from './cases/basic-shapes';
-import { brepShowCase } from './cases/brep-show';
-import { exturdeCase } from './cases/exturde';
+import { basicShapesCase, brepShowCase, exturdeCase } from './cases';
 import { loadOCCTModule } from './common/occt-loader';
 
 // 注册案例
@@ -50,22 +48,8 @@ async function initApp() {
     // 渲染案例列表
     renderCaseList();
 
-    // 默认加载第一个案例
-    const cases = router.getAllCases();
-    console.log('[App] Total cases:', cases.length);
-    if (cases.length > 0) {
-      const firstCase = cases[0];
-      console.log('[App] Loading first case:', firstCase.id);
-      const firstItem = caseList.querySelector(`[data-case-id="${firstCase.id}"]`);
-      if (firstItem) {
-        firstItem.classList.add('active');
-        console.log('[App] Navigating to first case...');
-        await router.navigateTo(firstCase.id, container);
-        console.log('[App] First case loaded');
-      } else {
-        console.warn('[App] First case item not found in DOM');
-      }
-    }
+    // 初始化hash路由（会自动处理初始hash或加载第一个案例）
+    router.initHashRouter(container);
   } catch (error) {
     console.error('Failed to initialize app:', error);
     container.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error instanceof Error ? error.message : String(error)}</div>`;
@@ -89,19 +73,8 @@ async function initApp() {
       item.addEventListener('click', async () => {
         const caseId = item.getAttribute('data-case-id');
         if (caseId) {
-          // 更新选中状态
-          caseList.querySelectorAll('.case-item').forEach((i) => {
-            i.classList.remove('active');
-          });
-          item.classList.add('active');
-
-          // 导航到案例
-          try {
-            await router.navigateTo(caseId, container);
-          } catch (error) {
-            console.error('Failed to navigate to case:', error);
-            container.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error instanceof Error ? error.message : String(error)}</div>`;
-          }
+          // 更新hash（会触发hashchange事件，由router处理导航）
+          router.setHash(caseId);
         }
       });
     });
