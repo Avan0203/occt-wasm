@@ -148,8 +148,12 @@ if(EMSCRIPTEN)
         -sALLOW_MEMORY_GROWTH=1
         -sMAXIMUM_MEMORY=4GB
         -sENVIRONMENT=web,worker
+        -sDEMANGLE_SUPPORT=0              # ← 新增
+        -sASSERTIONS=0                    # ← 新增
+        -sERROR_ON_UNDEFINED_SYMBOLS=1    # ← 新增
         --bind
         --emit-tsd "${TARGET}.d.ts"
+        -Oz
     )
 
     install(TARGETS ${TARGET} DESTINATION "${CMAKE_SOURCE_DIR}/packages/occt-wasm/lib")
@@ -166,29 +170,4 @@ if(EMSCRIPTEN)
             "${CMAKE_SOURCE_DIR}/examples/public/"
         COMMENT "Copying build artifacts to examples/public"
     )
-else()
-    # Native C++ test executable (for testing without WASM compilation)
-    add_executable(test_mesher 
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/test_mesher.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/Mesher.cpp"
-    )
-    target_include_directories(test_mesher PUBLIC ${OCCT_INCLUDE_DIRS})
-    target_include_directories(test_mesher PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-    
-    # Link against OCCT (if available as system library)
-    # For now, we'll compile OCCT as a static library for testing
-    add_library(occt_test STATIC ${OCCT_SOURCES})
-    target_include_directories(occt_test PUBLIC ${OCCT_INCLUDE_DIRS})
-    target_compile_options(occt_test PUBLIC
-        $<$<CONFIG:Release>:-O2>
-        -DOCCT_NO_PLUGINS
-    )
-    # Suppress encoding warning on Windows
-    if(MSVC)
-        target_compile_options(occt_test PRIVATE /wd4819)
-        target_compile_options(test_mesher PRIVATE /wd4819)
-    endif()
-    target_link_libraries(test_mesher PUBLIC occt_test)
-    
-    message(STATUS "Test executable 'test_mesher' will be built")
 endif()

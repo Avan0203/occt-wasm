@@ -2,7 +2,7 @@
  * @Author: wuyifan wuyifan@udschina.com
  * @Date: 2026-01-20 15:22:16
  * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-26 16:34:20
+ * @LastEditTime: 2026-01-28 13:13:04
  * @FilePath: \occt-wasm\examples\src\common\shape-converter.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -16,6 +16,10 @@ export interface MeshData {
   indices: Uint32Array;
   normals: Float32Array;
   uvs: Float32Array;
+}
+
+export interface BrepGeometryGroup extends THREE.GeometryGroup {
+  shape: TopoDS_Shape;
 }
 
 /**
@@ -143,6 +147,8 @@ export interface BrepMeshGroup extends THREE.Group {
   dispose: () => void;
 }
 
+
+
 export function createBrepMesh(brepResult: BRepResult, material: THREE.Material = faceMaterial): BrepMeshGroup {
   const { points, lines, faces } = parseBRepResult(brepResult);
   const group = new THREE.Group() as BrepMeshGroup;
@@ -158,17 +164,23 @@ export function createBrepMesh(brepResult: BRepResult, material: THREE.Material 
   group.add(facesMesh);
 
   group.dispose = () => {
-    facesMesh.geometry.groups.forEach((group) => {
-      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    (facesMesh.geometry.groups as BrepGeometryGroup[]).forEach(({ shape }) => {
+      if (shape.isDeleted()) {
+        shape.deleteLater();
+      }
     });
     facesMesh.geometry.dispose();
     facesMesh.material.dispose();
-    pointsMesh.geometry.groups.forEach((group) => {
-      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    (pointsMesh.geometry.groups as BrepGeometryGroup[]).forEach(({ shape }) => {
+      if (shape.isDeleted()) {
+        shape.deleteLater();
+      }
     });
     pointsMesh.geometry.dispose();
-    linesMesh.geometry.groups.forEach((group) => {
-      ((group as any).shape as unknown as TopoDS_Shape).deleteLater();
+    (linesMesh.geometry.groups as BrepGeometryGroup[]).forEach(({ shape }) => {
+      if (shape.isDeleted()) {
+        shape.deleteLater();
+      }
     });
     linesMesh.geometry.dispose();
   }
