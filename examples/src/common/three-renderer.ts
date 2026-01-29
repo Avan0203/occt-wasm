@@ -153,9 +153,9 @@ export class ThreeRenderer {
   add(object: THREE.Object3D): void {
     this.scene.add(object);
 
-    const pickObject = this.createPickObject(object);
-    this.GPUPickScene.add(pickObject);
-    this.objectMap.set(object, pickObject);
+    // const pickObject = this.createPickObject(object);
+    // this.GPUPickScene.add(pickObject);
+    // this.objectMap.set(object, pickObject);
   }
 
   /**
@@ -268,20 +268,32 @@ export class ThreeRenderer {
         const rgb = id2color(id);
         const color = new THREE.Color().setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
         if (child instanceof THREE.Mesh) {
-          child.material = (child.geometry as THREE.BufferGeometry).groups.map((group) => {
-            this.pickRelationMap.set(id, group);
-            return new THREE.MeshBasicMaterial({ color })
-          });
+          const geom = child.geometry as THREE.BufferGeometry;
+          const pickMat = new THREE.MeshBasicMaterial({ color });
+          child.material = geom.groups.length > 0
+            ? geom.groups.map((group) => {
+                this.pickRelationMap.set(id, group);
+                return new THREE.MeshBasicMaterial({ color });
+              })
+            : pickMat;
         } else if (child instanceof LineSegments2) {
-          (child as any).material = ((child.geometry as THREE.BufferGeometry).groups.map((group) => {
-            this.pickRelationMap.set(id, group);
-            return new LineMaterial({ color, linewidth: 2 })
-          })) as LineMaterial[];
+          const geom = child.geometry as THREE.BufferGeometry;
+          const pickMat = new LineMaterial({ color, linewidth: 2 });
+          (child as any).material = geom.groups.length > 0
+            ? (geom.groups.map((group) => {
+                this.pickRelationMap.set(id, group);
+                return new LineMaterial({ color, linewidth: 2 });
+              }) as LineMaterial[])
+            : pickMat;
         } else if (child instanceof THREE.Points) {
-          child.material = (child.geometry as THREE.BufferGeometry).groups.map((group) => {
-            this.pickRelationMap.set(id, group);
-            return new THREE.PointsMaterial({ color, size: 0.1 })
-          });
+          const geom = child.geometry as THREE.BufferGeometry;
+          const pickMat = new THREE.PointsMaterial({ color, size: 0.1 });
+          child.material = geom.groups.length > 0
+            ? geom.groups.map((group) => {
+                this.pickRelationMap.set(id, group);
+                return new THREE.PointsMaterial({ color, size: 0.1 });
+              })
+            : pickMat;
         }
       }
     });

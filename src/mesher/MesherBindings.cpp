@@ -94,15 +94,12 @@ val facesToArray(const std::vector<TopoDS_Face>& shapes) {
 val brepResultToObject(const BRepResult& result) {
     val obj = val::object();
     
-    // Convert vertices
+    // Convert vertices (position as Float32Array, same as edges/faces)
     val vertices = val::array();
     for (const auto& v : result.vertices) {
         val vertex = val::object();
-        val position = val::array();
-        for (float coord : v.position) {
-            position.call<void>("push", coord);
-        }
-        vertex.set("position", position);
+        val position = vectorToTypedArray(v.position);
+        vertex.set("position", position.isNull() ? val::global("Float32Array").new_(0) : position);
         // Set shape: TopoDS_Vertex or null
         if (v.shape.IsNull()) {
             vertex.set("shape", val::null());

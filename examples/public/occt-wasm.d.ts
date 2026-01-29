@@ -1,6 +1,5 @@
 // TypeScript bindings for emscripten-generated code.  Automatically generated at compile time.
 interface WasmModule {
-  _main(_0: number, _1: number): number;
 }
 
 type EmbindString = ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string;
@@ -422,6 +421,25 @@ export interface BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
   addWire(_0: TopoDS_Wire): void;
 }
 
+export interface BRepBuilderAPI_ShellErrorValue<T extends number> {
+  value: T;
+}
+export type BRepBuilderAPI_ShellError = BRepBuilderAPI_ShellErrorValue<0>|BRepBuilderAPI_ShellErrorValue<1>|BRepBuilderAPI_ShellErrorValue<2>|BRepBuilderAPI_ShellErrorValue<3>;
+
+export interface BRepBuilderAPI_MakeShell extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  isDone(): boolean;
+  shell(): TopoDS_Shell;
+  error(): BRepBuilderAPI_ShellError;
+}
+
+export interface BRepBuilderAPI_MakeSolid extends BRepBuilderAPI_MakeShape {
+  shape(): TopoDS_Shape;
+  isDone(): boolean;
+  solid(): TopoDS_Solid;
+  addShell(_0: TopoDS_Shell): void;
+}
+
 export interface FilletBuilder extends ClassHandle {
   addConstantRadius(_0: number, _1: TopoDS_Edge): void;
   addVariableRadius(_0: number, _1: number, _2: TopoDS_Edge): void;
@@ -673,6 +691,18 @@ interface EmbindModule {
     createFromWire(_0: TopoDS_Wire, _1: boolean): BRepBuilderAPI_MakeFace;
     createFromPlane(_0: gp_Pln): BRepBuilderAPI_MakeFace;
     createFromPlaneAndWire(_0: gp_Pln, _1: TopoDS_Wire, _2: boolean): BRepBuilderAPI_MakeFace;
+  };
+  BRepBuilderAPI_ShellError: {ShellDone: BRepBuilderAPI_ShellErrorValue<0>, EmptyShell: BRepBuilderAPI_ShellErrorValue<1>, DisconnectedShell: BRepBuilderAPI_ShellErrorValue<2>, ShellParametersOutOfRange: BRepBuilderAPI_ShellErrorValue<3>};
+  BRepBuilderAPI_MakeShell: {
+    new(): BRepBuilderAPI_MakeShell;
+  };
+  BRepBuilderAPI_MakeSolid: {
+    new(): BRepBuilderAPI_MakeSolid;
+    new(_0: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
+    new(_0: TopoDS_Shell, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
+    new(_0: TopoDS_Shell, _1: TopoDS_Shell, _2: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
+    createFromSolid(_0: TopoDS_Solid): BRepBuilderAPI_MakeSolid;
+    createFromSolidAndShell(_0: TopoDS_Solid, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
   };
   FilletBuilder: {
     new(_0: TopoDS_Shape): FilletBuilder;

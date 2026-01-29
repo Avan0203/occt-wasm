@@ -3,7 +3,7 @@
 // Include all binding headers
 #include "math/MathBindings.h"
 #include "geometry/GeometryBindings.h"
-#include "geometry/PrimApiBindings.h"
+#include "brep/PrimApiBindings.h"
 #include "geometry/FilletChamferBindings.h"
 #include "brep/BRepBindings.h"
 #include "utils/UtilsBindings.h"

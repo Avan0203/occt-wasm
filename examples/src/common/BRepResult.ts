@@ -1,4 +1,4 @@
-import { TopoDS_Edge, TopoDS_Vertex, TopoDS_Face ,GeomAbs_CurveType} from "public/occt-wasm";
+import { TopoDS_Edge, TopoDS_Vertex, TopoDS_Face ,GeomAbs_CurveType, TopoDS_Shape} from "public/occt-wasm";
 
 export interface BRepResult {
     vertices: Vertex[];
@@ -7,22 +7,25 @@ export interface BRepResult {
 }
 
 export interface BRep {
-    position: number[]; // 存放顶点
-    shape:  TopoDS_Edge | TopoDS_Vertex | TopoDS_Face | null; //指向TopoDS_Wire或TopoDS_Edge或TopoDS_Vertex或TopoDS_Face或null
+    position: Float32Array; // 存放顶点
+    shape:  TopoDS_Shape;
 }
 
 export interface Vertex extends BRep {
-    position: number[];
+    position: Float32Array;
+    shape:  TopoDS_Vertex;
 }
 
 export interface Edge extends BRep {
     type: GeomAbs_CurveType; // 曲线类型，一个枚举
+    shape:  TopoDS_Edge;
 }
 
 export interface Face extends BRep {
-    position: number[]; // 存放顶点
-    index: number[]; // 存放索引
-    uvs: number[]; // 存放UV
+    position: Float32Array; // 存放顶点
+    index: Uint32Array; // 存放索引
+    uvs: Float32Array; // 存放UV
+    shape:  TopoDS_Face;
 }
 
 // 案例数据
