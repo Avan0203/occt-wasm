@@ -1,17 +1,9 @@
-/*
- * @Author: wuyifan wuyifan@udschina.com
- * @Date: 2026-01-29 16:18:19
- * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-29 16:23:13
- * @FilePath: \occt-wasm\examples\src\common\id-tool.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 const _usedIds = new Map<number, ObjectID>();
 const _recycledIds: ObjectID[] = [];
 
 class ObjectID {
     public static readonly INVALID: ObjectID = new ObjectID(-1);
-    private static index = 0;
+    private static index = 1;
     private _id: number;
     public static generate(): ObjectID {
         if (_recycledIds.length > 0) {
@@ -52,6 +44,10 @@ class ObjectID {
      */
     public valueOf(): number {
         return this._id;
+    }
+
+    public toString(): string {
+        return this._id.toString();
     }
 }
 

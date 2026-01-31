@@ -2,12 +2,22 @@ import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import { BrepMeshGroup } from './shape-converter';
-import { LineMaterial } from 'three/examples/jsm/Addons.js';
+import { BrepObjectType, type BrepGroup, type BrepObject } from './types';
+import { createGPUBrepGroup, getObjectById } from './shape-converter';
+import { color2id, createSpiralOrder } from './utils';
+import { printRenderTarget } from './catch';
+import { HeightlightManager } from './heightlight-manager';
 
-let colorIndex = 0;
 
-export class ThreeRenderer {
+const startPos = new THREE.Vector2(0, 0);
+const mouse = new THREE.Vector2(0, 0);
+// w,h,left,top
+const renderSize = new THREE.Vector4(0, 0, 0, 0);
+let pickBuffer = new Uint8Array(0);
+const pickOrder: number[] = [];
+let isDragged = false;
+
+class ThreeRenderer {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -16,14 +26,25 @@ export class ThreeRenderer {
   private animationId: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private GPUPickScene: THREE.Scene;
-  private objectMap = new WeakMap<THREE.Object3D, THREE.Object3D>();
-  private pickRelationMap = new Map<number, THREE.GeometryGroup>
+  private helperGroup = new THREE.Group();
+  private mainGroup = new THREE.Group();
+  private gpuObjectMap = new WeakMap<BrepGroup, BrepGroup>();
+  private pickTarget = new THREE.WebGLRenderTarget(1, 1);
+  private pickSize = 1;
+
+  private heightlightManager = new HeightlightManager();
 
   constructor(container: HTMLElement) {
     this.container = container;
 
+    container.addEventListener('mouseup', this.onMouseUp);
+    container.addEventListener('mousedown', this.onMouseDown);
+    container.addEventListener('mousemove', this.onMouseMove);
+
     // 创建场景
     this.scene = new THREE.Scene();
+    this.scene.add(this.helperGroup);
+    this.scene.add(this.mainGroup);
     // 设置渐变背景：从上到下，从灰色到白色
     const gradientTexture = this.createGradientBackground();
     this.scene.background = gradientTexture;
@@ -39,6 +60,7 @@ export class ThreeRenderer {
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(this.renderer.domElement);
+    this.renderer.autoClear = false;
 
     // 创建控制器
     this.controls = new TrackballControls(this.camera, this.renderer.domElement);
@@ -53,13 +75,125 @@ export class ThreeRenderer {
 
     // 添加坐标轴辅助
     const axesHelper = new THREE.AxesHelper(2);
-    this.scene.add(axesHelper);
+    this.helperGroup.add(axesHelper);
+
+    this.setPickSize(3);
 
     // 使用 ResizeObserver 观察容器尺寸变化
     this.initResizeObserver();
 
     // 开始渲染循环
     this.animate();
+
+    const rect = container.getBoundingClientRect();
+    console.log('rect: ', rect);
+    this.handleResize(container.clientWidth, container.clientHeight, rect.left, rect.top);
+
+    console.log('renderSize: ', renderSize);
+    (window as any).DEBUG = {
+      renderer: this
+    }
+  }
+
+  public setPickSize(size: number): void {
+    this.pickSize = size;
+    createSpiralOrder(size, size, pickOrder);
+  }
+
+  private onMouseDown = ({ clientX, clientY }: MouseEvent): void => {
+    startPos.set(clientX, clientY);
+    isDragged = false;
+  }
+
+  private onMouseMove = ({ clientX, clientY }: MouseEvent): void => {
+    isDragged = !(startPos.distanceTo({ x: clientX, y: clientY }) < 1);
+  }
+
+  private onMouseUp = ({ clientX, clientY, shiftKey }: MouseEvent): void => {
+    const isMoved = startPos.distanceTo({ x: clientX, y: clientY }) < 1;
+    console.log(clientX, clientY);
+    console.log('renderSize: ', renderSize);
+    if (isMoved && !isDragged) {
+      mouse.set(clientX, clientY);
+      mouse.x = mouse.x - renderSize.z;
+      mouse.y = mouse.y - renderSize.w;
+      const result = this.pick(mouse);
+      // printRenderTarget('pick', this.renderer, this.pickTarget);
+      console.log('result: ', result);
+      if (result) {
+        if (!shiftKey) {
+          this.heightlightManager.clearHeightlight();
+        }
+        this.heightlightManager.addHeightlight(result);
+      } else {
+        this.heightlightManager.clearHeightlight();
+      }
+    }
+  }
+
+  private preparePick(): void {
+    const size = this.pickSize;
+    pickBuffer = new Uint8Array(size * size * 4);
+
+    this.pickTarget.setSize(size, size);
+  }
+
+  /** 拾取前为 GPUPickScene 内 LineMaterial 设置 resolution，否则 LineSegments2 在拾取视口不绘制 */
+  private setGPUPickSceneLineResolution(width: number, height: number): void {
+    this.GPUPickScene.traverse((object) => {
+      if (object instanceof LineSegments2) {
+        const material = (object as THREE.Mesh).material as THREE.ShaderMaterial;
+        const mats = Array.isArray(material) ? material : [material];
+        mats.forEach((mat) => {
+          if (mat.uniforms?.resolution?.value) {
+            mat.uniforms.resolution.value.set(width, height);
+          }
+        });
+      }
+    });
+  }
+
+  public pick(pos: THREE.Vector2Like): BrepObject | null {
+    this.preparePick();
+
+    const length = this.pickSize * 2;
+
+    this.renderer.setRenderTarget(this.pickTarget);
+    this.renderer.setClearColor(0x000000);
+    this.renderer.clear();
+    // this.setGPUPickSceneLineResolution(length, length);
+
+    this.camera.setViewOffset(
+      renderSize.x, renderSize.y,
+      pos.x - this.pickSize,
+      pos.y - this.pickSize,
+      length, length,
+    );
+
+    this.renderer.render(this.GPUPickScene, this.camera);
+    this.renderer.readRenderTargetPixels(this.pickTarget, 0, 0, this.pickSize, this.pickSize, pickBuffer);
+    this.camera.clearViewOffset();
+    this.renderer.setRenderTarget(null);
+
+    for (let i of pickOrder) {
+      const index = i * 4;
+      const id = color2id(pickBuffer[index], pickBuffer[index + 1], pickBuffer[index + 2]);
+      const object = getObjectById(id.toString());
+
+      if (object) {
+        if (object.type === BrepObjectType.POINT) {
+          return object;
+        }
+        if (object.type === BrepObjectType.LINE) {
+          return object;
+        }
+        if (object.type === BrepObjectType.MESH) {
+          return object;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -87,50 +221,45 @@ export class ThreeRenderer {
   private setupLights(): void {
     // 环境光
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    this.scene.add(ambientLight);
+    this.helperGroup.add(ambientLight);
 
     // 主光源
     const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight1.position.set(5, 10, 5);
-    this.scene.add(directionalLight1);
+    this.helperGroup.add(directionalLight1);
 
     // 辅助光源
     const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
     directionalLight2.position.set(-5, -5, -5);
-    this.scene.add(directionalLight2);
+    this.helperGroup.add(directionalLight2);
   }
 
   /**
    * 初始化 ResizeObserver 来观察容器尺寸变化
    */
   private initResizeObserver(): void {
-    if (typeof ResizeObserver !== 'undefined') {
-      this.resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            this.handleResize(width, height);
-          }
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          const rect = (entry.target as HTMLElement).getBoundingClientRect();
+          this.handleResize(width, height, rect.left, rect.top);
         }
-      });
-      this.resizeObserver.observe(this.container);
-    } else {
-      // 降级方案：使用 window resize 事件
-      window.addEventListener('resize', () => {
-        this.handleResize(this.container.clientWidth, this.container.clientHeight);
-      });
-    }
+      }
+    });
+    this.resizeObserver.observe(this.container);
   }
 
   /**
    * 处理容器尺寸变化
    */
-  private handleResize(width: number, height: number): void {
+  private handleResize(width: number, height: number, left: number, top: number): void {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    renderSize.set(width, height, left, top);
 
-    this.scene.traverse((object) => {
+    this.mainGroup.traverse((object) => {
       if (object instanceof Line2 || object instanceof LineSegments2) {
         const material = Array.isArray((object as THREE.Mesh).material) ? (object as THREE.Mesh).material as THREE.Material[] : [(object as THREE.Mesh).material];
         material.forEach((mat) => {
@@ -138,9 +267,12 @@ export class ThreeRenderer {
         });
       }
     })
+   
+    this.setGPUPickSceneLineResolution(width, height);
   }
 
   private animate(): void {
+    this.renderer.clear();
     this.animationId = requestAnimationFrame(() => this.animate());
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
@@ -150,30 +282,25 @@ export class ThreeRenderer {
   /**
    * 添加对象到场景
    */
-  add(object: THREE.Object3D): void {
-    this.scene.add(object);
+  add(object: BrepGroup): void {
+    this.mainGroup.add(object);
 
-    // const pickObject = this.createPickObject(object);
-    // this.GPUPickScene.add(pickObject);
-    // this.objectMap.set(object, pickObject);
+    const gpuObject = createGPUBrepGroup(object);
+    this.GPUPickScene.add(gpuObject);
+    this.gpuObjectMap.set(object, gpuObject);
   }
 
   /**
    * 从场景移除对象
    */
-  remove(object: THREE.Object3D): void {
-    this.scene.remove(object);
-    const pickObject = this.objectMap.get(object);
-    if (pickObject) {
-      this.GPUPickScene.remove(pickObject);
-      this.objectMap.delete(object);
-
-      pickObject.traverse((child: THREE.Object3D) => {
-        if ((child as THREE.Mesh).material !== undefined) {
-          const material: THREE.Material[] = Array.isArray((child as THREE.Mesh).material) ? (child as THREE.Mesh).material as THREE.Material[] : [(child as THREE.Mesh).material as THREE.Material];
-          material.forEach((mat) => mat.dispose());
-        }
-      });
+  remove(object: BrepGroup): void {
+    this.mainGroup.remove(object);
+    object.dispose();
+    const gpuObject = this.gpuObjectMap.get(object);
+    if (gpuObject) {
+      this.GPUPickScene.remove(gpuObject);
+      this.gpuObjectMap.delete(object);
+      gpuObject.dispose();
     }
   }
 
@@ -181,27 +308,30 @@ export class ThreeRenderer {
    * 清空场景（保留灯光和辅助对象）
    */
   clear(): void {
-    const objectsToRemove: THREE.Object3D[] = [];
-    this.scene.traverse((object) => {
-      if (
-        object instanceof THREE.Mesh ||
-        object instanceof THREE.Line ||
-        object instanceof THREE.Points
-      ) {
-        objectsToRemove.push(object);
+    this.mainGroup.children.forEach((child) => {
+      if (child.hasOwnProperty('dispose')) {
+        (child as any).dispose();
       }
+      this.scene.remove(child);
     });
-    objectsToRemove.forEach((obj) => {
-      this.scene.remove(obj);
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((mat) => mat.dispose());
-        } else {
-          obj.material.dispose();
-        }
+    this.mainGroup.clear();
+    this.helperGroup.children.forEach((child) => {
+      if (child.hasOwnProperty('dispose')) {
+        (child as any).dispose();
       }
+      this.helperGroup.remove(child);
     });
+    this.helperGroup.clear();
+    this.scene.remove(this.mainGroup);
+    this.scene.remove(this.helperGroup);
+
+    this.GPUPickScene.children.forEach((child) => {
+      if (child.hasOwnProperty('dispose')) {
+        (child as any).dispose();
+      }
+      this.GPUPickScene.remove(child);
+    });
+    this.GPUPickScene.clear();
   }
 
   /**
@@ -247,109 +377,16 @@ export class ThreeRenderer {
       this.resizeObserver = null;
     }
 
-    this.scene.children.forEach((child) => {
-      (child as BrepMeshGroup)?.dispose();
-    })
     this.clear();
     this.renderer.dispose();
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
-  }
-
-  private createPickObject(obj: THREE.Object3D): THREE.Object3D {
-    const pickObject = obj.clone(true);
-
-    pickObject.traverse((child: THREE.Object3D) => {
-      if ((child as any).material !== undefined) {
-        colorIndex+=20;
-        const id = colorIndex;
-        const rgb = id2color(id);
-        const color = new THREE.Color().setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
-        if (child instanceof THREE.Mesh) {
-          const geom = child.geometry as THREE.BufferGeometry;
-          const pickMat = new THREE.MeshBasicMaterial({ color });
-          child.material = geom.groups.length > 0
-            ? geom.groups.map((group) => {
-                this.pickRelationMap.set(id, group);
-                return new THREE.MeshBasicMaterial({ color });
-              })
-            : pickMat;
-        } else if (child instanceof LineSegments2) {
-          const geom = child.geometry as THREE.BufferGeometry;
-          const pickMat = new LineMaterial({ color, linewidth: 2 });
-          (child as any).material = geom.groups.length > 0
-            ? (geom.groups.map((group) => {
-                this.pickRelationMap.set(id, group);
-                return new LineMaterial({ color, linewidth: 2 });
-              }) as LineMaterial[])
-            : pickMat;
-        } else if (child instanceof THREE.Points) {
-          const geom = child.geometry as THREE.BufferGeometry;
-          const pickMat = new THREE.PointsMaterial({ color, size: 0.1 });
-          child.material = geom.groups.length > 0
-            ? geom.groups.map((group) => {
-                this.pickRelationMap.set(id, group);
-                return new THREE.PointsMaterial({ color, size: 0.1 });
-              })
-            : pickMat;
-        }
-      }
-    });
-
-    return pickObject;
+    this.container.removeEventListener('mousedown', this.onMouseDown);
+    this.container.removeEventListener('mouseup', this.onMouseUp)
+    this.container.removeEventListener('mousemove', this.onMouseMove);
   }
 }
 
-
-function color2id(r: number, g: number, b: number): number {
-  return (r << 16) | (g << 8) | b;
-}
-
-function id2color(id: number): [number, number, number] {
-  const r = (id >> 16) & 0xff;
-  const g = (id >> 8) & 0xff;
-  const b = id & 0xff;
-  return [r, g, b];
-}
-
-function createSpiralOrder(w: number, h: number, ret: number[] = []) {
-  let u = 0;
-  let d = h - 1;
-  let l = 0;
-  let r = w - 1;
-  ret.length = 0;
-  while (true) {
-    // moving right
-    for (let i = l; i <= r; ++i) {
-      ret.push(u * w + i);
-    }
-    if (++u > d) {
-      break;
-    }
-    // moving down
-    for (let i = u; i <= d; ++i) {
-      ret.push(i * w + r);
-    }
-    if (--r < l) {
-      break;
-    }
-    // moving left
-    for (let i = r; i >= l; --i) {
-      ret.push(d * w + i);
-    }
-    if (--d < u) {
-      break;
-    }
-    // moving up
-    for (let i = d; i >= u; --i) {
-      ret.push(i * w + l);
-    }
-    if (++l > r) {
-      break;
-    }
-  }
-  ret.reverse();
-  return ret;
-}
+export { ThreeRenderer };

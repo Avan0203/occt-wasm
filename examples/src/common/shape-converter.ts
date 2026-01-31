@@ -1,45 +1,30 @@
-/*
- * @Author: wuyifan wuyifan@udschina.com
- * @Date: 2026-01-20 15:22:16
- * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-29 17:52:41
- * @FilePath: \occt-wasm\examples\src\common\shape-converter.ts
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 import * as THREE from 'three';
 import { LineMaterial, LineSegmentsGeometry, LineSegments2 } from 'three/addons';
 import type { BRepResult } from './BRepResult';
-import { TopoDS_Shape } from 'public/occt-wasm';
 import { ObjectID } from './id-tool';
+import { type BrepGeometry, type BrepMesh, type BrepPoint, type BrepLine, type BrepGroup, type BrepObject, BrepObjectType } from './types';
+import { convertLineLoopToLineSegments, id2color } from './utils';
 
-export interface MeshData {
-  positions: Float32Array;
-  indices: Uint32Array;
-  normals: Float32Array;
-  uvs: Float32Array;
+export const POINT_SIZE = 5;
+export const LINE_WIDTH = 2;
+const FACE_COLOR = 0x4a90e2;
+
+const USE_ID_MAP = new Map<string, ObjectID>();
+const ID_OBJECT_MAP = new Map<string, BrepObject>();
+
+export function getObjectById(id: string): BrepObject | undefined {
+  return ID_OBJECT_MAP.get(id);
 }
 
-const usedIds = new Map<string, ObjectID>();
+function wrapBrepGeometry(geometry: BrepGeometry): void {
+  const id = ObjectID.generate();
+  geometry.uuid = id.toString();
+  USE_ID_MAP.set(id.toString(), id);
 
-export interface BrepGeometry extends THREE.BufferGeometry {
-  shape: TopoDS_Shape;
-}
-
-/**
- * 对索引数组进行偏移
- * @param indices 原始索引数组
- * @param offset 偏移量
- * @returns 偏移后的索引数组
- */
-export function indexOffset(indices: number[], offset: number): number[] {
-  return indices.map(idx => idx + offset);
-}
-
-function wrapBrepGeometry(geometry: BrepGeometry):void {
   geometry.addEventListener('dispose', () => {
-    if (usedIds.has(geometry.uuid)) {
-      ObjectID.release(usedIds.get(geometry.uuid)!);
-      usedIds.delete(geometry.uuid);
+    if (USE_ID_MAP.has(geometry.uuid)) {
+      ObjectID.release(USE_ID_MAP.get(geometry.uuid)!);
+      USE_ID_MAP.delete(geometry.uuid);
     }
     if (geometry.shape.isDeleted()) {
       geometry.shape.deleteLater();
@@ -49,15 +34,11 @@ function wrapBrepGeometry(geometry: BrepGeometry):void {
 
 export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeometry[], lines: BrepGeometry[], faces: BrepGeometry[] } {
   const { vertices, edges, faces } = result;
-  const [pointsGeo, linesGeo, facesGeo] = [[],[],[]] as BrepGeometry[][];
+  const [pointsGeo, linesGeo, facesGeo] = [[], [], []] as BrepGeometry[][];
 
   vertices.forEach((vertex) => {
     const geometry = new THREE.BufferGeometry() as BrepGeometry;
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertex.position, 3));
-    const id = ObjectID.generate();
-    geometry.uuid = id.toString();
-    usedIds.set(id.toString(), id);
-
     geometry.shape = vertex.shape;
     wrapBrepGeometry(geometry);
     pointsGeo.push(geometry);
@@ -73,9 +54,6 @@ export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeom
     }
     const geometry = new LineSegmentsGeometry() as LineSegmentsGeometry & BrepGeometry;
     geometry.setPositions(lineSegments);
-    const id = ObjectID.generate();
-    geometry.uuid = id.toString();
-    usedIds.set(id.toString(), id);
     geometry.shape = edge.shape;
     wrapBrepGeometry(geometry);
     linesGeo.push(geometry);
@@ -87,94 +65,213 @@ export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeom
     geometry.setAttribute('position', new THREE.BufferAttribute(face.position, 3));
     geometry.setIndex([...face.index]);
     geometry.setAttribute('uv', new THREE.BufferAttribute(face.uvs, 2));
-
-    const id = ObjectID.generate();
-    geometry.uuid = id.toString();
-    usedIds.set(id.toString(), id); 
     geometry.shape = face.shape;
     wrapBrepGeometry(geometry);
     facesGeo.push(geometry);
     geometry.computeVertexNormals();
-
   });
 
 
   return { points: pointsGeo, lines: linesGeo, faces: facesGeo };
 }
 
-/**
- * @description: 将LineLoop转换成LineSegment
- * @param {number[]} position 位置数组
- * @return {number[]}
- * @example
- * 例如将LineLoop四个点分为1,2,3,4，
- * 转换后变成，1,2,2,3,3,4
- */
-function convertLineLoopToLineSegments(position: Float32Array): Float32Array {
-  const result: number[] = [];
-  // 每个点由 3 个分量组成 (x, y, z)
-  const stride = 3;
-  const count = position.length / stride;
-  // 少于 2 个点，无法形成线段
-  if (count < 2) return new Float32Array(0);
+export function createPointMaterial(color: THREE.Color | number | string): THREE.PointsMaterial {
+  return new THREE.PointsMaterial({
+    color,
+    size: POINT_SIZE,
+    polygonOffset: true,
+    polygonOffsetUnits: 8,
+    polygonOffsetFactor: -1,
+    sizeAttenuation: false
+  });
+}
 
-  for (let i = 0; i < count - 1; i++) {
-    const a = i * stride;
-    const b = (i + 1) * stride;
+export function createLineMaterial(color: THREE.Color | number | string): LineMaterial {
+  return new LineMaterial({
+    color,
+    linewidth: LINE_WIDTH,
+    polygonOffset: true,
+    polygonOffsetUnits: 4,
+    polygonOffsetFactor: -1
+  });
+}
 
-    // 当前点 -> 下一个点
-    result.push(
-      position[a], position[a + 1], position[a + 2],
-      position[b], position[b + 1], position[b + 2]
-    );
+export function createFaceMaterial(color: THREE.Color | number | string): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color,
+    polygonOffset: true,
+    polygonOffsetUnits: 1,
+    polygonOffsetFactor: 1
+  });
+}
+
+
+const pointMaterial = createPointMaterial(0x000000);
+const lineMaterial = createLineMaterial(0x000000);
+const faceMaterial = createFaceMaterial(FACE_COLOR);
+
+
+function createBrepObject(
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  type: BrepObjectType.MESH,
+  registerInMap?: boolean
+): BrepMesh;
+function createBrepObject(
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  type: BrepObjectType.POINT,
+  registerInMap?: boolean
+): BrepPoint;
+function createBrepObject(
+  geometry: LineSegmentsGeometry,
+  material: LineMaterial,
+  type: BrepObjectType.LINE,
+  registerInMap?: boolean
+): BrepLine;
+
+function createBrepObject(
+  geometry: THREE.BufferGeometry | LineSegmentsGeometry,
+  material: THREE.Material | LineMaterial,
+  type: BrepObjectType,
+  /** 为 false 时不写入 ID_OBJECT_MAP，用于 GPUPickScene 的副本，避免覆盖主场景对象导致高亮污染 GPU 场景 */
+  registerInMap = true
+): BrepObject {
+  let object: BrepObject;
+
+  switch (type) {
+    case BrepObjectType.MESH:
+      object = new THREE.Mesh(geometry as THREE.BufferGeometry, material as THREE.Material) as BrepMesh;
+      object.type = BrepObjectType.MESH;
+      break;
+    case BrepObjectType.POINT:
+      object = new THREE.Points(geometry as THREE.BufferGeometry, material as THREE.Material) as BrepPoint;
+      object.type = BrepObjectType.POINT;
+      break;
+    case BrepObjectType.LINE:
+      object = new LineSegments2(geometry as LineSegmentsGeometry, material as LineMaterial) as BrepLine;
+      object.type = BrepObjectType.LINE;
+      break;
+    default:
+      throw new Error(`Unsupported BrepObjectType: ${type} satisfies never`);
   }
-  return new Float32Array(result);
+
+  object.objectId = geometry.uuid;
+  if (registerInMap) {
+    ID_OBJECT_MAP.set(geometry.uuid, object);
+  }
+  object.dispose = () => {
+    geometry.dispose();
+    (material as any).dispose?.(); // 更安全的 dispose 调用
+  };
+
+  return object;
 }
 
 
-const pointMaterial = new THREE.PointsMaterial({ color: 0x000000, size: 0.01 });
-const lineMaterial = new LineMaterial({ color: 0x000000, linewidth: 2 });
-const faceMaterial = new THREE.MeshStandardMaterial({ color: 0x4a90e2 });
+export function createBrepGroup(brepResult: BRepResult, material: THREE.Material = faceMaterial): BrepGroup {
+  material.polygonOffset = true;
+  material.polygonOffsetUnits = 1;
+  material.polygonOffsetFactor = 1;
 
-
-
-export interface BrepMeshGroup extends THREE.Group {
-  faces: THREE.Mesh[];
-  points: THREE.Points[];
-  lines: LineSegments2[];
-  dispose: () => void;
-}
-
-
-
-export function createBrepMesh(brepResult: BRepResult, material: THREE.Material = faceMaterial): BrepMeshGroup {
   const { points, lines, faces } = parseBRepResult2Geometry(brepResult);
-  const group = new THREE.Group() as BrepMeshGroup;
+  const group = new THREE.Group() as BrepGroup;
+
   group.faces = faces.map((face) => {
-    const mesh = new THREE.Mesh(face, material);
+    const mesh = createBrepObject(face, material, BrepObjectType.MESH);
+    ID_OBJECT_MAP.set(face.uuid, mesh);
     group.add(mesh);
     return mesh;
   });
   group.points = points.map((point) => {
-    const points = new THREE.Points(point, pointMaterial);
+    const points = createBrepObject(point, pointMaterial, BrepObjectType.POINT);
+    ID_OBJECT_MAP.set(point.uuid, points);
     group.add(points);
     return points;
   });
   group.lines = lines.map((line) => {
-    const lines = new LineSegments2(line as unknown as LineSegmentsGeometry, lineMaterial);
+    const lines = createBrepObject(line as unknown as LineSegmentsGeometry, lineMaterial, BrepObjectType.LINE);
+    ID_OBJECT_MAP.set(line.uuid, lines);
     group.add(lines);
     return lines;
   });
   group.dispose = () => {
     faces.forEach((face) => {
+      ID_OBJECT_MAP.delete(face.uuid);
       face.dispose();
     });
     points.forEach((point) => {
+      ID_OBJECT_MAP.delete(point.uuid);
       point.dispose();
     });
     lines.forEach((line) => {
+      ID_OBJECT_MAP.delete(line.uuid);
       line.dispose();
     });
   }
   return group;
 }
+
+/** GPU 拾取用材质：GPUPickScene 无灯光，face 必须用 MeshBasicMaterial 否则面片全黑无法 pick */
+function createGPUObjectMaterial(id: string, type: 'face' | 'point' | 'line') {
+  const [r, g, b] = id2color(parseInt(id)).map(v => v / 255);
+  const color = new THREE.Color().setRGB(r, g, b);
+  switch (type) {
+    case 'face':
+      return new THREE.MeshBasicMaterial({ color, polygonOffset: true, polygonOffsetUnits: 1, polygonOffsetFactor: 1 });
+    case 'point':
+      return createPointMaterial(color);
+    case 'line':
+      return createLineMaterial(color);
+  }
+}
+
+
+export function createGPUBrepGroup(brepMesh: BrepGroup): BrepGroup {
+  const group = new THREE.Group() as BrepGroup;
+  group.position.copy(brepMesh.position);
+  group.scale.copy(brepMesh.scale);
+  group.quaternion.copy(brepMesh.quaternion);
+  group.faces = brepMesh.faces.map((face) => {
+    const material = createGPUObjectMaterial(face.objectId, 'face');
+    const mesh = createBrepObject(face.geometry, material, BrepObjectType.MESH, false);
+    mesh.position.copy(face.position);
+    mesh.scale.copy(face.scale);
+    mesh.quaternion.copy(face.quaternion);
+    group.add(mesh);
+    return mesh;
+  });
+  group.points = brepMesh.points.map((point) => {
+    const material = createGPUObjectMaterial(point.objectId, 'point');
+    const points = createBrepObject(point.geometry, material, BrepObjectType.POINT, false);
+    points.position.copy(point.position);
+    points.scale.copy(point.scale);
+    points.quaternion.copy(point.quaternion);
+    group.add(points);
+    return points;
+  });
+  group.lines = brepMesh.lines.map((line) => {
+    const material = createGPUObjectMaterial(line.objectId, 'line') as LineMaterial;
+    const lines = createBrepObject(line.geometry, material, BrepObjectType.LINE, false);
+    lines.position.copy(line.position);
+    lines.scale.copy(line.scale);
+    lines.quaternion.copy(line.quaternion);
+    group.add(lines);
+    return lines;
+  });
+
+  group.dispose = () => {
+    group.faces.forEach((face) => {
+      face.dispose();
+    });
+    group.points.forEach((point) => {
+      point.dispose();
+    });
+    group.lines.forEach((line) => {
+      line.dispose();
+    });
+  }
+
+  return group;
+}
+

@@ -1,16 +1,9 @@
-/*
- * @Author: wuyifan wuyifan@udschina.com
- * @Date: 2026-01-20 15:24:26
- * @LastEditors: wuyifan wuyifan@udschina.com
- * @LastEditTime: 2026-01-28 10:31:10
- * @FilePath: \occt-wasm\examples\src\cases\box-show\index.ts
-//  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
- */
 import { Case, CaseContext } from '../../router';
 import { ThreeRenderer } from '../../common/three-renderer';
 import * as THREE from 'three';
-import { BrepMeshGroup, createBrepMesh } from '../../common/shape-converter';
+import { createBrepGroup } from '../../common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
+import { BrepGroup } from '@/common/types';
 
 let renderer: ThreeRenderer;
 
@@ -97,7 +90,7 @@ async function load(context: CaseContext): Promise<void> {
             color: "#51a3ff"
         });
 
-        let groups: BrepMeshGroup[] = [];
+        let groups: BrepGroup[] = [];
 
 
         function build() {
@@ -111,13 +104,13 @@ async function load(context: CaseContext): Promise<void> {
 
             const rectPrism = new BRepPrimAPI_MakePrism(rectFace, direction).shape();
             const rectResult = Mesher.shapeToBRepResult(rectPrism, 0.1, 0.5);
-            const rectGroup = createBrepMesh(rectResult, material);
+            const rectGroup = createBrepGroup(rectResult, material);
             groups.push(rectGroup);
             renderer.add(rectGroup);
 
             const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
             const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
-            const triangleGroup = createBrepMesh(triangleResult, material);
+            const triangleGroup = createBrepGroup(triangleResult, material);
             groups.push(triangleGroup);
             renderer.add(triangleGroup);
 
