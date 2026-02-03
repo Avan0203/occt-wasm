@@ -4,6 +4,7 @@ import { LineSegments2 } from 'three/addons';
 
 export interface BrepGeometry extends THREE.BufferGeometry {
     shape: TopoDS_Shape;
+    data?: any;
 }
 
 

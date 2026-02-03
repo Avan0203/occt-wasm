@@ -29,6 +29,7 @@ function wrapBrepGeometry(geometry: BrepGeometry): void {
     if (geometry.shape.isDeleted()) {
       geometry.shape.deleteLater();
     }
+    geometry.data = undefined;
   });
 }
 
@@ -42,6 +43,9 @@ export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeom
     geometry.shape = vertex.shape;
     wrapBrepGeometry(geometry);
     pointsGeo.push(geometry);
+    geometry.data = {
+      position: vertex.position,
+    };
   });
 
   edges.forEach((edge) => {
@@ -57,6 +61,9 @@ export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeom
     geometry.shape = edge.shape;
     wrapBrepGeometry(geometry);
     linesGeo.push(geometry);
+    geometry.data = {
+      position: edge.position,
+    };
   });
 
 
@@ -69,6 +76,11 @@ export function parseBRepResult2Geometry(result: BRepResult): { points: BrepGeom
     wrapBrepGeometry(geometry);
     facesGeo.push(geometry);
     geometry.computeVertexNormals();
+    geometry.data = {
+      index: face.index,
+      uvs: face.uvs,
+      position: face.position,
+    };
   });
 
 
@@ -129,27 +141,37 @@ function createBrepObject(
   type: BrepObjectType.LINE,
   registerInMap?: boolean
 ): BrepLine;
+function createBrepObject(
+  geometry: THREE.BufferGeometry,
+  material: THREE.Material,
+  type: 'base-line',
+  registerInMap?: boolean
+): BrepLine;
 
 function createBrepObject(
   geometry: THREE.BufferGeometry | LineSegmentsGeometry,
   material: THREE.Material | LineMaterial,
-  type: BrepObjectType,
+  type: 'mesh' | 'point' | 'line' | 'base-line',
   /** 为 false 时不写入 ID_OBJECT_MAP，用于 GPUPickScene 的副本，避免覆盖主场景对象导致高亮污染 GPU 场景 */
   registerInMap = true
 ): BrepObject {
   let object: BrepObject;
 
   switch (type) {
-    case BrepObjectType.MESH:
+    case 'mesh':
       object = new THREE.Mesh(geometry as THREE.BufferGeometry, material as THREE.Material) as BrepMesh;
       object.type = BrepObjectType.MESH;
       break;
-    case BrepObjectType.POINT:
+    case 'point':
       object = new THREE.Points(geometry as THREE.BufferGeometry, material as THREE.Material) as BrepPoint;
       object.type = BrepObjectType.POINT;
       break;
-    case BrepObjectType.LINE:
+    case 'line':
       object = new LineSegments2(geometry as LineSegmentsGeometry, material as LineMaterial) as BrepLine;
+      object.type = BrepObjectType.LINE;
+      break;
+    case 'base-line':
+      object = new THREE.LineSegments(geometry, material) as unknown as BrepLine;
       object.type = BrepObjectType.LINE;
       break;
     default:
@@ -222,7 +244,7 @@ function createGPUObjectMaterial(id: string, type: 'face' | 'point' | 'line') {
     case 'point':
       return createPointMaterial(color);
     case 'line':
-      return createLineMaterial(color);
+      return new THREE.LineBasicMaterial({ color, polygonOffset: true, polygonOffsetUnits: 4, polygonOffsetFactor: -1 });
   }
 }
 
@@ -251,8 +273,10 @@ export function createGPUBrepGroup(brepMesh: BrepGroup): BrepGroup {
     return points;
   });
   group.lines = brepMesh.lines.map((line) => {
-    const material = createGPUObjectMaterial(line.objectId, 'line') as LineMaterial;
-    const lines = createBrepObject(line.geometry, material, BrepObjectType.LINE, false);
+    const material = createGPUObjectMaterial(line.objectId, 'line');
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute((line.geometry as any).data.position, 3));
+    const lines = createBrepObject(geometry, material, 'base-line', false);
     lines.position.copy(line.position);
     lines.scale.copy(line.scale);
     lines.quaternion.copy(line.quaternion);

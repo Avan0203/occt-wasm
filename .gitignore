@@ -1,6 +1,6 @@
 node_modules/
 build/
-source/
+source/emsdk/
 .vscode/
 *.log
 examples/dist/

@@ -77,7 +77,7 @@ class ThreeRenderer {
     const axesHelper = new THREE.AxesHelper(2);
     this.helperGroup.add(axesHelper);
 
-    this.setPickSize(3);
+    this.setPickSize(4);
 
     // 使用 ResizeObserver 观察容器尺寸变化
     this.initResizeObserver();
@@ -86,10 +86,8 @@ class ThreeRenderer {
     this.animate();
 
     const rect = container.getBoundingClientRect();
-    console.log('rect: ', rect);
     this.handleResize(container.clientWidth, container.clientHeight, rect.left, rect.top);
 
-    console.log('renderSize: ', renderSize);
     (window as any).DEBUG = {
       renderer: this
     }
@@ -111,15 +109,11 @@ class ThreeRenderer {
 
   private onMouseUp = ({ clientX, clientY, shiftKey }: MouseEvent): void => {
     const isMoved = startPos.distanceTo({ x: clientX, y: clientY }) < 1;
-    console.log(clientX, clientY);
-    console.log('renderSize: ', renderSize);
     if (isMoved && !isDragged) {
       mouse.set(clientX, clientY);
       mouse.x = mouse.x - renderSize.z;
       mouse.y = mouse.y - renderSize.w;
       const result = this.pick(mouse);
-      // printRenderTarget('pick', this.renderer, this.pickTarget);
-      console.log('result: ', result);
       if (result) {
         if (!shiftKey) {
           this.heightlightManager.clearHeightlight();
@@ -136,6 +130,7 @@ class ThreeRenderer {
     pickBuffer = new Uint8Array(size * size * 4);
 
     this.pickTarget.setSize(size, size);
+    this.setGPUPickSceneLineResolution(size, size);
   }
 
   /** 拾取前为 GPUPickScene 内 LineMaterial 设置 resolution，否则 LineSegments2 在拾取视口不绘制 */
@@ -161,7 +156,7 @@ class ThreeRenderer {
     this.renderer.setRenderTarget(this.pickTarget);
     this.renderer.setClearColor(0x000000);
     this.renderer.clear();
-    // this.setGPUPickSceneLineResolution(length, length);
+
 
     this.camera.setViewOffset(
       renderSize.x, renderSize.y,
@@ -175,21 +170,32 @@ class ThreeRenderer {
     this.camera.clearViewOffset();
     this.renderer.setRenderTarget(null);
 
+
+    const prioritizedTypes: BrepObjectType[] = [
+      BrepObjectType.POINT,
+      BrepObjectType.LINE,
+      BrepObjectType.MESH,
+    ];
+    const candidateByType: Partial<Record<BrepObjectType, BrepObject>> = {};
+
     for (let i of pickOrder) {
       const index = i * 4;
       const id = color2id(pickBuffer[index], pickBuffer[index + 1], pickBuffer[index + 2]);
       const object = getObjectById(id.toString());
 
-      if (object) {
-        if (object.type === BrepObjectType.POINT) {
-          return object;
+      if (object && candidateByType[object.type] === undefined) {
+        candidateByType[object.type] = object;
+        if (candidateByType[BrepObjectType.POINT] &&
+            candidateByType[BrepObjectType.LINE] &&
+            candidateByType[BrepObjectType.MESH]) {
+          break;
         }
-        if (object.type === BrepObjectType.LINE) {
-          return object;
-        }
-        if (object.type === BrepObjectType.MESH) {
-          return object;
-        }
+      }
+    }
+
+    for (const type of prioritizedTypes) {
+      if (candidateByType[type]) {
+        return candidateByType[type]!;
       }
     }
 
