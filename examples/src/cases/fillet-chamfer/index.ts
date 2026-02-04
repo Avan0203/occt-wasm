@@ -35,7 +35,7 @@ async function load(context: CaseContext): Promise<void> {
         renderer = new ThreeRenderer(container)!;
 
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('../../public/matcaps_64px.png');
+        const texture = textureLoader.load('/matcaps_64px.png');
 
 
         const a = new gp_Pnt(-2, -2, 2);

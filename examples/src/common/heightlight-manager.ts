@@ -2,20 +2,26 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
 import { BrepObject, BrepObjectType } from "./types";
+import { ThreeRenderer } from "./three-renderer";
 
-const color = '#ffce00';
+const faceColor = '#e6a23c';
+const lineColor = '#ffce00';
+const pointColor = '#eece00';
+
 
 function createHeightlightMaterial(type: BrepObjectType) {
     let material: THREE.Material | LineMaterial;
     switch (type) {
-        case BrepObjectType.MESH:
-            material = new THREE.MeshBasicMaterial({ color, depthTest: false, polygonOffset: true, polygonOffsetUnits: 1, polygonOffsetFactor: 1 });
+        case BrepObjectType.FACE:
+            material = new THREE.MeshBasicMaterial({ color: faceColor, depthTest: false, polygonOffset: true, polygonOffsetUnits: 1, polygonOffsetFactor: 1 });
             break;
         case BrepObjectType.POINT:
-            material = createPointMaterial(color);
+            material = createPointMaterial(pointColor);
+            material.transparent = true;
             break;
-        case BrepObjectType.LINE:
-            material = createLineMaterial(color);
+        case BrepObjectType.EDGE:
+            material = createLineMaterial(lineColor);
+            material.transparent = true;
             break;
     }
     material.depthTest = false;
@@ -23,9 +29,9 @@ function createHeightlightMaterial(type: BrepObjectType) {
 }
 
 class HeightlightManager {
-    private heightLightFaceMaterial = createHeightlightMaterial(BrepObjectType.MESH);
+    private heightLightFaceMaterial = createHeightlightMaterial(BrepObjectType.FACE);
     private heightLightPointMaterial = createHeightlightMaterial(BrepObjectType.POINT);
-    private heightLightLineMaterial = createHeightlightMaterial(BrepObjectType.LINE);
+    private heightLightEdgeMaterial = createHeightlightMaterial(BrepObjectType.EDGE);
 
     private lastHighlightedObjects = new Set<BrepObject>();
     private currentHighlightedObjects = new Set<BrepObject>();
@@ -33,14 +39,22 @@ class HeightlightManager {
     // 存储原来的材质
     private materialMap = new Map<BrepObject, THREE.Material | LineMaterial | THREE.Material[]>();
 
+    constructor(private renderer: ThreeRenderer) {}
+
     addHeightlight(object: BrepObject): void {
-        if (this.currentHighlightedObjects.has(object)) {
-            this.removeHeightlight(object);
-        } else {
-            this.materialMap.set(object, object.material);
-            this.currentHighlightedObjects.add(object);
-            this.updateHeightlight();
+        const selectedSet = new Set(this.renderer.getSelectionObjects());
+        if (selectedSet.has(object)) {
+            return;
         }
+        if (this.currentHighlightedObjects.size === 1 && this.currentHighlightedObjects.has(object)) {
+            return;
+        }
+        if (this.currentHighlightedObjects.size > 0) {
+            this.clearHeightlight();
+        }
+        this.materialMap.set(object, object.material);
+        this.currentHighlightedObjects.add(object);
+        this.updateHeightlight();
     }
 
     private removeHeightlight(object: BrepObject): void {
@@ -59,12 +73,12 @@ class HeightlightManager {
             if (this.hasBeenHighlightedObjects.has(object)) {
                 return;
             }
-            if (object.type === BrepObjectType.MESH) {
-                object.material = this.heightLightFaceMaterial.clone();
+            if (object.type === BrepObjectType.FACE) {
+                object.material = this.heightLightFaceMaterial;
             } else if (object.type === BrepObjectType.POINT) {
-                object.material = this.heightLightPointMaterial.clone();
-            } else if (object.type === BrepObjectType.LINE) {
-                object.material = this.heightLightLineMaterial.clone();
+                object.material = this.heightLightPointMaterial;
+            } else if (object.type === BrepObjectType.EDGE) {
+                object.material = this.heightLightEdgeMaterial;
             }
             this.hasBeenHighlightedObjects.add(object);
             this.lastHighlightedObjects.add(object);
@@ -72,7 +86,11 @@ class HeightlightManager {
     }
 
     private updateUnHeightlight(): void {
+        const selectedSet = new Set(this.renderer.getSelectionObjects());
         this.lastHighlightedObjects.forEach(object => {
+            if (selectedSet.has(object)) {
+                return;
+            }
             const original = this.materialMap.get(object);
             if (original !== undefined) {
                 object.material = original;
@@ -88,6 +106,20 @@ class HeightlightManager {
         this.materialMap.clear();
     }
 
+    getHeightlightObjects(): BrepObject[] {
+        return Array.from(this.currentHighlightedObjects);
+    }
+
+    getStoredOriginalMaterial(object: BrepObject): THREE.Material | LineMaterial | THREE.Material[] | undefined {
+        return this.materialMap.get(object);
+    }
+
+    dispose(): void {
+        this.clearHeightlight();
+        this.heightLightFaceMaterial.dispose();
+        this.heightLightPointMaterial.dispose();
+        this.heightLightEdgeMaterial.dispose();
+    }
 }
 
 export { HeightlightManager };

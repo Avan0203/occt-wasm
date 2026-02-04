@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { TopoDS_Shape } from 'public/occt-wasm';
+import { TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Vertex } from 'public/occt-wasm';
 import { LineSegments2 } from 'three/addons';
 
-export interface BrepGeometry extends THREE.BufferGeometry {
-    shape: TopoDS_Shape;
+
+export interface BrepGeometry<T extends TopoDS_Shape = TopoDS_Shape> extends THREE.BufferGeometry {
+    shape: T;
     data?: any;
 }
 
@@ -17,26 +18,35 @@ export interface MeshData {
 
 
 export interface BrepGroup extends THREE.Group {
-    faces: BrepMesh[];
+    shape: TopoDS_Shape;
+    faces: BrepFace[];
     points: BrepPoint[];
-    lines: BrepLine[];
+    edges: BrepEdge[];
     dispose: () => void;
 }
 
-type BrepObjectExtend= { 
+type BrepObjectExtend<T extends TopoDS_Shape = TopoDS_Shape> = { 
     objectId: string , 
     dispose: () => void, 
     type: BrepObjectType,
+    geometry: BrepGeometry<T>,
 }
 
 export enum BrepObjectType {
     POINT = 'point',
-    LINE = 'line',
-    MESH = 'mesh',
+    EDGE = 'edge',
+    FACE = 'face',
 }
 
-export type BrepPoint = THREE.Points & BrepObjectExtend;
-export type BrepLine = LineSegments2 & BrepObjectExtend;
-export type BrepMesh = THREE.Mesh & BrepObjectExtend;
+export type BrepPoint = THREE.Points & BrepObjectExtend<TopoDS_Vertex>;
+export type BrepEdge = LineSegments2 & BrepObjectExtend<TopoDS_Edge>;
+export type BrepFace = THREE.Mesh & BrepObjectExtend<TopoDS_Face>;
 
-export type BrepObject = BrepPoint | BrepLine | BrepMesh;
+export type BrepObject = BrepPoint | BrepEdge | BrepFace;
+
+export enum PickType {
+    FACE = 'face',
+    EDGE = 'edge',
+    VERTEX = 'vertex',
+    ALL = 'all',
+}

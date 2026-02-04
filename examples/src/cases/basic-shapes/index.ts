@@ -11,9 +11,12 @@ const colors = {
   box: 0x4a90e2,
   sphere: 0x50c878,
   cylinder: 0xe74c3c,
-  cone: 0xf39c12,
+  cone: 0xff9900,
   torus: 0x9b59b6,
 };
+
+const textureLoader = new THREE.TextureLoader();
+const texture = textureLoader.load('/matcaps_64px.png');
 
 /**
  * 创建 Box
@@ -27,11 +30,11 @@ async function createBox(occtModule: MainModule): Promise<BrepGroup> {
   console.log(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5));
 
   return createBrepGroup(
+    shape,
     occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5),
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshMatcapMaterial({
+      matcap: texture,
       color: colors.box,
-      metalness: 0.3,
-      roughness: 0.7,
     })
   );
 }
@@ -42,14 +45,13 @@ async function createBox(occtModule: MainModule): Promise<BrepGroup> {
 async function createSphere(occtModule: MainModule): Promise<BrepGroup> {
   const makeSphere = new occtModule.BRepPrimAPI_MakeSphere(1.5);
   const shape = makeSphere.shape();
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshMatcapMaterial({
+    matcap: texture,
     color: colors.sphere,
-    metalness: 0.3,
-    roughness: 0.7,
   });
   shape.deleteLater();
   makeSphere.deleteLater();
-  return createBrepGroup(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape,occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -58,15 +60,14 @@ async function createSphere(occtModule: MainModule): Promise<BrepGroup> {
 async function createCylinder(occtModule: MainModule): Promise<BrepGroup> {
   const makeCylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 3);
   const shape = makeCylinder.shape();
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshMatcapMaterial({
+    matcap: texture,
     color: colors.cylinder,
-    metalness: 0.3,
-    roughness: 0.7,
   });
 
   shape.deleteLater();
   makeCylinder.deleteLater();
-  return createBrepGroup(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -77,12 +78,11 @@ async function createCone(occtModule: MainModule): Promise<BrepGroup> {
   const shape = makeCone.shape();
   shape.deleteLater();
   makeCone.deleteLater();
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshMatcapMaterial({
     color: colors.cone,
-    metalness: 0.3,
-    roughness: 0.7,
+    matcap: texture,
   });
-  return createBrepGroup(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -93,12 +93,11 @@ async function createTorus(occtModule: any): Promise<BrepGroup> {
   const shape = makeTorus.shape();
   shape.deleteLater();
   makeTorus.deleteLater();
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshMatcapMaterial({
     color: colors.torus,
-    metalness: 0.3,
-    roughness: 0.7,
+    matcap: texture,
   });
-  return createBrepGroup(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
 }
 
 

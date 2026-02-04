@@ -9,7 +9,7 @@ class ObjectID {
         if (_recycledIds.length > 0) {
             return _recycledIds.pop()!;
         } else {
-            return new ObjectID(ObjectID.index+=200);
+            return new ObjectID(ObjectID.index++);
         }
     }
 

@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import { BrepObjectType, type BrepGroup, type BrepObject } from './types';
+import { BrepObjectType, PickType, type BrepGroup, type BrepObject } from './types';
 import { createGPUBrepGroup, getObjectById } from './shape-converter';
 import { color2id, createSpiralOrder } from './utils';
-import { printRenderTarget } from './catch';
 import { HeightlightManager } from './heightlight-manager';
+import { EventListener } from './event-listener';
+import { SelectionManager } from './selection-manager';
 
 
 const startPos = new THREE.Vector2(0, 0);
@@ -17,7 +18,7 @@ let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
 let isDragged = false;
 
-class ThreeRenderer {
+class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
@@ -32,9 +33,11 @@ class ThreeRenderer {
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
-  private heightlightManager = new HeightlightManager();
-
+  heightlightManager = new HeightlightManager(this);
+  selectionManager = new SelectionManager(this);
+  private pickType: PickType = PickType.ALL;
   constructor(container: HTMLElement) {
+    super();
     this.container = container;
 
     container.addEventListener('mouseup', this.onMouseUp);
@@ -88,6 +91,8 @@ class ThreeRenderer {
     const rect = container.getBoundingClientRect();
     this.handleResize(container.clientWidth, container.clientHeight, rect.left, rect.top);
 
+    this.pickType = PickType.ALL;
+
     (window as any).DEBUG = {
       renderer: this
     }
@@ -98,6 +103,14 @@ class ThreeRenderer {
     createSpiralOrder(size, size, pickOrder);
   }
 
+  public setPickType(type: PickType): void {
+    this.pickType = type;
+  }
+
+  public getSelectionObjects(): BrepObject[] {
+    return this.selectionManager.getSelectionObjects();
+  }
+
   private onMouseDown = ({ clientX, clientY }: MouseEvent): void => {
     startPos.set(clientX, clientY);
     isDragged = false;
@@ -105,6 +118,16 @@ class ThreeRenderer {
 
   private onMouseMove = ({ clientX, clientY }: MouseEvent): void => {
     isDragged = !(startPos.distanceTo({ x: clientX, y: clientY }) < 1);
+    mouse.set(clientX, clientY);
+    mouse.x = mouse.x - renderSize.z;
+    mouse.y = mouse.y - renderSize.w;
+    const result = this.pick(mouse);
+    if (result) {
+      this.heightlightManager.addHeightlight(result);
+      this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: result }));
+    } else {
+      this.heightlightManager.clearHeightlight();
+    }
   }
 
   private onMouseUp = ({ clientX, clientY, shiftKey }: MouseEvent): void => {
@@ -116,11 +139,12 @@ class ThreeRenderer {
       const result = this.pick(mouse);
       if (result) {
         if (!shiftKey) {
-          this.heightlightManager.clearHeightlight();
+          this.selectionManager.clearSelection();
         }
-        this.heightlightManager.addHeightlight(result);
+        this.selectionManager.addSelection(result);
+        this.dispatchEvent('selection', new CustomEvent('selection', { detail: result }));
       } else {
-        this.heightlightManager.clearHeightlight();
+        this.selectionManager.clearSelection();
       }
     }
   }
@@ -130,25 +154,9 @@ class ThreeRenderer {
     pickBuffer = new Uint8Array(size * size * 4);
 
     this.pickTarget.setSize(size, size);
-    this.setGPUPickSceneLineResolution(size, size);
   }
 
-  /** 拾取前为 GPUPickScene 内 LineMaterial 设置 resolution，否则 LineSegments2 在拾取视口不绘制 */
-  private setGPUPickSceneLineResolution(width: number, height: number): void {
-    this.GPUPickScene.traverse((object) => {
-      if (object instanceof LineSegments2) {
-        const material = (object as THREE.Mesh).material as THREE.ShaderMaterial;
-        const mats = Array.isArray(material) ? material : [material];
-        mats.forEach((mat) => {
-          if (mat.uniforms?.resolution?.value) {
-            mat.uniforms.resolution.value.set(width, height);
-          }
-        });
-      }
-    });
-  }
-
-  public pick(pos: THREE.Vector2Like): BrepObject | null {
+  public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepObject | null {
     this.preparePick();
 
     const length = this.pickSize * 2;
@@ -171,11 +179,7 @@ class ThreeRenderer {
     this.renderer.setRenderTarget(null);
 
 
-    const prioritizedTypes: BrepObjectType[] = [
-      BrepObjectType.POINT,
-      BrepObjectType.LINE,
-      BrepObjectType.MESH,
-    ];
+    const allowedTypes = getBrepObjectTypesByPickType(pickType);
     const candidateByType: Partial<Record<BrepObjectType, BrepObject>> = {};
 
     for (let i of pickOrder) {
@@ -183,17 +187,15 @@ class ThreeRenderer {
       const id = color2id(pickBuffer[index], pickBuffer[index + 1], pickBuffer[index + 2]);
       const object = getObjectById(id.toString());
 
-      if (object && candidateByType[object.type] === undefined) {
+      if (object && allowedTypes.includes(object.type) && candidateByType[object.type] === undefined) {
         candidateByType[object.type] = object;
-        if (candidateByType[BrepObjectType.POINT] &&
-            candidateByType[BrepObjectType.LINE] &&
-            candidateByType[BrepObjectType.MESH]) {
+        if (allowedTypes.every((t) => candidateByType[t] !== undefined)) {
           break;
         }
       }
     }
 
-    for (const type of prioritizedTypes) {
+    for (const type of allowedTypes) {
       if (candidateByType[type]) {
         return candidateByType[type]!;
       }
@@ -273,8 +275,6 @@ class ThreeRenderer {
         });
       }
     })
-   
-    this.setGPUPickSceneLineResolution(width, height);
   }
 
   private animate(): void {
@@ -384,6 +384,8 @@ class ThreeRenderer {
     }
 
     this.clear();
+    this.heightlightManager.dispose();
+    this.selectionManager.dispose();
     this.renderer.dispose();
     this.controls.dispose();
     if (this.container.contains(this.renderer.domElement)) {
@@ -392,6 +394,25 @@ class ThreeRenderer {
     this.container.removeEventListener('mousedown', this.onMouseDown);
     this.container.removeEventListener('mouseup', this.onMouseUp)
     this.container.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  public clearHeightlight(): void {
+    this.heightlightManager.clearHeightlight();
+  }
+
+  public clearSelection(): void {
+    this.selectionManager.clearSelection();
+  }
+
+}
+
+function getBrepObjectTypesByPickType(pickType: PickType): BrepObjectType[] {
+  switch (pickType) {
+    case PickType.VERTEX: return [BrepObjectType.POINT];
+    case PickType.EDGE: return [BrepObjectType.EDGE];
+    case PickType.FACE: return [BrepObjectType.FACE];
+    case PickType.ALL: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
+    default: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
   }
 }
 

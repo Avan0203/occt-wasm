@@ -21,7 +21,7 @@ async function load(context: CaseContext): Promise<void> {
         renderer = new ThreeRenderer(container)!;
 
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('../../public/matcaps_64px.png');
+        const texture = textureLoader.load('/matcaps_64px.png');
 
         const cylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 2);
         const cylinderShape = cylinder.shape();
@@ -29,7 +29,7 @@ async function load(context: CaseContext): Promise<void> {
         const brepResult = occtModule.Mesher.shapeToBRepResult(cylinderShape, 0.1, 0.5);
         console.log('brepResult: ', brepResult);
 
-        const group = createBrepGroup(brepResult, new THREE.MeshMatcapMaterial({
+        const group = createBrepGroup(cylinderShape, brepResult, new THREE.MeshMatcapMaterial({
             matcap: texture,
             color: '#d5fe33'
         }));

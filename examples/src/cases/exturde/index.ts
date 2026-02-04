@@ -35,7 +35,7 @@ async function load(context: CaseContext): Promise<void> {
         renderer = new ThreeRenderer(container)!;
 
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('../../public/matcaps_64px.png');
+        const texture = textureLoader.load('/matcaps_64px.png');
 
 
         const a = new gp_Pnt(-2, -2, 2);
@@ -87,7 +87,7 @@ async function load(context: CaseContext): Promise<void> {
 
         const material = new THREE.MeshMatcapMaterial({
             matcap: texture,
-            color: "#51a3ff"
+            color: "#00cfff"
         });
 
         let groups: BrepGroup[] = [];
@@ -104,18 +104,16 @@ async function load(context: CaseContext): Promise<void> {
 
             const rectPrism = new BRepPrimAPI_MakePrism(rectFace, direction).shape();
             const rectResult = Mesher.shapeToBRepResult(rectPrism, 0.1, 0.5);
-            const rectGroup = createBrepGroup(rectResult, material);
+            const rectGroup = createBrepGroup(rectPrism, rectResult, material);
             groups.push(rectGroup);
             renderer.add(rectGroup);
 
             const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
             const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
-            const triangleGroup = createBrepGroup(triangleResult, material);
+            const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
             groups.push(triangleGroup);
             renderer.add(triangleGroup);
 
-            rectPrism.deleteLater();
-            trianglePrism.deleteLater();
             direction.deleteLater();
         }
 
