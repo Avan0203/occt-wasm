@@ -100,7 +100,6 @@ export interface gp_Trsf extends ClassHandle {
   setTransformation(_0: gp_Ax3, _1: gp_Ax3): void;
   vectorialPart(): gp_Mat;
   form(): gp_TrsfForm;
-  initWithTrsf(): TopLoc_Location;
 }
 
 export interface gp_Ax1 extends ClassHandle {
@@ -582,6 +581,7 @@ interface EmbindModule {
   TopLoc_Location: {
     new(): TopLoc_Location;
     new(_0: TopLoc_Location): TopLoc_Location;
+    createWithTrsf(_0: gp_Trsf): TopLoc_Location;
   };
   TopoDS_Iterator: {
     new(): TopoDS_Iterator;

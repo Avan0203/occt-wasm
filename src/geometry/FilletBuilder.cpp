@@ -16,5 +16,6 @@ void FilletBuilder::addVariableRadius(double r1, double r2, const TopoDS_Edge& e
 }
 
 TopoDS_Shape FilletBuilder::build() {
+    myFillet.Build();
     return myFillet.IsDone() ? myFillet.Shape() : TopoDS_Shape();
 }

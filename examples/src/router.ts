@@ -74,7 +74,6 @@ class Router {
       throw new Error(`Case "${caseId}" not found`);
     }
 
-    console.log('[Router] navigateTo called, occtModule:', this.occtModule ? 'exists' : 'null');
     if (!this.occtModule) {
       console.error('[Router] OCCT module is null!');
       throw new Error('OCCT module not loaded. Call setOCCTModule() first.');

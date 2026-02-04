@@ -1,11 +1,12 @@
 import { router } from './router';
-import { basicShapesCase, brepShowCase, exturdeCase } from './cases';
+import { basicShapesCase, brepShowCase, exturdeCase, filletChamferCase } from './cases';
 import { loadOCCTModule } from './common/occt-loader';
 
 // 注册案例
 router.register(basicShapesCase);
 router.register(brepShowCase);
 router.register(exturdeCase);
+router.register(filletChamferCase);
 // 初始化应用
 async function initApp() {
   const container = document.getElementById('viewer-container')!;

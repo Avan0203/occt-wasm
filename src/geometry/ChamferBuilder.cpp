@@ -16,5 +16,6 @@ void ChamferBuilder::addDistances(double d1, double d2, const TopoDS_Edge& edge,
 }
 
 TopoDS_Shape ChamferBuilder::build() {
+    myChamfer.Build();
     return myChamfer.IsDone() ? myChamfer.Shape() : TopoDS_Shape();
 }
