@@ -25,6 +25,60 @@ ssl._create_default_https_context = ssl._create_unverified_context\n
     console.log('fixSSLCheck done');
 }
 
+/** macOS 上改用 urllib 下载，避免 curl 连接被重置（如 35）；fixSSLCheck 已处理 urllib 的 SSL */
+const useUrllibOnMac = async (url: string) => {
+    const file = path.resolve(`${url}/emsdk.py`);
+    let contents = fs.readFileSync(file, "utf8");
+    const useCurlBlock = `    # Use curl on macOS to avoid CERTIFICATE_VERIFY_FAILED issue with
+    # python's urllib:
+    # https://stackoverflow.com/questions/40684543/how-to-make-python-use-ca-certificates-from-mac-os-truststore
+    # Unlike on linux or windows, curl is always available on macOS systems.
+    if MACOS:
+      download_with_curl(url, file_name)
+    else:
+      download_with_urllib(url, file_name)`;
+    const useUrllibOnly = `    # Prefer urllib on all platforms (fixSSLCheck handles SSL on macOS).
+    download_with_urllib(url, file_name)`;
+    if (contents.includes(useCurlBlock)) {
+        contents = contents.replace(useCurlBlock, useUrllibOnly);
+        fs.writeFileSync(file, contents, "utf8");
+        console.log('useUrllibOnMac done');
+    }
+}
+
+/** 下载失败时重试（应对 Connection reset by peer 等瞬时网络问题） */
+const addDownloadRetry = async (url: string) => {
+    const file = path.resolve(`${url}/emsdk.py`);
+    let contents = fs.readFileSync(file, "utf8");
+    const noRetry = `  try:
+    # Prefer urllib on all platforms (fixSSLCheck handles SSL on macOS).
+    download_with_urllib(url, file_name)
+  except Exception as e:
+    errlog(f"Error: Downloading URL '{url}': {e}")
+    return None`;
+    const withRetry = `  try:
+    # Prefer urllib on all platforms (fixSSLCheck handles SSL on macOS).
+    import time
+    for _attempt in range(5):
+      try:
+        download_with_urllib(url, file_name)
+        break
+      except Exception as _e:
+        if _attempt < 4:
+          print(f"Download failed, retry {_attempt+1}/5 in {2*(_attempt+1)}s: {_e}")
+          time.sleep(2 * (_attempt + 1))
+        else:
+          raise
+  except Exception as e:
+    errlog(f"Error: Downloading URL '{url}': {e}")
+    return None`;
+    if (contents.includes(noRetry) && !contents.includes("for _attempt in range(5)")) {
+        contents = contents.replace(noRetry, withRetry);
+        fs.writeFileSync(file, contents, "utf8");
+        console.log('addDownloadRetry done');
+    }
+}
+
 
 const activateEmscripten = async (url: string) => {
     console.log('url: ', url);
@@ -51,7 +105,7 @@ const libs: LibItem[] = [
         namespace: "emsdk",
         url: "https://github.com/emscripten-core/emsdk.git",
         tag: "4.0.22",
-        patches: [fixSSLCheck],
+        patches: [fixSSLCheck, useUrllibOnMac, addDownloadRetry],
         cmd: [activateEmscripten]
     }
 ]
