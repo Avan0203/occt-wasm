@@ -101,18 +101,22 @@ async function load(context: CaseContext): Promise<void> {
 
         const direction = new gp_Vec(dir.x, dir.y, dir.z);
 
+        // 场景里所有可被倒角替换的 shape 组，用数组统一管理，替换时只改对应下标
+        const shapeGroups: BrepGroup[] = [];
+
         const rectResult = Mesher.shapeToBRepResult(boxShape, 0.1, 0.5);
-        let rectGroup = createBrepGroup(boxShape, rectResult, material);
+        const rectGroup = createBrepGroup(boxShape, rectResult, material);
         rectGroup.shape = boxShape;
+        shapeGroups.push(rectGroup);
         renderer.add(rectGroup);
 
         const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
         const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
-        let triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
+        const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
+        shapeGroups.push(triangleGroup);
         renderer.add(triangleGroup);
 
         direction.deleteLater();
-
 
         const params: {
             radius: number;
@@ -131,34 +135,40 @@ async function load(context: CaseContext): Promise<void> {
                 if (selectedEdges.length === 0) {
                     return alert('Please select at least one edge');
                 }
-        
-                let builder: FilletBuilder | ChamferBuilder;
+                const shapeEdges: TopoDS_Edge[] = Mesher.getEdges(targetGroup.shape);
+                const edgesToAdd = selectedEdges
+                    .map(brepEdge => shapeEdges.find(se => se.isSame(brepEdge.geometry.shape)))
+                    .filter((e): e is TopoDS_Edge => e !== undefined);
+                if (edgesToAdd.length === 0) {
+                    return alert('Selected edges could not be matched to shape');
+                }
 
+                let builder: FilletBuilder | ChamferBuilder;
                 if (params.operation === 'fillet') {
                     builder = new FilletBuilder(targetGroup.shape);
-                    selectedEdges.forEach(edge => (builder as FilletBuilder).addConstantRadius(params.radius, edge.geometry.shape));
+                    edgesToAdd.forEach(edge => (builder as FilletBuilder).addConstantRadius(params.radius, edge));
                 } else {
                     builder = new ChamferBuilder(targetGroup.shape);
-                    selectedEdges.forEach(edge => (builder as ChamferBuilder).addEqual(params.distance, edge.geometry.shape));
+                    edgesToAdd.forEach(edge => (builder as ChamferBuilder).addEqual(params.distance, edge));
                 }
                 const newShape = builder.build();
                 if (newShape.isNull()) {
                     builder.deleteLater();
                     return alert('Fillet/Chamfer failed (e.g. radius/distance too large or invalid edges)');
                 }
+
                 const newResult = Mesher.shapeToBRepResult(newShape, 0.1, 0.5);
                 const newGroup = createBrepGroup(newShape, newResult, material);
-                if(targetGroup === rectGroup){
-                    renderer.remove(rectGroup);
-                    rectGroup.dispose();
-                }else if(targetGroup === triangleGroup){
-                    renderer.remove(triangleGroup);
-                    triangleGroup.dispose();
+
+                const slotIndex = shapeGroups.indexOf(targetGroup);
+                if (slotIndex >= 0) {
+                    renderer.remove(targetGroup);
+                    targetGroup.dispose();
+                    shapeGroups[slotIndex] = newGroup;
                 }
                 renderer.add(newGroup);
                 targetGroup = null;
                 renderer.clearSelection();
-
                 builder.deleteLater();
             }
         }

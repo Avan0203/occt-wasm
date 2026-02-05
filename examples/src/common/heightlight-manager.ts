@@ -13,7 +13,7 @@ function createHeightlightMaterial(type: BrepObjectType) {
     let material: THREE.Material | LineMaterial;
     switch (type) {
         case BrepObjectType.FACE:
-            material = new THREE.MeshBasicMaterial({ color: faceColor, depthTest: false, polygonOffset: true, polygonOffsetUnits: 1, polygonOffsetFactor: 1 });
+            material = new THREE.MeshBasicMaterial({ color: faceColor, depthTest: false, polygonOffset: true, polygonOffsetUnits: 1, polygonOffsetFactor: 1, transparent: true });
             break;
         case BrepObjectType.POINT:
             material = createPointMaterial(pointColor);
@@ -39,7 +39,7 @@ class HeightlightManager {
     // 存储原来的材质
     private materialMap = new Map<BrepObject, THREE.Material | LineMaterial | THREE.Material[]>();
 
-    constructor(private renderer: ThreeRenderer) {}
+    constructor(private renderer: ThreeRenderer) { }
 
     addHeightlight(object: BrepObject): void {
         const selectedSet = new Set(this.renderer.getSelectionObjects());
@@ -54,6 +54,7 @@ class HeightlightManager {
         }
         this.materialMap.set(object, object.material);
         this.currentHighlightedObjects.add(object);
+
         this.updateHeightlight();
     }
 
@@ -80,6 +81,7 @@ class HeightlightManager {
             } else if (object.type === BrepObjectType.EDGE) {
                 object.material = this.heightLightEdgeMaterial;
             }
+            object.renderOrder = 2;
             this.hasBeenHighlightedObjects.add(object);
             this.lastHighlightedObjects.add(object);
         })
@@ -94,6 +96,7 @@ class HeightlightManager {
             const original = this.materialMap.get(object);
             if (original !== undefined) {
                 object.material = original;
+                object.renderOrder = 0;
             }
         });
     }

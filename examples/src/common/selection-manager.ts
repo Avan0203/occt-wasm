@@ -56,6 +56,7 @@ class SelectionManager {
             } else if (object.type === BrepObjectType.EDGE) {
                 object.material = this.selectionEdgeMaterial;
             }
+            object.renderOrder = 1;
             this.hasBeenSelectedObjects.add(object);
             this.lastSelectedObjects.add(object);
         })
@@ -66,6 +67,7 @@ class SelectionManager {
             const original = this.materialMap.get(object);
             if (original !== undefined) {
                 object.material = original;
+                object.renderOrder = 0;
             }
         });
     }
@@ -93,6 +95,7 @@ class SelectionManager {
                     polygonOffsetUnits: 1,
                     polygonOffsetFactor: -1,
                     transparent: true,
+                    depthTest: false,
                 });
                 break;
             case BrepObjectType.POINT:

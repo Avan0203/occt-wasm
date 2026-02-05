@@ -64,6 +64,7 @@ class ThreeRenderer extends EventListener {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(this.renderer.domElement);
     this.renderer.autoClear = false;
+    this.renderer.sortObjects = false;
 
     // 创建控制器
     this.controls = new TrackballControls(this.camera, this.renderer.domElement);
