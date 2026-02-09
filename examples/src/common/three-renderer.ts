@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+// import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { BrepObjectType, PickType, type BrepGroup, type BrepObject } from './types';
@@ -8,6 +8,8 @@ import { color2id, createSpiralOrder } from './utils';
 import { HeightlightManager } from './heightlight-manager';
 import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
+import { BlenderControls } from './BlenderControls';
+import { MOUSE } from 'three';
 
 
 const startPos = new THREE.Vector2(0, 0);
@@ -17,12 +19,13 @@ const renderSize = new THREE.Vector4(0, 0, 0, 0);
 let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
 let isDragged = false;
+let isDragging = false;
 
 class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private controls: TrackballControls;
+  private controls: BlenderControls;
   private container: HTMLElement;
   private animationId: number | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -66,11 +69,26 @@ class ThreeRenderer extends EventListener {
     this.renderer.autoClear = false;
     this.renderer.sortObjects = false;
 
-    // 创建控制器
-    this.controls = new TrackballControls(this.camera, this.renderer.domElement);
-    this.controls.rotateSpeed = 5.0;
-    this.controls.zoomSpeed = 0.8;
-    this.controls.dynamicDampingFactor = 0.2;
+    // 创建控制器（Blender 操作习惯：中键旋转，滚轮缩放，Shift+中键平移）
+    this.controls = new BlenderControls(this.camera, this.renderer.domElement);
+    this.controls.zoomSpeed = 2;
+    this.controls.rotateSpeed = 1.5;
+    this.controls.getMouseAction = (event) => {
+      const { button, shiftKey } = event;
+      if(button === 1 && shiftKey){
+        return MOUSE.PAN;
+      }else if(button === 1){
+        return MOUSE.ROTATE;
+      }else {
+        return -1;
+      }
+    };
+    this.controls.addEventListener('start', () => {
+      isDragging = true;
+    });
+    this.controls.addEventListener('end', () => {
+      isDragging = false;
+    });
 
     this.GPUPickScene = new THREE.Scene();
 
@@ -119,6 +137,9 @@ class ThreeRenderer extends EventListener {
 
   private onMouseMove = ({ clientX, clientY }: MouseEvent): void => {
     isDragged = !(startPos.distanceTo({ x: clientX, y: clientY }) < 1);
+    if (isDragging) {
+      return;
+    }
     mouse.set(clientX, clientY);
     mouse.x = mouse.x - renderSize.z;
     mouse.y = mouse.y - renderSize.w;

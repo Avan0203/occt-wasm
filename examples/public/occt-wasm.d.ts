@@ -355,6 +355,134 @@ export interface GeomAbs_CurveTypeValue<T extends number> {
 }
 export type GeomAbs_CurveType = GeomAbs_CurveTypeValue<0>|GeomAbs_CurveTypeValue<1>|GeomAbs_CurveTypeValue<2>|GeomAbs_CurveTypeValue<3>|GeomAbs_CurveTypeValue<4>|GeomAbs_CurveTypeValue<5>|GeomAbs_CurveTypeValue<6>|GeomAbs_CurveTypeValue<7>|GeomAbs_CurveTypeValue<8>;
 
+export interface GeomAbs_ShapeValue<T extends number> {
+  value: T;
+}
+export type GeomAbs_Shape = GeomAbs_ShapeValue<0>|GeomAbs_ShapeValue<1>|GeomAbs_ShapeValue<2>|GeomAbs_ShapeValue<3>|GeomAbs_ShapeValue<4>|GeomAbs_ShapeValue<5>|GeomAbs_ShapeValue<6>;
+
+export interface Standard_Transient extends ClassHandle {
+  getRefCount(): number;
+}
+
+export interface Handle_Geom_Geometry extends ClassHandle {
+  isNull(): boolean;
+  get(): Geom_Geometry | null;
+}
+
+export interface Geom_Geometry extends Standard_Transient {
+  copy(): Handle_Geom_Geometry;
+  transform(_0: gp_Trsf): void;
+  transformed(_0: gp_Trsf): Handle_Geom_Geometry;
+}
+
+export interface Geom_Curve extends Geom_Geometry {
+  isClosed(): boolean;
+  isPeriodic(): boolean;
+  period(): number;
+  reverse(): void;
+  firstParameter(): number;
+  lastParameter(): number;
+  value(_0: number): gp_Pnt;
+  d0(_0: number): gp_Pnt;
+  d1(_0: number): any;
+  continuity(): GeomAbs_Shape;
+  isCN(_0: number): boolean;
+  reversed(): Handle_Geom_Curve;
+}
+
+export interface Geom_Conic extends Geom_Curve {
+  axis(): gp_Ax1;
+  xAxis(): gp_Ax1;
+  yAxis(): gp_Ax1;
+  eccentricity(): number;
+  location(): gp_Pnt;
+  setLocation(_0: gp_Pnt): void;
+  location(): gp_Pnt;
+  setLocation(_0: gp_Pnt): void;
+}
+
+export interface Geom_BoundedCurve extends Geom_Curve {
+  startPoint(): gp_Pnt;
+  endPoint(): gp_Pnt;
+}
+
+export interface Geom_Line extends Geom_Curve {
+  position(): gp_Ax1;
+  setPosition(_0: gp_Ax1): void;
+  setDirection(_0: gp_Dir): void;
+  setLocation(_0: gp_Pnt): void;
+}
+
+export interface Geom_Circle extends Geom_Conic {
+  radius(): number;
+  setRadius(_0: number): void;
+}
+
+export interface Geom_Ellipse extends Geom_Conic {
+  majorRadius(): number;
+  minorRadius(): number;
+  setMajorRadius(_0: number): void;
+  setMinorRadius(_0: number): void;
+  focus1(): gp_Pnt;
+  focus2(): gp_Pnt;
+}
+
+export interface Geom_TrimmedCurve extends Geom_BoundedCurve {
+  setTrim(_0: number, _1: number, _2: boolean, _3: boolean): void;
+  basisCurve(): Handle_Geom_Curve;
+}
+
+export interface Geom_OffsetCurve extends Geom_Curve {
+  offset(): number;
+  direction(): gp_Dir;
+  basisCurve(): Handle_Geom_Curve;
+}
+
+export interface Geom_BezierCurve extends Geom_BoundedCurve {
+  degree(): number;
+  nbPoles(): number;
+  pole(_0: number): gp_Pnt;
+  weight(_0: number): number;
+  setPole(_0: number, _1: gp_Pnt): void;
+  setPoleWithWeight(_0: number, _1: gp_Pnt, _2: number): void;
+  setWeight(_0: number, _1: number): void;
+}
+
+export interface Geom_BSplineCurve extends Geom_BoundedCurve {
+  degree(): number;
+  nbKnots(): number;
+  knot(_0: number): number;
+  setKnot(_0: number, _1: number): void;
+  nbPoles(): number;
+  pole(_0: number): gp_Pnt;
+  weight(_0: number): number;
+  setWeight(_0: number, _1: number): void;
+}
+
+export interface Handle_Geom_Curve extends ClassHandle {
+  get(): Geom_Curve | null;
+  isNull(): boolean;
+}
+
+export interface Handle_Geom_Line extends ClassHandle {
+  get(): Geom_Line | null;
+  isNull(): boolean;
+}
+
+export interface Handle_Geom_TrimmedCurve extends ClassHandle {
+  get(): Geom_TrimmedCurve | null;
+  isNull(): boolean;
+}
+
+export interface CurveOnEdgeResult extends ClassHandle {
+  curve: Handle_Geom_TrimmedCurve;
+  first: number;
+  last: number;
+}
+
+export interface Geom extends ClassHandle {
+}
+
 export interface BRepBuilderAPI_Command extends ClassHandle {
   isDone(): boolean;
   isDone(): boolean;
@@ -623,6 +751,48 @@ interface EmbindModule {
   TopAbs_ShapeEnum: {TopAbs_COMPOUND: TopAbs_ShapeEnumValue<0>, TopAbs_COMPSOLID: TopAbs_ShapeEnumValue<1>, TopAbs_SOLID: TopAbs_ShapeEnumValue<2>, TopAbs_SHELL: TopAbs_ShapeEnumValue<3>, TopAbs_FACE: TopAbs_ShapeEnumValue<4>, TopAbs_WIRE: TopAbs_ShapeEnumValue<5>, TopAbs_EDGE: TopAbs_ShapeEnumValue<6>, TopAbs_VERTEX: TopAbs_ShapeEnumValue<7>};
   TopAbs_Orientation: {TopAbs_FORWARD: TopAbs_OrientationValue<0>, TopAbs_REVERSED: TopAbs_OrientationValue<1>, TopAbs_INTERNAL: TopAbs_OrientationValue<2>, TopAbs_EXTERNAL: TopAbs_OrientationValue<3>};
   GeomAbs_CurveType: {GeomAbs_Line: GeomAbs_CurveTypeValue<0>, GeomAbs_Circle: GeomAbs_CurveTypeValue<1>, GeomAbs_Ellipse: GeomAbs_CurveTypeValue<2>, GeomAbs_Hyperbola: GeomAbs_CurveTypeValue<3>, GeomAbs_Parabola: GeomAbs_CurveTypeValue<4>, GeomAbs_BezierCurve: GeomAbs_CurveTypeValue<5>, GeomAbs_BSplineCurve: GeomAbs_CurveTypeValue<6>, GeomAbs_OffsetCurve: GeomAbs_CurveTypeValue<7>, GeomAbs_OtherCurve: GeomAbs_CurveTypeValue<8>};
+  GeomAbs_Shape: {GeomAbs_C0: GeomAbs_ShapeValue<0>, GeomAbs_G1: GeomAbs_ShapeValue<1>, GeomAbs_C1: GeomAbs_ShapeValue<2>, GeomAbs_G2: GeomAbs_ShapeValue<3>, GeomAbs_C2: GeomAbs_ShapeValue<4>, GeomAbs_C3: GeomAbs_ShapeValue<5>, GeomAbs_CN: GeomAbs_ShapeValue<6>};
+  Standard_Transient: {
+    isInstance(_0: Standard_Transient | null, _1: EmbindString): boolean;
+  };
+  Handle_Geom_Geometry: {
+    new(): Handle_Geom_Geometry;
+  };
+  Geom_Geometry: {};
+  Geom_Curve: {};
+  Geom_Conic: {};
+  Geom_BoundedCurve: {};
+  Geom_Line: {
+    new(_0: gp_Ax1): Geom_Line;
+    new(_0: gp_Pnt, _1: gp_Dir): Geom_Line;
+  };
+  Geom_Circle: {
+    new(_0: gp_Ax2, _1: number): Geom_Circle;
+  };
+  Geom_Ellipse: {
+    new(_0: gp_Ax2, _1: number, _2: number): Geom_Ellipse;
+  };
+  Geom_TrimmedCurve: {};
+  Geom_OffsetCurve: {};
+  Geom_BezierCurve: {};
+  Geom_BSplineCurve: {};
+  Handle_Geom_Curve: {
+    new(): Handle_Geom_Curve;
+  };
+  Handle_Geom_Line: {
+    new(): Handle_Geom_Line;
+    create(_0: gp_Pnt, _1: gp_Dir): Handle_Geom_Line;
+  };
+  Handle_Geom_TrimmedCurve: {
+    new(): Handle_Geom_TrimmedCurve;
+  };
+  CurveOnEdgeResult: {};
+  Geom: {
+    makeLine(_0: gp_Pnt, _1: gp_Dir): Handle_Geom_Line;
+    trim(_0: Geom_Curve | null, _1: number, _2: number): Handle_Geom_TrimmedCurve;
+    curveFromEdge(_0: TopoDS_Edge): CurveOnEdgeResult;
+    edgeFromCurve(_0: Geom_Curve | null): TopoDS_Edge;
+  };
   BRepBuilderAPI_Command: {};
   BRepBuilderAPI_MakeShape: {};
   BRepPrimAPI_MakeBox: {

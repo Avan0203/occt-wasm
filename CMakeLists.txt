@@ -134,7 +134,10 @@ if(EMSCRIPTEN)
 
     # 编译 wasm 可执行文件
     add_executable(${TARGET} ${MY_SOURCES})
-    target_include_directories(${TARGET} PUBLIC ${OCCT_INCLUDE_DIRS})
+    target_include_directories(${TARGET} PUBLIC
+        ${OCCT_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
     target_compile_options(${TARGET} PUBLIC
         $<$<CONFIG:Release>:-Os>
         $<$<CONFIG:Release>:-flto>

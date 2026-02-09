@@ -3,6 +3,7 @@
 // Include all binding headers
 #include "math/MathBindings.h"
 #include "geometry/GeometryBindings.h"
+#include "geometry/GeomBindings.h"
 #include "brep/PrimApiBindings.h"
 #include "geometry/FilletChamferBindings.h"
 #include "brep/BRepBindings.h"
@@ -16,6 +17,7 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     // Order matters - register base types first
     MathBindings::registerBindings();
     BRepBindings::registerBindings();
+    GeomBindings::registerBindings();
     GeometryBindings::registerBindings();
     PrimApiBindings::registerBindings();
     FilletChamferBindings::registerBindings();

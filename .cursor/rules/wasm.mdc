@@ -1,0 +1,30 @@
+---
+description: 
+alwaysApply: true
+---
+
+1. 函数名与参数和原occt一致，包括参数顺序
+2. 暴露必要的方法和类，减少暴露不必要的类和方法，胶水函数接口暴露越多，wasm体积越大
+3. 尽量抽取能复用的函数，并且使用，减少重复代码
+4. 对于多构造函数的类，绑定需要注意，C++支持多态，JS不支持多态，构造参数的数量决定了调用哪个构造函数，同一数量构造参数的构造函数只能绑定一次，且绑定主要使用的构造函数
+案例
+对于BRepBuilderAPI_MakeWire绑定有多个构造参数
+```cpp
+.constructor<>()
+.constructor<const TopoDS_Edge&>()
+.constructor<const TopoDS_Edge&, const TopoDS_Edge&>()
+.constructor<const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&>()
+.constructor<const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&>()
+```
+5. 构造参数数量重复的构造函数可以使用静态方法绑定，且优先绑定静态方法，命名统一使用createWith或createFrom开头的函数，如BRepBuilderAPI_MakeWire
+```cpp
+// 因为以绑定常用的方法.constructor<const TopoDS_Edge&>()，一个参数被绑定
+.class_function("createFromWire", optional_override([](const TopoDS_Wire& w) { 
+            BRepBuilderAPI_MakeWire wire(w);
+            return wire;
+}))
+// 因为.constructor<const TopoDS_Edge&, const TopoDS_Edge&>(),两个形参已重复，所以绑定静态方法
+.class_function("createFromWireAndEdge", optional_override([](const TopoDS_Wire& w, const TopoDS_Edge& e) {
+            BRepBuilderAPI_MakeWire wire(w, e);
+            return wire;
+}));
