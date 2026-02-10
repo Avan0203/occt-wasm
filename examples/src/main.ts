@@ -1,6 +1,6 @@
 import { router } from './router';
 import { basicShapesCase, brepShowCase, exturdeCase, filletChamferCase } from './cases';
-import { loadOCCTModule } from './common/occt-loader';
+import { loadOCCTModule } from './sdk';
 
 // 注册案例
 router.register(basicShapesCase);

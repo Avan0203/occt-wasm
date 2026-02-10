@@ -1,0 +1,3 @@
+class Shape {
+    static Box
+}
