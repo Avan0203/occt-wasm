@@ -199,11 +199,6 @@ void registerBindings() {
                 EdgeDiscretizationResult result = Mesher::discretizeEdge(edge, lineDeflection, angleDeviation);
                 return edgeResultToObject(result);
             }))
-        .class_function("meshShape",
-            optional_override([](const TopoDS_Shape& shape, double deflection, double angleDeviation) -> val {
-                MeshResult result = Mesher::meshShape(shape, deflection, angleDeviation);
-                return meshResultToObject(result);
-            }))
         .class_function("getWires",
             optional_override([](const TopoDS_Shape& shape) -> val {
                 std::vector<TopoDS_Wire> wires = Mesher::getWires(shape);

@@ -286,57 +286,6 @@ EdgeDiscretizationResult Mesher::discretizeEdge(const TopoDS_Edge& edge, double 
     return result;
 }
 
-MeshResult Mesher::meshShape(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
-    MeshResult result;
-    
-    // Ensure the shape has triangulation
-    BRepMesh_IncrementalMesh mesher(shape, lineDeflection, Standard_False, angleDeviation, Standard_True);
-    
-    // Get all faces
-    std::vector<TopoDS_Face> faces = getFaces(shape);
-    
-    // Accumulate results from all faces
-    Standard_Integer vertexOffset = 0;
-    
-    for (const TopoDS_Face& face : faces) {
-        MeshResult faceResult = triangulateFace(face, lineDeflection, angleDeviation);
-        
-        if (faceResult.positions.empty()) {
-            continue;
-        }
-        
-        // Append positions
-        result.positions.insert(result.positions.end(), 
-                                faceResult.positions.begin(), 
-                                faceResult.positions.end());
-        
-        // Append indices with offset
-        for (uint32_t idx : faceResult.indices) {
-            result.indices.push_back(idx + vertexOffset);
-        }
-        
-        // Append normals
-        if (!faceResult.normals.empty()) {
-            result.normals.insert(result.normals.end(),
-                                 faceResult.normals.begin(),
-                                 faceResult.normals.end());
-        }
-        
-        // Append UVs
-        if (!faceResult.uvs.empty()) {
-            result.uvs.insert(result.uvs.end(),
-                             faceResult.uvs.begin(),
-                             faceResult.uvs.end());
-        }
-        
-        // Update vertex offset
-        vertexOffset += static_cast<Standard_Integer>(faceResult.positions.size() / 3);
-    }
-    
-    return result;
-}
-
-
 // Helper function to get curve type of an edge
 static GeomAbs_CurveType getCurveType(const TopoDS_Edge& edge) {
     if (BRep_Tool::Degenerated(edge)) {

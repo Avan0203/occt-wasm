@@ -64,9 +64,6 @@ public:
     // Discretize an edge
     static EdgeDiscretizationResult discretizeEdge(const TopoDS_Edge& edge, double lineDeflection = 0.01, double angleDeviation = 0.5);
     
-    // Mesh entire shape (all faces)
-    static MeshResult meshShape(const TopoDS_Shape& shape, double lineDeflection = 0.01, double angleDeviation = 0.5);
-    
     // Generate BRep result from a shape
     static BRepResult shapeToBRepResult(const TopoDS_Shape& shape, double lineDeflection = 0.01, double angleDeviation = 0.5);
     

@@ -184,6 +184,9 @@ class ThreeRenderer extends EventListener {
       this.dispatchEvent('click', new CustomEvent('click', { detail: { x: mouse.x, y: mouse.y } }));
     }
   }
+
+  
+
   private preparePick(): void {
     const size = this.pickSize;
     pickBuffer = new Uint8Array(size * size * 4);
