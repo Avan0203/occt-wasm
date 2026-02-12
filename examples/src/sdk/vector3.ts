@@ -2,9 +2,6 @@
 import { getOCCTModule } from "./occt-loader";
 import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir } from "public/occt-wasm.js";
 
-const { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir } = getOCCTModule();
-
-
 type Vector3Like = {
     x: number;
     y: number;
@@ -105,18 +102,20 @@ class Vector3 {
     }
 
     toPnt(): gp_Pnt {
-        return new gp_Pnt(this.x, this.y, this.z);
+        return new (getOCCTModule().gp_Pnt)(this.x, this.y, this.z);
     }
 
     toXYZ(): gp_XYZ {
-        return new gp_XYZ(this.x, this.y, this.z);
+        return new (getOCCTModule().gp_XYZ)(this.x, this.y, this.z);
     }
 
     toVec(): gp_Vec {
-        return new gp_Vec(this.x, this.y, this.z);
+        return new (getOCCTModule().gp_Vec)(this.x, this.y, this.z);
     }
 
     toDir(): gp_Dir {
-        return new gp_Dir(this.x, this.y, this.z);
+        return new (getOCCTModule().gp_Dir)(this.x, this.y, this.z);
     }
 }
+
+export { Vector3 };

@@ -3,7 +3,8 @@ import { Case, CaseContext } from '@/router';
 import { ThreeRenderer } from '@/common/three-renderer';
 import { createBrepGroup } from '@/common/shape-converter';
 import type { TopoDS_Shape, FilletBuilder, ChamferBuilder, TopoDS_Edge } from 'public/occt-wasm';
-import { BrepGroup, BrepEdge, BrepObject, PickType } from '@/common/types';
+import { PickType } from '@/common/types';
+import { BrepGroup, BrepObjectAll } from '@/common/object';
 
 let renderer: ThreeRenderer;
 
@@ -44,7 +45,7 @@ async function load(context: CaseContext): Promise<void> {
         let targetGroup: BrepGroup | null = null;
 
         renderer.addEventListener('selection', (event) => {
-            const brepObject = event.detail as BrepObject;
+            const brepObject = event.detail as BrepObjectAll;
             const parent = brepObject.parent as BrepGroup;
 
             if (targetGroup === null) {
@@ -106,7 +107,6 @@ async function load(context: CaseContext): Promise<void> {
 
         const rectResult = Mesher.shapeToBRepResult(boxShape, 0.1, 0.5);
         const rectGroup = createBrepGroup(boxShape, rectResult, material);
-        rectGroup.shape = boxShape;
         shapeGroups.push(rectGroup);
         renderer.add(rectGroup);
 
@@ -131,13 +131,13 @@ async function load(context: CaseContext): Promise<void> {
                 if (targetGroup === null) {
                     return alert('Please select a Shape object');
                 }
-                const selectedEdges = renderer.getSelectionObjects() as BrepEdge[];
+                const selectedEdges = renderer.getSelectionObjects();
                 if (selectedEdges.length === 0) {
                     return alert('Please select at least one edge');
                 }
                 const shapeEdges: TopoDS_Edge[] = Mesher.getEdges(targetGroup.shape);
                 const edgesToAdd = selectedEdges
-                    .map(brepEdge => shapeEdges.find(se => se.isSame(brepEdge.geometry.shape)))
+                    .map(brepEdge => shapeEdges.find(se => se.isSame(brepEdge.geometry.shape!)))
                     .filter((e): e is TopoDS_Edge => e !== undefined);
                 if (edgesToAdd.length === 0) {
                     return alert('Selected edges could not be matched to shape');

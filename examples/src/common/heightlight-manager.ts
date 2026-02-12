@@ -1,8 +1,9 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
-import { BrepObject, BrepObjectType } from "./types";
+import { BrepObjectType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
+import { BrepObjectAll } from "./object";
 
 const faceColor = '#e6a23c';
 const lineColor = '#ffce00';
@@ -33,15 +34,15 @@ class HeightlightManager {
     private heightLightPointMaterial = createHeightlightMaterial(BrepObjectType.POINT);
     private heightLightEdgeMaterial = createHeightlightMaterial(BrepObjectType.EDGE);
 
-    private lastHighlightedObjects = new Set<BrepObject>();
-    private currentHighlightedObjects = new Set<BrepObject>();
-    private hasBeenHighlightedObjects = new Set<BrepObject>();
+    private lastHighlightedObjects = new Set<BrepObjectAll>();
+    private currentHighlightedObjects = new Set<BrepObjectAll>();
+    private hasBeenHighlightedObjects = new Set<BrepObjectAll>();
     // 存储原来的材质
-    private materialMap = new Map<BrepObject, THREE.Material | LineMaterial | THREE.Material[]>();
+    private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
     constructor(private renderer: ThreeRenderer) { }
 
-    addHeightlight(object: BrepObject): void {
+    addHeightlight(object: BrepObjectAll): void {
         const selectedSet = new Set(this.renderer.getSelectionObjects());
         if (selectedSet.has(object)) {
             return;
@@ -58,10 +59,12 @@ class HeightlightManager {
         this.updateHeightlight();
     }
 
-    private removeHeightlight(object: BrepObject): void {
+    /** 从高亮中移除单个对象并恢复原材质，供 remove/clear 场景时调用，避免 dispose 时误释放共享材质 */
+    public removeObject(object: BrepObjectAll): void {
         const original = this.materialMap.get(object);
         if (original !== undefined) {
             object.material = original;
+            object.renderOrder = 0;
         }
         this.currentHighlightedObjects.delete(object);
         this.lastHighlightedObjects.delete(object);
@@ -109,12 +112,12 @@ class HeightlightManager {
         this.materialMap.clear();
     }
 
-    getHeightlightObjects(): BrepObject[] {
+    getHeightlightObjects(): BrepObjectAll[] {
         return Array.from(this.currentHighlightedObjects);
     }
 
-    getStoredOriginalMaterial(object: BrepObject): THREE.Material | LineMaterial | THREE.Material[] | undefined {
-        return this.materialMap.get(object);
+    getStoredOriginalMaterial(object: BrepObjectAll): THREE.Material | LineMaterial {
+        return this.materialMap.get(object)!;
     }
 
     dispose(): void {

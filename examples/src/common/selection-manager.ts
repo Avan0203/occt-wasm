@@ -1,8 +1,9 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
-import { BrepObject, BrepObjectType } from "./types";
+import { BrepObjectType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
+import { BrepObjectAll } from "./object";
 
 const faceColor = '#1890FF';
 const lineColor = '#409EFF';
@@ -14,17 +15,17 @@ class SelectionManager {
     private selectionPointMaterial = this.createSelectionMaterial(BrepObjectType.POINT);
     private selectionEdgeMaterial = this.createSelectionMaterial(BrepObjectType.EDGE);
 
-    private lastSelectedObjects = new Set<BrepObject>();
-    private currentSelectedObjects = new Set<BrepObject>();
-    private hasBeenSelectedObjects = new Set<BrepObject>();
+    private lastSelectedObjects = new Set<BrepObjectAll>();
+    private currentSelectedObjects = new Set<BrepObjectAll>();
+    private hasBeenSelectedObjects = new Set<BrepObjectAll>();
     // 存储原来的材质
-    private materialMap = new Map<BrepObject, THREE.Material | LineMaterial | THREE.Material[]>();
+    private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
     constructor(private renderer: ThreeRenderer) { }
 
-    addSelection(object: BrepObject): void {
+    addSelection(object: BrepObjectAll): void {
         if (this.currentSelectedObjects.has(object)) {
-            this.removeSelection(object);
+            this.removeObject(object);
         } else {
             const original = this.renderer.heightlightManager.getStoredOriginalMaterial(object) ?? object.material;
             this.materialMap.set(object, original);
@@ -33,10 +34,12 @@ class SelectionManager {
         }
     }
 
-    private removeSelection(object: BrepObject): void {
+    /** 从选择中移除单个对象并恢复原材质，供 remove/clear 场景时调用，避免 dispose 时误释放共享材质 */
+    public removeObject(object: BrepObjectAll): void {
         const original = this.materialMap.get(object);
         if (original !== undefined) {
             object.material = original;
+            object.renderOrder = 0;
         }
         this.currentSelectedObjects.delete(object);
         this.lastSelectedObjects.delete(object);
@@ -80,7 +83,7 @@ class SelectionManager {
         this.materialMap.clear();
     }
 
-    getSelectionObjects(): BrepObject[] {
+    getSelectionObjects(): BrepObjectAll[] {
         return Array.from(this.currentSelectedObjects);
     }
 

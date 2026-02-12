@@ -39,6 +39,7 @@ export async function loadOCCTModule(): Promise<any> {
       console.log('[OCCT] Module loaded successfully', module);
       moduleInstance = module;
       loadingPromise = null;
+      window.wasm = module;
       return module;
     })
     .catch((error: any) => {
@@ -60,3 +61,9 @@ export function getOCCTModule(): MainModule {
   return moduleInstance;
 }
 
+
+declare global {
+  interface Window {
+    wasm: MainModule;
+  }
+}

@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-// import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import { BrepObjectType, PickType, type BrepGroup, type BrepObject } from './types';
+import { BrepObjectType, PickType, RenderMode } from './types';
 import { createGPUBrepGroup, getObjectById } from './shape-converter';
 import { color2id, createSpiralOrder } from './utils';
 import { HeightlightManager } from './heightlight-manager';
@@ -10,6 +9,7 @@ import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
 import { BlenderControls } from './BlenderControls';
 import { MOUSE } from 'three';
+import { BrepGPUGroup, BrepGroup, BrepObjectAll } from './object';
 
 
 const startPos = new THREE.Vector2(0, 0);
@@ -20,6 +20,10 @@ let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
 let isDragged = false;
 let isDragging = false;
+
+
+const raycaster = new THREE.Raycaster();
+
 
 class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
@@ -32,13 +36,17 @@ class ThreeRenderer extends EventListener {
   private GPUPickScene: THREE.Scene;
   private helperGroup = new THREE.Group();
   private mainGroup = new THREE.Group();
-  private gpuObjectMap = new WeakMap<BrepGroup, BrepGroup>();
+  private gpuObjectMap = new WeakMap<BrepGroup, BrepGPUGroup>();
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
-  heightlightManager = new HeightlightManager(this);
-  selectionManager = new SelectionManager(this);
+  private mode = RenderMode.IDLE
   private pickType: PickType = PickType.ALL;
+  private workingPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+  public heightlightManager = new HeightlightManager(this);
+  public selectionManager = new SelectionManager(this);
+
   constructor(container: HTMLElement) {
     super();
     this.container = container;
@@ -75,11 +83,11 @@ class ThreeRenderer extends EventListener {
     this.controls.rotateSpeed = 1.5;
     this.controls.getMouseAction = (event) => {
       const { button, shiftKey } = event;
-      if(button === 1 && shiftKey){
+      if (button === 1 && shiftKey) {
         return MOUSE.PAN;
-      }else if(button === 1){
+      } else if (button === 1) {
         return MOUSE.ROTATE;
-      }else {
+      } else {
         return -1;
       }
     };
@@ -112,9 +120,13 @@ class ThreeRenderer extends EventListener {
 
     this.pickType = PickType.ALL;
 
-    (window as any).DEBUG = {
-      renderer: this
+    if (typeof window !== 'undefined') {
+      (window as any).DEBUG = { renderer: this };
     }
+  }
+
+  public setWorkingPlane(normal: THREE.Vector3, distance: number): void {
+    this.workingPlane.set(normal, distance);
   }
 
   public setPickSize(size: number): void {
@@ -126,7 +138,7 @@ class ThreeRenderer extends EventListener {
     this.pickType = type;
   }
 
-  public getSelectionObjects(): BrepObject[] {
+  public getSelectionObjects(): BrepObjectAll[] {
     return this.selectionManager.getSelectionObjects();
   }
 
@@ -152,7 +164,8 @@ class ThreeRenderer extends EventListener {
     }
   }
 
-  private onMouseUp = ({ clientX, clientY, shiftKey }: MouseEvent): void => {
+  private onMouseUp = (e: MouseEvent): void => {
+    const { clientX, clientY, shiftKey } = e;
     const isMoved = startPos.distanceTo({ x: clientX, y: clientY }) < 1;
     if (isMoved && !isDragged) {
       mouse.set(clientX, clientY);
@@ -168,9 +181,9 @@ class ThreeRenderer extends EventListener {
       } else {
         this.selectionManager.clearSelection();
       }
+      this.dispatchEvent('click', new CustomEvent('click', { detail: { x: mouse.x, y: mouse.y } }));
     }
   }
-
   private preparePick(): void {
     const size = this.pickSize;
     pickBuffer = new Uint8Array(size * size * 4);
@@ -178,7 +191,15 @@ class ThreeRenderer extends EventListener {
     this.pickTarget.setSize(size, size);
   }
 
-  public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepObject | null {
+  setMode(mode: RenderMode): void {
+    this.mode = mode;
+  }
+
+  getMode(): RenderMode {
+    return this.mode;
+  }
+
+  public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepObjectAll | null {
     this.preparePick();
 
     const length = this.pickSize * 2;
@@ -202,7 +223,7 @@ class ThreeRenderer extends EventListener {
 
 
     const allowedTypes = getBrepObjectTypesByPickType(pickType);
-    const candidateByType: Partial<Record<BrepObjectType, BrepObject>> = {};
+    const candidateByType: Partial<Record<BrepObjectType, BrepObjectAll>> = {};
 
     for (let i of pickOrder) {
       const index = i * 4;
@@ -322,6 +343,7 @@ class ThreeRenderer extends EventListener {
    * 从场景移除对象
    */
   remove(object: BrepGroup): void {
+    this.removeBrepGroupFromManagers(object);
     this.mainGroup.remove(object);
     object.dispose();
     const gpuObject = this.gpuObjectMap.get(object);
@@ -332,15 +354,24 @@ class ThreeRenderer extends EventListener {
     }
   }
 
+  /** 在 dispose 前从高亮/选择中移除，避免 dispose 掉共享材质并释放对已销毁对象的引用 */
+  private removeBrepGroupFromManagers(group: BrepGroup): void {
+    [...group.faces, ...group.points, ...group.edges].forEach((obj) => {
+      this.heightlightManager.removeObject(obj);
+      this.selectionManager.removeObject(obj);
+    });
+  }
+
   /**
    * 清空场景（保留灯光和辅助对象）
    */
   clear(): void {
-    this.mainGroup.children.forEach((child) => {
+    Array.from(this.mainGroup.children).forEach((child) => {
       if (child.hasOwnProperty('dispose')) {
+        this.removeBrepGroupFromManagers(child as BrepGroup);
         (child as any).dispose();
       }
-      this.scene.remove(child);
+      this.mainGroup.remove(child);
     });
     this.mainGroup.clear();
     this.helperGroup.children.forEach((child) => {
@@ -398,24 +429,31 @@ class ThreeRenderer extends EventListener {
   dispose(): void {
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
+      this.animationId = null;
     }
-    // 断开 ResizeObserver
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
-
     this.clear();
     this.heightlightManager.dispose();
     this.selectionManager.dispose();
+    this.pickTarget.dispose();
     this.renderer.dispose();
     this.controls.dispose();
+    if (this.scene.background && typeof (this.scene.background as THREE.Texture).dispose === 'function') {
+      (this.scene.background as THREE.Texture).dispose();
+    }
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
     this.container.removeEventListener('mousedown', this.onMouseDown);
-    this.container.removeEventListener('mouseup', this.onMouseUp)
+    this.container.removeEventListener('mouseup', this.onMouseUp);
     this.container.removeEventListener('mousemove', this.onMouseMove);
+    if (typeof window !== 'undefined' && (window as any).DEBUG?.renderer === this) {
+      delete (window as any).DEBUG;
+    }
+    EventListener.prototype.clear.call(this);
   }
 
   public clearHeightlight(): void {
