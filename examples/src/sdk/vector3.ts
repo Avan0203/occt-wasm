@@ -77,15 +77,15 @@ class Vector3 {
     }
 
     length(): number {
-        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+        return Math.sqrt(this.lengthSquared());
     }
 
     lengthSquared(): number {
         return this.x * this.x + this.y * this.y + this.z * this.z;
     }
 
-    distance(v: Vector3Like): number {
-        return Math.sqrt((this.x - v.x) * (this.x - v.x) + (this.y - v.y) * (this.y - v.y) + (this.z - v.z) * (this.z - v.z));
+    distanceTo(v: Vector3Like): number {
+        return Math.sqrt(this.distanceSquared(v));
     }
 
     distanceSquared(v: Vector3Like): number {
