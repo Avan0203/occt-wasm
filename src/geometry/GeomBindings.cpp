@@ -1,5 +1,8 @@
 #include "GeomBindings.h"
 #include "shared/Shared.h"
+#include <TColgp_Array1OfPnt.hxx>
+#include <TColStd_Array1OfReal.hxx>
+#include <TColStd_Array1OfInteger.hxx>
 #include <Standard_Transient.hxx>
 #include <Standard_Type.hxx>
 #include <Geom_Geometry.hxx>
@@ -68,6 +71,38 @@ Handle(Geom_TrimmedCurve) trimCurve(const Geom_Curve* curve, double u1, double u
 // ----- Helper: Make line (point + direction) -> Handle_Geom_Line -----
 Handle(Geom_Line) makeLine(const gp_Pnt& pnt, const gp_Dir& dir) {
     return new Geom_Line(pnt, dir);
+}
+
+// ----- Helper: Edge from BSpline (poles flat [x,y,z,...], knots, mults, degree, periodic, weights?) -----
+TopoDS_Edge edgeFromBSpline(const val& polesFlat, const val& knots, const val& multiplicities,
+    int degree, bool periodic, const val& weights)
+{
+    if (!polesFlat.isArray() || !knots.isArray() || !multiplicities.isArray())
+        return TopoDS_Edge();
+    int poleCount = polesFlat["length"].as<int>() / 3;
+    int knotCount = knots["length"].as<int>();
+    int multCount = multiplicities["length"].as<int>();
+    if (poleCount < 2 || knotCount < 1 || multCount != knotCount)
+        return TopoDS_Edge();
+    TColgp_Array1OfPnt poles(1, poleCount);
+    for (int i = 0; i < poleCount; i++)
+        poles.SetValue(i + 1, gp_Pnt(polesFlat[i * 3].as<double>(), polesFlat[i * 3 + 1].as<double>(), polesFlat[i * 3 + 2].as<double>()));
+    TColStd_Array1OfReal knotArr(1, knotCount);
+    for (int i = 0; i < knotCount; i++)
+        knotArr.SetValue(i + 1, knots[i].as<double>());
+    TColStd_Array1OfInteger multArr(1, multCount);
+    for (int i = 0; i < multCount; i++)
+        multArr.SetValue(i + 1, multiplicities[i].as<int>());
+    Handle(Geom_BSplineCurve) bspline;
+    if (weights.isNull() || !weights.isArray() || weights["length"].as<int>() == 0)
+        bspline = new Geom_BSplineCurve(poles, knotArr, multArr, degree, periodic);
+    else {
+        TColStd_Array1OfReal weightArr(1, poleCount);
+        for (int i = 0; i < poleCount; i++)
+            weightArr.SetValue(i + 1, weights[i].as<double>());
+        bspline = new Geom_BSplineCurve(poles, weightArr, knotArr, multArr, degree, periodic);
+    }
+    return edgeFromCurve(bspline.get());
 }
 
 // ----- Geom_Curve D0/D1 return wrappers (OCCT uses in/out params) -----
@@ -238,6 +273,14 @@ void registerBindings() {
         .class_function("trim", &trimCurve, allow_raw_pointers())
         .class_function("curveFromEdge", &curveFromEdge)
         .class_function("edgeFromCurve", &edgeFromCurve, allow_raw_pointers())
+        .class_function("edgeFromBSpline", optional_override(
+            [](const val& poles, const val& knots, const val& mults, int degree, bool periodic) {
+                return edgeFromBSpline(poles, knots, mults, degree, periodic, val::null());
+            }))
+        .class_function("edgeFromBSplineWithWeights", optional_override(
+            [](const val& poles, const val& knots, const val& mults, int degree, bool periodic, const val& weights) {
+                return edgeFromBSpline(poles, knots, mults, degree, periodic, weights);
+            }))
         ;
 }
 

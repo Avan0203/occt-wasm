@@ -3,7 +3,7 @@ import { ThreeRenderer } from '../../common/three-renderer';
 import { createBrepGroup } from '../../common/shape-converter';
 import * as THREE from 'three';
 import { MainModule } from 'public/occt-wasm';
-import { BrepGroup } from '@/common/types';
+import { BrepGroup } from '@/common/object';
 
 let renderer: ThreeRenderer | null = null;
 

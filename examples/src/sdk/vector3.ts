@@ -53,6 +53,20 @@ class Vector3 {
         return this;
     }
 
+    multiplyScalar(s: number): this {
+        this.x *= s;
+        this.y *= s;
+        this.z *= s;
+        return this;
+    }
+
+    divideScalar(s: number): this {
+        this.x /= s;
+        this.y /= s;
+        this.z /= s;
+        return this;
+    }
+
     divide(v: Vector3Like): this {
         this.x /= v.x;
         this.y /= v.y;

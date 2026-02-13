@@ -3,7 +3,7 @@ import { ThreeRenderer } from '../../common/three-renderer';
 import * as THREE from 'three';
 import { createBrepGroup } from '../../common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
-import { BrepGroup } from '@/common/types';
+import { BrepGroup } from '@/common/object';
 
 let renderer: ThreeRenderer;
 

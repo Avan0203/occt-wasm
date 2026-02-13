@@ -22,9 +22,8 @@ function cleanupBrepGeometry(geometry: BrepGeometry<Vertex | Edge | Face> | Brep
         ObjectID.release(OBJECT_MANAGER.getUseId(geometry.objectId)!);
         OBJECT_MANAGER.deleteUseId(geometry.objectId);
     }
-    const sh = geometry.shape;
-    if (sh?.isDeleted()) {
-        sh.deleteLater();
+    if (geometry.shape && !geometry.shape.isDeleted()) {
+        geometry.shape.delete();
     }
 }
 
@@ -196,8 +195,8 @@ class BrepGroup extends THREE.Group {
     }
 
     dispose(): void {
-        if (this.shape.isDeleted()) {
-            this.shape.deleteLater();
+        if (this.shape && !this.shape.isDeleted()) {
+            this.shape.delete();
         }
         this.faces.forEach((face) => {
             face.dispose();

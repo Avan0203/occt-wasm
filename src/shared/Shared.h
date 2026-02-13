@@ -3,6 +3,10 @@
 
 #include <emscripten/bind.h>
 
+namespace Shared {
+    constexpr double PI = 3.14159265358979323846;
+}
+
 /**
  * 通用 OCCT Handle 绑定宏。使用 Handle(T) 以兼容 OCCT 7.9+。
  * 用法: REGISTER_HANDLE(Geom_Curve);

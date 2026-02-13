@@ -792,6 +792,8 @@ interface EmbindModule {
     trim(_0: Geom_Curve | null, _1: number, _2: number): Handle_Geom_TrimmedCurve;
     curveFromEdge(_0: TopoDS_Edge): CurveOnEdgeResult;
     edgeFromCurve(_0: Geom_Curve | null): TopoDS_Edge;
+    edgeFromBSpline(_0: any, _1: any, _2: any, _3: number, _4: boolean): TopoDS_Edge;
+    edgeFromBSplineWithWeights(_0: any, _1: any, _2: any, _3: number, _4: boolean, _5: any): TopoDS_Edge;
   };
   BRepBuilderAPI_Command: {};
   BRepBuilderAPI_MakeShape: {};
