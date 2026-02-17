@@ -1,9 +1,10 @@
-import { Case, CaseContext } from '../../router';
-import { ThreeRenderer } from '../../common/three-renderer';
+import { Case, CaseContext } from '@/router';
+import { ThreeRenderer } from '@/common/three-renderer';
 import * as THREE from 'three';
-import { createBrepGroup } from '../../common/shape-converter';
+import { createBrepGroup } from '@/common/shape-converter';
+import { App } from '@/common/app';
 
-let renderer: ThreeRenderer | null = null;
+let app: App | null = null;
 
 export const brepShowCase: Case = {
     id: 'brep-show',
@@ -18,7 +19,7 @@ async function load(context: CaseContext): Promise<void> {
     try {
 
         container.innerHTML = '';
-        renderer = new ThreeRenderer(container)!;
+        app = new App(container)!;
 
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('/matcaps_64px.png');
@@ -34,7 +35,7 @@ async function load(context: CaseContext): Promise<void> {
             color: '#d5fe33'
         }));
 
-        renderer!.add(group);
+        app!.add(group);
 
     } catch (error) {
         console.error('Error loading box show case:', error);
@@ -42,9 +43,8 @@ async function load(context: CaseContext): Promise<void> {
 }
 
 function unload(context: CaseContext): void {
-    if (renderer) {
-        renderer.dispose();
-        renderer.clear();
-        renderer = null;
+    if (app) {
+        app.dispose();
+        app = null;
     }
 }

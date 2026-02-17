@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LineMaterial } from 'three/addons';
-import type { BRepResult, Edge, Face, Vertex } from './BRepResult';
+import type { BRepResult, Edge, Face, Vertex } from './brep-result';
 import { BrepObjectType } from './types';
 import { convertLineLoopToLineSegments, id2color } from './utils';
 import { TopoDS_Shape } from 'public/occt-wasm';

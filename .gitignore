@@ -3,6 +3,4 @@ build/
 source/
 .vscode/
 *.log
-examples/dist/
-examples/node_modules/
-build_test/
+dist/

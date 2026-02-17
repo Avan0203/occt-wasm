@@ -1,9 +1,10 @@
-import { Case, CaseContext } from '../../router';
-import { ThreeRenderer } from '../../common/three-renderer';
+import { Case, CaseContext } from '@/router';
+import { ThreeRenderer } from '@/common/three-renderer';
 import * as THREE from 'three';
-import { createBrepGroup } from '../../common/shape-converter';
+import { createBrepGroup } from '@/common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
 import { BrepGroup } from '@/common/object';
+import { App } from '@/common/app';
 
 let renderer: ThreeRenderer;
 
@@ -16,6 +17,8 @@ export const exturdeCase: Case = {
 }
 
 const globalGC: TopoDS_Shape[] = [];
+
+let app: App;
 
 async function load(context: CaseContext): Promise<void> {
     const { container, occtModule, gui } = context;
@@ -32,7 +35,8 @@ async function load(context: CaseContext): Promise<void> {
         } = occtModule
 
         container.innerHTML = '';
-        renderer = new ThreeRenderer(container)!;
+
+        app = new App(container);
 
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('/matcaps_64px.png');
@@ -106,13 +110,13 @@ async function load(context: CaseContext): Promise<void> {
             const rectResult = Mesher.shapeToBRepResult(rectPrism, 0.1, 0.5);
             const rectGroup = createBrepGroup(rectPrism, rectResult, material);
             groups.push(rectGroup);
-            renderer.add(rectGroup);
+            app.add(rectGroup);
 
             const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
             const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
             const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
             groups.push(triangleGroup);
-            renderer.add(triangleGroup);
+            app.add(triangleGroup);
 
             direction.deleteLater();
         }
@@ -130,11 +134,7 @@ async function load(context: CaseContext): Promise<void> {
 }
 
 function unload(context: CaseContext): void {
-    if (renderer) {
-        renderer.dispose();
-        renderer.clear();
-        (renderer as any) = null;
-    }
+    app.dispose();
     globalGC.forEach(shape => {
         shape.deleteLater();
     });

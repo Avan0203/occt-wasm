@@ -29,7 +29,7 @@ const _endEvent: BlenderControlsEventMap['end'] = { type: 'end' };
 /** 返回 MOUSE.ROTATE | MOUSE.PAN | MOUSE.DOLLY 或 -1 表示无操作。子类可重写以自定义按键/修饰键逻辑。 */
 export type GetMouseAction = (event: MouseEvent) => number;
 
-export class BlenderControls extends Controls<BlenderControlsEventMap> {
+class BlenderControls extends Controls<BlenderControlsEventMap> {
     target = new Vector3();
     private state = 'none';
     private dragStart = new Vector2();
@@ -345,3 +345,6 @@ export class BlenderControls extends Controls<BlenderControlsEventMap> {
         this.domElement = undefined as unknown as HTMLElement;
     }
 }
+
+
+export { BlenderControls as Controls }

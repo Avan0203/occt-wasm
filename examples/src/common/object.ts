@@ -2,7 +2,7 @@ import { TopoDS_Shape } from "public/occt-wasm";
 import * as THREE from 'three';
 import { BrepObjectType } from "./types";
 import { OBJECT_MANAGER } from "./object-manager";
-import { Vertex, Edge, Face } from "./BRepResult";
+import { Vertex, Edge, Face } from "./brep-result";
 import { LineGeometry, LineMaterial, LineSegments2 } from "three/examples/jsm/Addons.js";
 import { ObjectID } from "./id-tool";
 

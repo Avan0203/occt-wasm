@@ -1,11 +1,11 @@
-import { Case, CaseContext } from '../../router';
-import { ThreeRenderer } from '../../common/three-renderer';
-import { createBrepGroup } from '../../common/shape-converter';
+import { Case, CaseContext } from '@/router';
+import { createBrepGroup } from '@/common/shape-converter';
 import * as THREE from 'three';
 import { MainModule } from 'public/occt-wasm';
 import { BrepGroup } from '@/common/object';
+import { App } from '@/common/app';
 
-let renderer: ThreeRenderer | null = null;
+let app: App | null = null;
 
 const colors = {
   box: 0x4a90e2,
@@ -109,30 +109,30 @@ async function load(context: CaseContext): Promise<void> {
 
   try {
     container.innerHTML = '';
-    renderer = new ThreeRenderer(container);
+    app = new App(container);
 
     // 创建所有形状
     const box = await createBox(occtModule);
     box.position.set(0, 0, 0);
-    renderer.add(box);
+    app.add(box);
 
     const sphere = await createSphere(occtModule);
     sphere.position.set(4, 0, 0);
-    renderer.add(sphere);
+    app.add(sphere);
 
     const cylinder = await createCylinder(occtModule);
     cylinder.position.set(4, 0, 4);
-    renderer.add(cylinder);
+    app.add(cylinder);
 
     const cone = await createCone(occtModule);
     cone.position.set(-4, 0, 4);
-    renderer.add(cone);
+    app.add(cone);
 
     const torus = await createTorus(occtModule);
     torus.position.set(0, 0, -4);
-    renderer.add(torus);
+    app.add(torus);
 
-    renderer.fitToView();
+    app.fitToView();
   } catch (error) {
     console.error('[BasicShapes] Failed to load case:', error);
     container.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error instanceof Error ? error.message : String(error)}</div>`;
@@ -144,9 +144,9 @@ async function load(context: CaseContext): Promise<void> {
  * 卸载案例
  */
 async function unload(context: CaseContext): Promise<void> {
-  if (renderer) {
-    renderer.dispose();
-    renderer = null;
+  if (app) {
+    app.dispose();
+    app = null;
   }
 }
 

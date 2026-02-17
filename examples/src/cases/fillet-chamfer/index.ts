@@ -5,8 +5,9 @@ import { createBrepGroup } from '@/common/shape-converter';
 import type { TopoDS_Shape, FilletBuilder, ChamferBuilder, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType } from '@/common/types';
 import { BrepGroup, BrepObjectAll } from '@/common/object';
+import { App } from '@/common/app';
 
-let renderer: ThreeRenderer;
+let app: App;
 
 export const filletChamferCase: Case = {
     id: 'fillet-chamfer',
@@ -38,13 +39,13 @@ async function load(context: CaseContext): Promise<void> {
         } = occtModule
 
         container.innerHTML = '';
-        renderer = new ThreeRenderer(container)!;
+        app = new App(container)!;
 
-        renderer.setPickType(PickType.EDGE);
+        app.setPickType(PickType.EDGE);
 
         let targetGroup: BrepGroup | null = null;
 
-        renderer.addEventListener('selection', (event) => {
+        app.addEventListener('selection', (event) => {
             const brepObject = event.detail as BrepObjectAll;
             const parent = brepObject.parent as BrepGroup;
 
@@ -52,7 +53,7 @@ async function load(context: CaseContext): Promise<void> {
                 targetGroup = parent;
             } else if (!targetGroup.shape.isSame(parent.shape)) {
                 targetGroup = null;
-                renderer.clearSelection();
+                app.clearSelection();
                 return alert('Please select the same Shape object');
             }
         });
@@ -108,13 +109,13 @@ async function load(context: CaseContext): Promise<void> {
         const rectResult = Mesher.shapeToBRepResult(boxShape, 0.1, 0.5);
         const rectGroup = createBrepGroup(boxShape, rectResult, material);
         shapeGroups.push(rectGroup);
-        renderer.add(rectGroup);
+        app.add(rectGroup);
 
         const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
         const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
         const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
         shapeGroups.push(triangleGroup);
-        renderer.add(triangleGroup);
+        app.add(triangleGroup);
 
         direction.deleteLater();
 
@@ -131,7 +132,7 @@ async function load(context: CaseContext): Promise<void> {
                 if (targetGroup === null) {
                     return alert('Please select a Shape object');
                 }
-                const selectedEdges = renderer.getSelectionObjects();
+                const selectedEdges = app.getSelectionObjects();
                 if (selectedEdges.length === 0) {
                     return alert('Please select at least one edge');
                 }
@@ -162,13 +163,13 @@ async function load(context: CaseContext): Promise<void> {
 
                 const slotIndex = shapeGroups.indexOf(targetGroup);
                 if (slotIndex >= 0) {
-                    renderer.remove(targetGroup);
+                    app.remove(targetGroup);
                     targetGroup.dispose();
                     shapeGroups[slotIndex] = newGroup;
                 }
-                renderer.add(newGroup);
+                app.add(newGroup);
                 targetGroup = null;
-                renderer.clearSelection();
+                app.clearSelection();
                 builder.deleteLater();
             }
         }
@@ -198,10 +199,9 @@ async function load(context: CaseContext): Promise<void> {
 }
 
 function unload(): void {
-    if (renderer) {
-        renderer.dispose();
-        renderer.clear();
-        (renderer as any) = null;
+    if (app) {
+        app.dispose();
+        app = undefined!;
     }
     globalGC.forEach(shape => {
         shape.deleteLater();

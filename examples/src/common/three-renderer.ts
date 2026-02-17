@@ -1,26 +1,17 @@
 import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import { BrepObjectType, PickType, RenderMode } from './types';
+import { BrepObjectType, PickType } from './types';
 import { createGPUBrepGroup, getObjectById } from './shape-converter';
 import { color2id, createSpiralOrder } from './utils';
 import { HeightlightManager } from './heightlight-manager';
 import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
-import { BlenderControls } from './BlenderControls';
-import { MOUSE } from 'three';
+import { Controls } from './controls';
 import { BrepGPUGroup, BrepGroup, BrepObjectAll } from './object';
 
-
-const startPos = new THREE.Vector2(0, 0);
-const mouse = new THREE.Vector2(0, 0);
-// w,h,left,top
-const renderSize = new THREE.Vector4(0, 0, 0, 0);
 let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
-let isDragged = false;
-let isDragging = false;
-
 
 const raycaster = new THREE.Raycaster();
 
@@ -29,10 +20,9 @@ class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
-  private controls: BlenderControls;
+  public controls: Controls;
   private container: HTMLElement;
   private animationId: number | null = null;
-  private resizeObserver: ResizeObserver | null = null;
   private GPUPickScene: THREE.Scene;
   private helperGroup = new THREE.Group();
   private mainGroup = new THREE.Group();
@@ -40,9 +30,10 @@ class ThreeRenderer extends EventListener {
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
-  private mode = RenderMode.IDLE
   private pickType: PickType = PickType.ALL;
-  private workingPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  private isCameraDragging = false;
+  // width,height,left,top
+  private renderSize = new THREE.Vector4(0, 0, 0, 0);
 
   public heightlightManager = new HeightlightManager(this);
   public selectionManager = new SelectionManager(this);
@@ -50,10 +41,6 @@ class ThreeRenderer extends EventListener {
   constructor(container: HTMLElement) {
     super();
     this.container = container;
-
-    container.addEventListener('mouseup', this.onMouseUp);
-    container.addEventListener('mousedown', this.onMouseDown);
-    container.addEventListener('mousemove', this.onMouseMove);
 
     // 创建场景
     this.scene = new THREE.Scene();
@@ -77,25 +64,15 @@ class ThreeRenderer extends EventListener {
     this.renderer.autoClear = false;
     this.renderer.sortObjects = false;
 
-    // 创建控制器（Blender 操作习惯：中键旋转，滚轮缩放，Shift+中键平移）
-    this.controls = new BlenderControls(this.camera, this.renderer.domElement);
+  
+    this.controls = new Controls(this.camera, this.renderer.domElement);
     this.controls.zoomSpeed = 2;
     this.controls.rotateSpeed = 1.5;
-    this.controls.getMouseAction = (event) => {
-      const { button, shiftKey } = event;
-      if (button === 1 && shiftKey) {
-        return MOUSE.PAN;
-      } else if (button === 1) {
-        return MOUSE.ROTATE;
-      } else {
-        return -1;
-      }
-    };
     this.controls.addEventListener('start', () => {
-      isDragging = true;
+      this.isCameraDragging = true;
     });
     this.controls.addEventListener('end', () => {
-      isDragging = false;
+      this.isCameraDragging = false;
     });
 
     this.GPUPickScene = new THREE.Scene();
@@ -109,9 +86,6 @@ class ThreeRenderer extends EventListener {
 
     this.setPickSize(4);
 
-    // 使用 ResizeObserver 观察容器尺寸变化
-    this.initResizeObserver();
-
     // 开始渲染循环
     this.animate();
 
@@ -120,13 +94,12 @@ class ThreeRenderer extends EventListener {
 
     this.pickType = PickType.ALL;
 
+    this.addEventListener('click', this.onClick);
+    this.addEventListener('pointermove', this.onPointerMove);
+
     if (typeof window !== 'undefined') {
       (window as any).DEBUG = { renderer: this };
     }
-  }
-
-  public setWorkingPlane(normal: THREE.Vector3, distance: number): void {
-    this.workingPlane.set(normal, distance);
   }
 
   public setPickSize(size: number): void {
@@ -142,19 +115,51 @@ class ThreeRenderer extends EventListener {
     return this.selectionManager.getSelectionObjects();
   }
 
-  private onMouseDown = ({ clientX, clientY }: MouseEvent): void => {
-    startPos.set(clientX, clientY);
-    isDragged = false;
+  public getCamera(): THREE.PerspectiveCamera {
+    return this.camera;
   }
 
-  private onMouseMove = ({ clientX, clientY }: MouseEvent): void => {
-    isDragged = !(startPos.distanceTo({ x: clientX, y: clientY }) < 1);
-    if (isDragging) {
+  /**
+   * 将画布坐标的鼠标点转换为射线与平面的交点（用于 EDIT 模式投影到工作平面）。
+   * @param mouse 画布坐标系下的鼠标位置（与 pick 使用同一坐标系）
+   * @param plane 工作平面
+   * @param target 可选，用于接收结果的 Vector3，避免分配
+   * @returns 交点，若无交点（射线与平面平行）返回 null
+   */
+  public getPointOnPlane(
+    mouse: THREE.Vector2Like,
+    plane: THREE.Plane,
+    target?: THREE.Vector3
+  ): THREE.Vector3 | null {
+    const ndc = new THREE.Vector2(
+      (mouse.x / this.renderSize.x) * 2 - 1,
+      -(mouse.y / this.renderSize.y) * 2 + 1
+    );
+    raycaster.setFromCamera(ndc, this.camera);
+    const out = target ?? new THREE.Vector3();
+    return raycaster.ray.intersectPlane(plane, out) ? out : null;
+  }
+
+  private onClick = (e: CustomEvent) => {
+    const { mouse, event } = e.detail;
+    const result = this.pick(mouse);
+    if (result) {
+      if (!event.shiftKey) {
+        this.selectionManager.clearSelection();
+      }
+      this.selectionManager.addSelection(result);
+      this.dispatchEvent('selection', new CustomEvent('selection', { detail: result }));
+    } else {
+      this.selectionManager.clearSelection();
+    }
+  }
+
+  private onPointerMove = (e: CustomEvent) => {
+    if (this.isCameraDragging) {
+      this.heightlightManager.clearHeightlight();
       return;
     }
-    mouse.set(clientX, clientY);
-    mouse.x = mouse.x - renderSize.z;
-    mouse.y = mouse.y - renderSize.w;
+    const { mouse } = e.detail;
     const result = this.pick(mouse);
     if (result) {
       this.heightlightManager.addHeightlight(result);
@@ -164,42 +169,11 @@ class ThreeRenderer extends EventListener {
     }
   }
 
-  private onMouseUp = (e: MouseEvent): void => {
-    const { clientX, clientY, shiftKey } = e;
-    const isMoved = startPos.distanceTo({ x: clientX, y: clientY }) < 1;
-    if (isMoved && !isDragged) {
-      mouse.set(clientX, clientY);
-      mouse.x = mouse.x - renderSize.z;
-      mouse.y = mouse.y - renderSize.w;
-      const result = this.pick(mouse);
-      if (result) {
-        if (!shiftKey) {
-          this.selectionManager.clearSelection();
-        }
-        this.selectionManager.addSelection(result);
-        this.dispatchEvent('selection', new CustomEvent('selection', { detail: result }));
-      } else {
-        this.selectionManager.clearSelection();
-      }
-      this.dispatchEvent('click', new CustomEvent('click', { detail: { x: mouse.x, y: mouse.y } }));
-    }
-  }
-
-  
-
   private preparePick(): void {
     const size = this.pickSize;
     pickBuffer = new Uint8Array(size * size * 4);
 
     this.pickTarget.setSize(size, size);
-  }
-
-  setMode(mode: RenderMode): void {
-    this.mode = mode;
-  }
-
-  getMode(): RenderMode {
-    return this.mode;
   }
 
   public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepObjectAll | null {
@@ -213,7 +187,7 @@ class ThreeRenderer extends EventListener {
 
 
     this.camera.setViewOffset(
-      renderSize.x, renderSize.y,
+      this.renderSize.x, this.renderSize.y,
       pos.x - this.pickSize,
       pos.y - this.pickSize,
       length, length,
@@ -289,29 +263,13 @@ class ThreeRenderer extends EventListener {
   }
 
   /**
-   * 初始化 ResizeObserver 来观察容器尺寸变化
-   */
-  private initResizeObserver(): void {
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) {
-          const rect = (entry.target as HTMLElement).getBoundingClientRect();
-          this.handleResize(width, height, rect.left, rect.top);
-        }
-      }
-    });
-    this.resizeObserver.observe(this.container);
-  }
-
-  /**
    * 处理容器尺寸变化
    */
-  private handleResize(width: number, height: number, left: number, top: number): void {
+  handleResize(width: number, height: number, left: number, top: number): void {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
-    renderSize.set(width, height, left, top);
+    this.renderSize.set(width, height, left, top);
 
     this.mainGroup.traverse((object) => {
       if (object instanceof Line2 || object instanceof LineSegments2) {
@@ -321,6 +279,10 @@ class ThreeRenderer extends EventListener {
         });
       }
     })
+  }
+
+  getRenderSize(): THREE.Vector4 {
+    return this.renderSize;
   }
 
   private animate(): void {
@@ -424,6 +386,7 @@ class ThreeRenderer extends EventListener {
     this.camera.lookAt(center);
     this.controls.target.copy(center);
     this.controls.update();
+    super.clear();
   }
 
   /**
@@ -434,10 +397,7 @@ class ThreeRenderer extends EventListener {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-      this.resizeObserver = null;
-    }
+
     this.clear();
     this.heightlightManager.dispose();
     this.selectionManager.dispose();
@@ -450,13 +410,9 @@ class ThreeRenderer extends EventListener {
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
-    this.container.removeEventListener('mousedown', this.onMouseDown);
-    this.container.removeEventListener('mouseup', this.onMouseUp);
-    this.container.removeEventListener('mousemove', this.onMouseMove);
     if (typeof window !== 'undefined' && (window as any).DEBUG?.renderer === this) {
       delete (window as any).DEBUG;
     }
-    EventListener.prototype.clear.call(this);
   }
 
   public clearHeightlight(): void {
