@@ -2,7 +2,8 @@ import { BrepGroup, BrepObjectAll } from "./object";
 import { ThreeRenderer } from "./three-renderer";
 import { EventListener } from "./event-listener";
 import { PickType, RenderMode } from "./types";
-import { MOUSE, PerspectiveCamera, Plane, Vector2, Vector3 } from 'three';
+import { MOUSE, Plane, Vector2, Vector3 } from 'three';
+import type { Object3D } from 'three';
 
 const startPos = new Vector2(0, 0);
 const mouse = new Vector2(0, 0);
@@ -15,7 +16,7 @@ class App extends EventListener {
     private renderer: ThreeRenderer;
     private resizeObserver: ResizeObserver | null = null;
     private mode = RenderMode.IDLE;
-    private workingPlane = new Plane(new Vector3(0, 0, 1), 0);
+    private workingPlane = new Plane(new Vector3(0, 1, 0), 0);
 
     constructor(private container: HTMLElement) {
         super();
@@ -34,6 +35,7 @@ class App extends EventListener {
         this.container.addEventListener('pointerdown', this.onPointerDown);
         this.container.addEventListener('pointermove', this.onPointerMove);
         this.container.addEventListener('pointerup', this.onPointerUp);
+        this.container.addEventListener('keyup', this.onKeyUp);
         // 创建控制器（Blender 操作习惯：中键旋转，滚轮缩放，Shift+中键平移）
         this.renderer.controls.getMouseAction = (event: MouseEvent) => {
             const { button, shiftKey } = event;
@@ -80,12 +82,19 @@ class App extends EventListener {
         mouse.set(e.clientX, e.clientY);
         mouse.x = mouse.x - renderSize.z;
         mouse.y = mouse.y - renderSize.w;
-        this.renderer.dispatchEvent('pointermove', new CustomEvent('pointermove', {
-            detail: {
-                mouse,
-                event: e
+        if (this.mode === RenderMode.EDIT) {
+            const point = this.renderer.getPointOnPlane(mouse, this.workingPlane);
+            if (point) {
+                this.dispatchEvent('editPointerMove', new CustomEvent('editPointerMove', { detail: { point } }));
             }
-        }));
+        } else if (this.mode === RenderMode.IDLE) {
+            this.renderer.dispatchEvent('pointermove', new CustomEvent('pointermove', {
+                detail: {
+                    mouse,
+                    event: e
+                }
+            }));
+        }
     }
 
     private onPointerUp = (e: PointerEvent): void => {
@@ -102,7 +111,7 @@ class App extends EventListener {
             } else if (this.mode === RenderMode.EDIT) {
                 const point = this.renderer.getPointOnPlane(mouse, this.workingPlane);
                 if (point) {
-                    this.dispatchEvent('click', new CustomEvent('click', { detail: { point } }));
+                    this.dispatchEvent('editClick', new CustomEvent('editClick', { detail: { point } }));
                 }
             }
         } else {
@@ -117,12 +126,24 @@ class App extends EventListener {
         isDragged = false;
     }
 
+    private onKeyUp = (e: KeyboardEvent) => {
+        this.dispatchEvent('keyup', new CustomEvent('keyup', { detail: e }));
+    }
+
     add(object: BrepGroup): void {
         this.renderer.add(object);
     }
 
     remove(object: BrepGroup): void {
         this.renderer.remove(object);
+    }
+
+    addHelper(helper: Object3D): void {
+        this.renderer.addHelper(helper);
+    }
+
+    removeHelper(helper: Object3D): void {
+        this.renderer.removeHelper(helper);
     }
 
     getMode(): RenderMode {
@@ -137,8 +158,8 @@ class App extends EventListener {
         this.workingPlane.set(normal, distance);
     }
 
-    getWorkingPlane(): Plane {
-        return this.workingPlane;
+    getWorkingPlane(): { normal: Vector3, distance: number } {
+        return { normal: this.workingPlane.normal.clone(), distance: this.workingPlane.constant };
     }
 
     fitToView(): void {

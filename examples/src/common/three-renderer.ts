@@ -126,8 +126,7 @@ class ThreeRenderer extends EventListener {
    * @param target 可选，用于接收结果的 Vector3，避免分配
    * @returns 交点，若无交点（射线与平面平行）返回 null
    */
-  public getPointOnPlane(
-    mouse: THREE.Vector2Like,
+  public getPointOnPlane( mouse: THREE.Vector2Like,
     plane: THREE.Plane,
     target?: THREE.Vector3
   ): THREE.Vector3 | null {
@@ -317,6 +316,14 @@ class ThreeRenderer extends EventListener {
       this.gpuObjectMap.delete(object);
       gpuObject.dispose();
     }
+  }
+
+  addHelper(helper: THREE.Object3D): void {
+    this.helperGroup.add(helper);
+  }
+
+  removeHelper(helper: THREE.Object3D): void {
+    this.helperGroup.remove(helper);
   }
 
   /** 在 dispose 前从高亮/选择中移除，避免 dispose 掉共享材质并释放对已销毁对象的引用 */

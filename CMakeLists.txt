@@ -105,6 +105,8 @@ configure_file(
 # ------------------------------------------------------------
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/shared/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/shared/*.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cxx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/brep/*.cpp"

@@ -1,12 +1,20 @@
 import { router } from './router';
-import { basicShapesCase, brepShowCase, exturdeCase, filletChamferCase } from './cases';
 import { loadOCCTModule } from './sdk';
+
+import { 
+  basicShapesCase, 
+  brepShowCase, 
+  exturdeCase, 
+  filletChamferCase ,
+  sketchCase,
+} from './cases';
 
 // 注册案例
 router.register(basicShapesCase);
 router.register(brepShowCase);
 router.register(exturdeCase);
 router.register(filletChamferCase);
+router.register(sketchCase);
 // 初始化应用
 async function initApp() {
   const container = document.getElementById('viewer-container')!;

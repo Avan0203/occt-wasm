@@ -76,7 +76,7 @@ class BlenderControls extends Controls<BlenderControlsEventMap> {
 
         window.addEventListener('pointerup', this.onPointerUp);
 
-        domElement.addEventListener('wheel', this.onWheel);
+        domElement.addEventListener('wheel', this.onWheel, { passive: true });
     }
 
     /**

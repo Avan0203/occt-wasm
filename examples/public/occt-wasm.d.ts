@@ -12,6 +12,21 @@ export interface ClassHandle {
   [Symbol.dispose](): void;
   clone(): this;
 }
+export interface Vertex extends ClassHandle {
+}
+
+export interface Edge extends ClassHandle {
+}
+
+export interface Wire extends ClassHandle {
+}
+
+export interface Face extends ClassHandle {
+}
+
+export interface Solid extends ClassHandle {
+}
+
 export interface gp_Pnt extends ClassHandle {
   x(): number;
   y(): number;
@@ -642,7 +657,36 @@ export interface EdgeDiscretizationResultVector extends ClassHandle {
 export interface Mesher extends ClassHandle {
 }
 
+export type Vector3 = {
+  x: number,
+  y: number,
+  z: number
+};
+
 interface EmbindModule {
+  Vertex: {
+    toVector3(_0: TopoDS_Vertex): Vector3;
+  };
+  Edge: {
+    getLength(_0: TopoDS_Edge): number;
+    isIntersect(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): boolean;
+    trim(_0: TopoDS_Edge, _1: number, _2: number): TopoDS_Edge;
+    fromCurve(_0: Geom_Curve | null): TopoDS_Edge;
+    intersections(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): Array<Vector3>;
+  };
+  Wire: {
+    makeFace(_0: TopoDS_Wire): TopoDS_Face;
+    fromVertices(_0: Array<Vector3>): TopoDS_Wire;
+    fromEdges(_0: Array<TopoDS_Edge>): TopoDS_Wire;
+  };
+  Face: {
+    area(_0: TopoDS_Face): number;
+    fromVertices(_0: Array<Vector3>, _1: Array<Array<Vector3>>): TopoDS_Face;
+  };
+  Solid: {
+    fromFaces(_0: TopoDS_Face): TopoDS_Solid;
+    volume(_0: TopoDS_Solid): number;
+  };
   gp_Pnt: {
     new(): gp_Pnt;
     new(_0: number, _1: number, _2: number): gp_Pnt;

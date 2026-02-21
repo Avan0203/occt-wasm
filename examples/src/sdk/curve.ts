@@ -1,11 +1,29 @@
-import type { gp_Pnt, gp_Dir, gp_Ax2, gp_Circ, Geom_Circle, Geom_Ellipse, Handle_Geom_TrimmedCurve, TopoDS_Edge, TopoDS_Shape } from "public/occt-wasm";
+import type { TopoDS_Edge, TopoDS_Shape } from "public/occt-wasm";
 import { Vector3 } from "./vector3";
 import { EN_Direction } from "./types";
 import { getOCCTModule } from "./occt-loader";
 import { gc } from "./gc";
+import { Constants } from "./utils";
+
+
 
 const TMP_VECTOR3 = new Vector3();
 const PI = Math.PI;
+const TWO_PI = 2 * PI;
+
+interface gp_Ax2Handle {
+    xDirection(): { x(): number; y(): number; z(): number };
+    yDirection(): { x(): number; y(): number; z(): number };
+}
+
+function angleOnAx2(ax2: gp_Ax2Handle, dx: number, dy: number, dz: number): number {
+    const xd = ax2.xDirection();
+    const yd = ax2.yDirection();
+    return Math.atan2(
+        dx * yd.x() + dy * yd.y() + dz * yd.z(),
+        dx * xd.x() + dy * xd.y() + dz * xd.z()
+    );
+}
 
 function normAngle(a: number): number {
     while (a < 0) a += 2 * PI;
@@ -13,37 +31,60 @@ function normAngle(a: number): number {
     return a;
 }
 
-function angleInPlane(x: number, y: number, cx: number, cy: number): number {
-    return Math.atan2(y - cy, x - cx);
-}
+abstract class Curve3D {
+    shape: TopoDS_Edge | null = null;
+    protected isDirty: boolean = true;
 
-abstract class Curve {
-    shape: TopoDS_Shape | null = null;
-    isDirty: boolean = true;
-
+    normal = new Vector3();
     start = new Vector3();
     end = new Vector3();
+
+    setNormal(normal: Vector3): this {
+        this.normal.copy(normal);
+        return this;
+    }
+
+    getNormal(): Vector3 {
+        return this.normal.clone();
+    }
+
     getLength(): number {
-        return 0;
+        if (this.isDirty) {
+            this.build();
+        }
+        const occt = getOCCTModule();
+        return occt.Edge.getLength(this.shape!);
     }
 
     reverse(): this {
         TMP_VECTOR3.copy(this.start);
         this.start.copy(this.end);
         this.end.copy(TMP_VECTOR3);
+        this.isDirty = true;
         return this;
     }
 
-    pointAt(t: number): Vector3 {
-        return new Vector3();
+    isIntersects(curve: Curve3D): boolean {
+        const occt = getOCCTModule();
+        if (curve.isDirty) {
+            curve.build();
+        }
+        if (this.isDirty) {
+            this.build();
+        }
+        return occt.Edge.isIntersect(this.shape!, curve.shape!, Constants.EPSILON);
     }
 
-    isIntersects(curve: Curve): boolean {
-        return false;
-    }
-
-    intersects(curve: Curve): Vector3[] {
-        return [];
+    intersects(curve: Curve3D): Vector3[] {
+        const occt = getOCCTModule();
+        if (this.isDirty) {
+            this.build();
+        }
+        if (curve.isDirty) {
+            curve.build();
+        }
+        const intersections = occt.Edge.intersections(this.shape!, curve.shape!, Constants.EPSILON);
+        return intersections.map(intersection => Vector3.fromVec3(intersection));
     }
 
     dispose(): void {
@@ -62,17 +103,15 @@ abstract class Curve {
         return this;
     };
 
-    protected build(): void {
+    build(): void {
+        this.isDirty = false;
         if (this.shape) {
             this.deleteShape();
-        }
-        if (!this.isDirty) {
-            return;
         }
     }
 }
 
-class Line extends Curve {
+class Line extends Curve3D {
     constructor(public start: Vector3, public end: Vector3) {
         super();
         this.set(start, end);
@@ -86,10 +125,10 @@ class Line extends Curve {
     }
 
     build(): void {
-        super.build();
         if (!this.isDirty) return;
+        super.build();
         const occt = getOCCTModule();
-        const { result: edge } = gc((c) => {
+        const edge = gc((c) => {
             const p1 = c(this.start.toPnt());
             const p2 = c(this.end.toPnt());
             const makeEdge = c(new occt.BRepBuilderAPI_MakeEdge(p1, p2));
@@ -97,51 +136,54 @@ class Line extends Curve {
             return makeEdge.edge();
         });
         if (edge && !edge!.isNull()) {
-            this.deleteShape();
-            this.shape = edge as unknown as TopoDS_Shape;
-            this.isDirty = false;
+            this.shape = edge;
         }
     }
 }
 
-class Circle extends Curve {
-    constructor(public center: Vector3, public radius: number) {
+class Circle extends Curve3D {
+    public radius: number = 0;
+    constructor(public center: Vector3, public endPoint: Vector3) {
         super();
-        this.set(center, radius);
+        this.set(center, endPoint);
     }
 
-    set(center: Vector3, radius: number): this {
+    set(center: Vector3, endPoint: Vector3): this {
+        super.set();
         this.center.copy(center);
-        this.radius = radius;
-        this.start.copy(this.center).add(new Vector3(radius, 0, 0));
-        this.end.copy(this.center).add(new Vector3(radius, 0, 0));
+        this.radius = endPoint.distanceTo(center);
+        this.start.copy(endPoint);
+        this.end.copy(endPoint);
         return this;
     }
 
     build(): void {
-        super.build();
         if (!this.isDirty) return;
+        super.build();
         const occt = getOCCTModule();
-        const { result: edge } = gc((c) => {
+        const edge = gc((c) => {
             const center = c(this.center.toPnt());
-            const dir = c(new occt.gp_Dir(0, 0, 1));
+            const dir = c(this.normal.toDir());
             const ax2 = c(new occt.gp_Ax2(center, dir));
-            const circ = new occt.gp_Circ(ax2, this.radius);
-            c(circ);
-            const makeEdge = c(occt.BRepBuilderAPI_MakeEdge.createFromCircle(circ));
-            if (!makeEdge.isDone()) return null;
-            return makeEdge.edge();
+
+            const u = angleOnAx2(ax2,
+                this.end.x - this.center.x,
+                this.end.y - this.center.y,
+                this.end.z - this.center.z
+            );
+
+            const geomCircle = new occt.Geom_Circle(ax2, this.radius);
+            const trimmed = occt.Geom.trim(geomCircle, u, u + TWO_PI);
+            return occt.Geom.edgeFromCurve(trimmed?.get() ?? null);
         });
         if (edge && !edge!.isNull()) {
-            this.deleteShape();
-            this.shape = edge as unknown as TopoDS_Shape;
-            this.isDirty = false;
+            this.shape = edge;
         }
     }
 }
 
 // 逆时针方向
-class Arc extends Curve {
+class Arc extends Curve3D {
     public radius: number = 0;
     public center: Vector3 = new Vector3();
     public startPoint: Vector3 = new Vector3();
@@ -152,6 +194,7 @@ class Arc extends Curve {
         this.set(center, startPoint, endPoint, direction);
     }
     set(center: Vector3, startPoint: Vector3, endPoint: Vector3, direction: EN_Direction): this {
+        super.set();
         this.center.copy(center);
         this.startPoint.copy(startPoint);
         this.radius = this.startPoint.distanceTo(center);
@@ -171,38 +214,47 @@ class Arc extends Curve {
     }
 
     build(): void {
-        super.build();
         if (!this.isDirty) return;
+        super.build();
         const occt = getOCCTModule();
         const ex = this.center.x + this.endPoint.x;
         const ey = this.center.y + this.endPoint.y;
         const ez = this.center.z + this.endPoint.z;
-        let u1 = angleInPlane(this.startPoint.x, this.startPoint.y, this.center.x, this.center.y);
-        let u2 = angleInPlane(ex, ey, this.center.x, this.center.y);
-        u1 = normAngle(u1);
-        u2 = normAngle(u2);
-        if (this.direction > 0) {
-            if (u2 >= u1) u2 -= 2 * PI;
-        } else {
-            if (u2 <= u1) u2 += 2 * PI;
-        }
-        const { result: edge } = gc((c) => {
+        const edge = gc((c) => {
             const center = c(this.center.toPnt());
-            const dir = c(new occt.gp_Dir(0, 0, 1));
+            const dir = c(this.normal.toDir());
             const ax2 = c(new occt.gp_Ax2(center, dir));
-            const geomCircle = c(new occt.Geom_Circle(ax2, this.radius));
-            const trimmed = c(occt.Geom.trim(geomCircle, u1, u2));
+
+            let u1 = angleOnAx2(ax2,
+                this.startPoint.x - this.center.x,
+                this.startPoint.y - this.center.y,
+                this.startPoint.z - this.center.z
+            );
+            let u2 = angleOnAx2(ax2,
+                ex - this.center.x,
+                ey - this.center.y,
+                ez - this.center.z
+            );
+
+            u1 = normAngle(u1);
+            u2 = normAngle(u2);
+            if (this.direction > 0) {
+                if (u2 >= u1) u2 -= TWO_PI;
+            } else {
+                if (u2 <= u1) u2 += TWO_PI;
+            }
+
+            const geomCircle = new occt.Geom_Circle(ax2, this.radius);
+            const trimmed = occt.Geom.trim(geomCircle, u1, u2);
             return occt.Geom.edgeFromCurve(trimmed?.get() ?? null);
         });
         if (edge && !edge!.isNull()) {
-            this.deleteShape();
-            this.shape = edge as unknown as TopoDS_Shape;
-            this.isDirty = false;
+            this.shape = edge;
         }
     }
 }
 
-class Ellipse extends Curve {
+class Ellipse extends Curve3D {
     constructor(public center: Vector3, public radiusX: number, public radiusY: number) {
         super();
         this.set(center, radiusX, radiusY);
@@ -218,27 +270,25 @@ class Ellipse extends Curve {
     }
 
     build(): void {
-        super.build();
         if (!this.isDirty) return;
+        super.build();
         const occt = getOCCTModule();
         const major = Math.max(this.radiusX, this.radiusY);
         const minor = Math.min(this.radiusX, this.radiusY) || major;
-        const { result: edge } = gc((c) => {
+        const edge = gc((c) => {
             const center = c(this.center.toPnt());
-            const dir = c(new Vector3(0, 0, 1).toDir());
+            const dir = c(this.normal.toDir());
             const ax2 = c(new occt.gp_Ax2(center, dir));
-            const geomEllipse = c(new occt.Geom_Ellipse(ax2, major, minor));
+            const geomEllipse = new occt.Geom_Ellipse(ax2, major, minor);
             return occt.Geom.edgeFromCurve(geomEllipse);
         });
         if (edge && !edge!.isNull()) {
-            this.deleteShape();
-            this.shape = edge as unknown as TopoDS_Shape;
-            this.isDirty = false;
+            this.shape = edge;
         }
     }
 }
 
-class BspLineCurve extends Curve {
+class BspLineCurve extends Curve3D {
     public controlPoints: Vector3[] = [];
     public degree: number = 3;
     public knots: number[] = [];
@@ -293,19 +343,17 @@ class BspLineCurve extends Curve {
     }
 
     build(): void {
-        super.build();
         if (!this.isDirty) return;
+        super.build();
         const occt = getOCCTModule();
         const polesFlat = this.controlPoints.flatMap(p => [p.x, p.y, p.z]);
         const edge = this.weights
             ? occt.Geom.edgeFromBSplineWithWeights(polesFlat, this.knots, this.multiplicities, this.degree, this.periodic, this.weights)
             : occt.Geom.edgeFromBSpline(polesFlat, this.knots, this.multiplicities, this.degree, this.periodic);
         if (edge && !edge.isNull()) {
-            this.deleteShape();
-            this.shape = edge as unknown as TopoDS_Shape;
-            this.isDirty = false;
+            this.shape = edge;
         }
     }
 }
 
-export { Curve, Line, Circle, Arc, Ellipse, BspLineCurve };
+export { Curve3D, Line, Circle, Arc, Ellipse, BspLineCurve };

@@ -1,5 +1,5 @@
 #include "GeomBindings.h"
-#include "shared/Shared.h"
+#include "shared/Shared.hpp"
 #include <TColgp_Array1OfPnt.hxx>
 #include <TColStd_Array1OfReal.hxx>
 #include <TColStd_Array1OfInteger.hxx>
@@ -21,9 +21,10 @@
 #include <gp_Vec.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Ax2.hxx>
+#include <TopoDS_Shape.hxx>
+#include <TopoDS_Edge.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
-#include <TopoDS_Edge.hxx>
 #include <emscripten/bind.h>
 
 using namespace emscripten;
