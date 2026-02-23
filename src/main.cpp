@@ -5,7 +5,7 @@
 #include "geometry/GeometryBindings.h"
 #include "geometry/GeomBindings.h"
 #include "brep/PrimApiBindings.h"
-#include "geometry/FilletChamferBindings.h"
+#include "geometry/ModelerBindings.h"
 #include "brep/BRepBindings.h"
 #include "utils/UtilsBindings.h"
 
@@ -17,7 +17,7 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     GeomBindings::registerBindings();
     GeometryBindings::registerBindings();
     PrimApiBindings::registerBindings();
-    FilletChamferBindings::registerBindings();
+    ModelerBindings::registerBindings();
     UtilsBindings::registerBindings();
 }
 

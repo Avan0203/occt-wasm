@@ -1,4 +1,5 @@
 #include "BRepBindings.h"
+#include "TopoDS_Wire.hxx"
 #include "brep/ShapeBindings.h"
 #include "shared/Shared.hpp"
 #include <cmath>
@@ -324,14 +325,36 @@ TopoDS_Face Wire::makeFace(const TopoDS_Wire& wire) {
   return face.Face();
 }
 
+TopoDS_Wire Wire::close(const TopoDS_Wire& wire) {
+  if(Shape::isClosed(wire)) {
+    return wire;
+  }
+  TopoDS_Vertex firstVertex, lastVertex;
+  TopExp::Vertices(wire, firstVertex, lastVertex);
+  if(firstVertex.IsNull() || lastVertex.IsNull()) {
+    return wire;
+  }
+  // 创建新的边
+  TopoDS_Edge newEdge = BRepBuilderAPI_MakeEdge(firstVertex, lastVertex).Edge();
+  return BRepBuilderAPI_MakeWire(wire, newEdge).Wire();
+}
+
 // ==================== Face ====================
 
 TopoDS_Face Face::fromVertices(const Vector3Array& outerVertices, const Vector3ArrayArray& innerVertices) {
-  BRepBuilderAPI_MakeFace face;
-  face.Add(Wire::fromVertices(outerVertices));
+  TopoDS_Wire outerWire = Wire::fromVertices(outerVertices);
+  if (!Shape::isClosed(outerWire)) {
+    outerWire = Wire::close(outerWire);
+  }
+  // 使用 wire 构造函数创建面（Add 仅用于添加孔洞）
+  BRepBuilderAPI_MakeFace face(outerWire);
   std::vector<Vector3Array> innerList = emscripten::vecFromJSArray<Vector3Array>(innerVertices);
-  for (const Vector3Array& inner : innerList){
-    face.Add(Wire::fromVertices(inner));
+  for (const Vector3Array& inner : innerList) {
+    TopoDS_Wire innerWire = Wire::fromVertices(inner);
+    if (!Shape::isClosed(innerWire)) {
+      innerWire = Wire::close(innerWire);
+    }
+    face.Add(innerWire);
   }
   return face.Face();
 }
@@ -573,6 +596,10 @@ std::vector<TopoDS_Compound> Shape::getCompounds(const TopoDS_Shape& shape) {
   return compounds;
 }
 
+bool Shape::isClosed(const TopoDS_Shape& shape) {
+  return BRep_Tool::IsClosed(shape);
+}
+
 BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
   BRepResult result;
 
@@ -669,6 +696,8 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
 }
 
 
+
+
 // ==================== WASM Bindings ====================
 
 EMSCRIPTEN_BINDINGS(ShapeBindings) {
@@ -704,6 +733,7 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
   class_<Wire>("Wire")
       .class_function("fromEdges", &Wire::fromEdges)
       .class_function("fromVertices", &Wire::fromVertices)
+      .class_function("close", &Wire::close)
       .class_function("makeFace", &Wire::makeFace);
   class_<Face>("Face")
       .class_function("fromVertices", &Face::fromVertices)
@@ -719,6 +749,7 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
   class_<Compound>("Compound")
       .class_function("fromShapes", &Compound::fromShapes);
   class_<Shape>("Shape")
+      .class_function("isClosed", &Shape::isClosed)
       .class_function("getVertices", optional_override(
           [](const TopoDS_Shape& shape) {
             return topoVectorToArray(Shape::getVertices(shape));

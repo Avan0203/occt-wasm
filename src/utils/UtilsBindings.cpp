@@ -3,7 +3,7 @@
 #include <TopExp.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
-#include <BRepTools.hxx>
+#include <BRep_Tool.hxx>
 #include <TopAbs.hxx>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -105,36 +105,6 @@ int countShapes(const TopoDS_Shape& shape, TopAbs_ShapeEnum type) {
 }
 
 /**
- * 检查形状是否有效
- * 通过检查形状是否为空来判断有效性
- * @param shape - 要检查的形状对象
- * @returns 如果形状有效返回 true，否则返回 false
- */
-bool isValid(const TopoDS_Shape& shape) {
-    return !shape.IsNull();
-}
-
-/**
- * 清理形状
- * 移除形状中的冗余几何信息和拓扑信息
- * @param shape - 要清理的形状对象（会被修改）
- */
-void cleanShape(TopoDS_Shape& shape) {
-    BRepTools::Clean(shape);
-}
-
-/**
- * 将形状写入 BRep 格式文件
- * 注意：这是一个占位函数，实际的文件写入功能将在 Exporter 模块中实现
- * @param shape - 要写入的形状对象
- * @param filename - 输出文件名
- * @returns 如果写入成功返回 true，否则返回 false
- */
-bool writeBRep(const TopoDS_Shape& shape, const std::string& filename) {
-    return BRepTools::Write(shape, filename.c_str());
-}
-
-/**
  * 注册所有工具函数到 Emscripten 绑定系统
  * 包括 TopExp、TopExp_Explorer 和 BRepTools 的相关方法
  */
@@ -162,13 +132,6 @@ void registerBindings() {
         .function("value", &TopExp_Explorer::Value)
         .function("clear", &TopExp_Explorer::Clear)
         .function("depth", &TopExp_Explorer::Depth)
-        ;
-
-    // ========== BRepTools 静态方法 ==========
-    class_<BRepTools>("BRepTools")
-        .class_function("isValid", &isValid)
-        .class_function("cleanShape", &cleanShape)
-        .class_function("writeBRep", &writeBRep)
         ;
 }
 

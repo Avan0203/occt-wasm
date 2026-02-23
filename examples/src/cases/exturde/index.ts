@@ -1,12 +1,9 @@
 import { Case, CaseContext } from '@/router';
-import { ThreeRenderer } from '@/common/three-renderer';
 import * as THREE from 'three';
 import { createBrepGroup } from '@/common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
 import { BrepGroup } from '@/common/object';
 import { App } from '@/common/app';
-
-let renderer: ThreeRenderer;
 
 export const exturdeCase: Case = {
     id: 'exturde',
@@ -25,11 +22,8 @@ async function load(context: CaseContext): Promise<void> {
     try {
 
         const {
-            gp_Pnt,
             gp_Vec,
-            BRepBuilderAPI_MakeEdge,
-            BRepBuilderAPI_MakeWire,
-            BRepBuilderAPI_MakeFace,
+            Face,
             BRepPrimAPI_MakePrism,
             Shape,
         } = occtModule
@@ -41,50 +35,16 @@ async function load(context: CaseContext): Promise<void> {
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('/matcaps_64px.png');
 
-
-        const a = new gp_Pnt(-2, -2, 2);
-        const b = new gp_Pnt(-2, -2, -2);
-        const c = new gp_Pnt(2, -2, -2);
-        const d = new gp_Pnt(2, -2, 2);
-
-        const ab = new BRepBuilderAPI_MakeEdge(a, b).edge();
-        const bc = new BRepBuilderAPI_MakeEdge(b, c).edge();
-        const cd = new BRepBuilderAPI_MakeEdge(c, d).edge();
-        const da = new BRepBuilderAPI_MakeEdge(d, a).edge();
-
-        const wire = new BRepBuilderAPI_MakeWire(ab, bc, cd, da).wire();
-
-        const rectFace = BRepBuilderAPI_MakeFace.createFromWire(wire, true).face();
-
-        a.deleteLater();
-        b.deleteLater();
-        c.deleteLater();
-        d.deleteLater();
-        ab.deleteLater();
-        bc.deleteLater();
-        cd.deleteLater();
-        da.deleteLater();
-        wire.deleteLater();
+        const rectFace = Face.fromVertices(
+            [{ x: -2, y: -2, z: 2 }, { x: -2, y: -2, z: -2 }, { x: 2, y: -2, z: -2 }, { x: 2, y: -2, z: 2 }],
+            []
+        );
         globalGC.push(rectFace);
 
-        const a1 = new gp_Pnt(5, -2, 0);
-        const b1 = new gp_Pnt(8, -2, 0);
-        const c1 = new gp_Pnt(6.5, -2, 2);
-
-        const ab1 = new BRepBuilderAPI_MakeEdge(a1, b1).edge();
-        const bc1 = new BRepBuilderAPI_MakeEdge(b1, c1).edge();
-        const ca1 = new BRepBuilderAPI_MakeEdge(c1, a1).edge();
-;
-        const triangleWire = new BRepBuilderAPI_MakeWire(ab1, bc1, ca1).wire();
-        const triangleFace = BRepBuilderAPI_MakeFace.createFromWire(triangleWire, true).face();
-
-        a1.deleteLater();
-        b1.deleteLater();
-        c1.deleteLater();
-        ab1.deleteLater();
-        bc1.deleteLater();
-        ca1.deleteLater();
-        triangleWire.deleteLater();
+        const triangleFace = Face.fromVertices(
+            [{ x: 5, y: -2, z: 0 }, { x: 8, y: -2, z: 0 }, { x: 6.5, y: -2, z: 2 }],
+            []
+        );
         globalGC.push(triangleFace);
 
         const dir = new THREE.Vector3(0, 6, 0);
@@ -100,7 +60,7 @@ async function load(context: CaseContext): Promise<void> {
         function build() {
             if (groups.length > 0) {
                 groups.forEach(group => {
-                    renderer!.remove(group);
+                    app.remove(group);
                     group.dispose();
                 });
             };

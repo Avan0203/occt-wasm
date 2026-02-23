@@ -73,6 +73,7 @@ class Wire {
 public:
   static TopoDS_Wire fromEdges(const TopoEdgeArray& edges);
   static TopoDS_Wire fromVertices(const Vector3Array& vertices);
+  static TopoDS_Wire close(const TopoDS_Wire& wire);
   static TopoDS_Face makeFace(const TopoDS_Wire& wire);
 };
 
@@ -96,6 +97,7 @@ public:
 
 class Shape {
 public:
+  static bool isClosed(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Vertex> getVertices(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Edge> getEdges(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Face> getFaces(const TopoDS_Shape& shape);

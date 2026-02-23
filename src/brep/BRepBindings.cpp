@@ -24,64 +24,6 @@ using namespace emscripten;
 
 namespace BRepBindings {
 
-// Helper functions for shape type checking
-bool isFace(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_FACE;
-}
-
-bool isEdge(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_EDGE;
-}
-
-bool isVertex(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_VERTEX;
-}
-
-bool isWire(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_WIRE;
-}
-
-bool isShell(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_SHELL;
-}
-
-bool isSolid(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_SOLID;
-}
-
-bool isCompound(const TopoDS_Shape& shape) {
-    return shape.ShapeType() == TopAbs_COMPOUND;
-}
-
-// Helper functions for casting
-TopoDS_Face toFace(const TopoDS_Shape& shape) {
-    return TopoDS::Face(shape);
-}
-
-TopoDS_Edge toEdge(const TopoDS_Shape& shape) {
-    return TopoDS::Edge(shape);
-}
-
-TopoDS_Vertex toVertex(const TopoDS_Shape& shape) {
-    return TopoDS::Vertex(shape);
-}
-
-TopoDS_Wire toWire(const TopoDS_Shape& shape) {
-    return TopoDS::Wire(shape);
-}
-
-TopoDS_Shell toShell(const TopoDS_Shape& shape) {
-    return TopoDS::Shell(shape);
-}
-
-TopoDS_Solid toSolid(const TopoDS_Shape& shape) {
-    return TopoDS::Solid(shape);
-}
-
-TopoDS_Compound toCompound(const TopoDS_Shape& shape) {
-    return TopoDS::Compound(shape);
-}
-
 // Helper function to get shape type as string
 std::string getShapeTypeString(const TopoDS_Shape& shape) {
     switch (shape.ShapeType()) {
@@ -161,22 +103,6 @@ void registerBindings() {
         .function("nullify", &TopoDS_Shape::Nullify)
         .function("shapeType", &TopoDS_Shape::ShapeType)
         .function("shapeTypeString", &getShapeTypeString)
-        // Type checking
-        .function("isFace", &isFace)
-        .function("isEdge", &isEdge)
-        .function("isVertex", &isVertex)
-        .function("isWire", &isWire)
-        .function("isShell", &isShell)
-        .function("isSolid", &isSolid)
-        .function("isCompound", &isCompound)
-        // Type conversion
-        .function("toFace", &toFace)
-        .function("toEdge", &toEdge)
-        .function("toVertex", &toVertex)
-        .function("toWire", &toWire)
-        .function("toShell", &toShell)
-        .function("toSolid", &toSolid)
-        .function("toCompound", &toCompound)
         // Location - simplified for frontend
         .function("location", 
             optional_override([](const TopoDS_Shape& shape) -> TopLoc_Location {

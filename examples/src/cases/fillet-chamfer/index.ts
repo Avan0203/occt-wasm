@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Case, CaseContext } from '@/router';
 import { ThreeRenderer } from '@/common/three-renderer';
 import { createBrepGroup } from '@/common/shape-converter';
-import type { TopoDS_Shape, FilletBuilder, ChamferBuilder, TopoDS_Edge } from 'public/occt-wasm';
+import type { TopoDS_Shape, Modeler, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType } from '@/common/types';
 import { BrepGroup, BrepObjectAll } from '@/common/object';
 import { App } from '@/common/app';
@@ -34,8 +34,7 @@ async function load(context: CaseContext): Promise<void> {
             gp_Trsf,
             gp_Vec,
             TopLoc_Location,
-            FilletBuilder,
-            ChamferBuilder,
+            Modeler,
         } = occtModule
 
         container.innerHTML = '';
@@ -144,17 +143,10 @@ async function load(context: CaseContext): Promise<void> {
                     return alert('Selected edges could not be matched to shape');
                 }
 
-                let builder: FilletBuilder | ChamferBuilder;
-                if (params.operation === 'fillet') {
-                    builder = new FilletBuilder(targetGroup.shape);
-                    edgesToAdd.forEach(edge => (builder as FilletBuilder).addConstantRadius(params.radius, edge));
-                } else {
-                    builder = new ChamferBuilder(targetGroup.shape);
-                    edgesToAdd.forEach(edge => (builder as ChamferBuilder).addEqual(params.distance, edge));
-                }
-                const newShape = builder.build();
+                const newShape = params.operation === 'fillet'
+                    ? Modeler.fillet(targetGroup.shape, edgesToAdd, params.radius)
+                    : Modeler.chamfer(targetGroup.shape, edgesToAdd, params.distance);
                 if (newShape.isNull()) {
-                    builder.deleteLater();
                     return alert('Fillet/Chamfer failed (e.g. radius/distance too large or invalid edges)');
                 }
 
@@ -170,7 +162,6 @@ async function load(context: CaseContext): Promise<void> {
                 app.add(newGroup);
                 targetGroup = null;
                 app.clearSelection();
-                builder.deleteLater();
             }
         }
 

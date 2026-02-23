@@ -323,13 +323,6 @@ export interface TopoDS_Shape extends ClassHandle {
   isNull(): boolean;
   nullify(): void;
   shapeTypeString(): string;
-  isFace(): boolean;
-  isEdge(): boolean;
-  isVertex(): boolean;
-  isWire(): boolean;
-  isShell(): boolean;
-  isSolid(): boolean;
-  isCompound(): boolean;
   location(): TopLoc_Location;
   setLocation(_0: TopLoc_Location): void;
   located(_0: TopLoc_Location): TopoDS_Shape;
@@ -342,13 +335,6 @@ export interface TopoDS_Shape extends ClassHandle {
   isNotEqual(_0: TopoDS_Shape): boolean;
   nbChildren(): number;
   children(): any;
-  toFace(): TopoDS_Face;
-  toEdge(): TopoDS_Edge;
-  toVertex(): TopoDS_Vertex;
-  toWire(): TopoDS_Wire;
-  toShell(): TopoDS_Shell;
-  toSolid(): TopoDS_Solid;
-  toCompound(): TopoDS_Compound;
   shapeType(): TopAbs_ShapeEnum;
   orientation(): TopAbs_Orientation;
   setOrientation(_0: TopAbs_Orientation): void;
@@ -604,16 +590,7 @@ export interface BRepBuilderAPI_MakeSolid extends BRepBuilderAPI_MakeShape {
   addShell(_0: TopoDS_Shell): void;
 }
 
-export interface FilletBuilder extends ClassHandle {
-  addConstantRadius(_0: number, _1: TopoDS_Edge): void;
-  addVariableRadius(_0: number, _1: number, _2: TopoDS_Edge): void;
-  build(): TopoDS_Shape;
-}
-
-export interface ChamferBuilder extends ClassHandle {
-  addEqual(_0: number, _1: TopoDS_Edge): void;
-  addDistances(_0: number, _1: number, _2: TopoDS_Edge, _3: TopoDS_Face): void;
-  build(): TopoDS_Shape;
+export interface Modeler extends ClassHandle {
 }
 
 export interface TopExp extends ClassHandle {
@@ -628,9 +605,6 @@ export interface TopExp_Explorer extends ClassHandle {
   value(): TopoDS_Shape;
   clear(): void;
   depth(): number;
-}
-
-export interface BRepTools extends ClassHandle {
 }
 
 export type Vector3 = {
@@ -659,6 +633,7 @@ interface EmbindModule {
     pointAt(_0: TopoDS_Edge, _1: number): Vector3;
   };
   Wire: {
+    close(_0: TopoDS_Wire): TopoDS_Wire;
     makeFace(_0: TopoDS_Wire): TopoDS_Face;
     fromVertices(_0: Array<Vector3>): TopoDS_Wire;
     fromEdges(_0: Array<TopoDS_Edge>): TopoDS_Wire;
@@ -676,6 +651,7 @@ interface EmbindModule {
     fromShapes(_0: Array<TopoDS_Shape>): TopoDS_Compound;
   };
   Shape: {
+    isClosed(_0: TopoDS_Shape): boolean;
     getVertices(_0: TopoDS_Shape): any;
     getEdges(_0: TopoDS_Shape): any;
     getFaces(_0: TopoDS_Shape): any;
@@ -917,11 +893,9 @@ interface EmbindModule {
     createFromSolid(_0: TopoDS_Solid): BRepBuilderAPI_MakeSolid;
     createFromSolidAndShell(_0: TopoDS_Solid, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
   };
-  FilletBuilder: {
-    new(_0: TopoDS_Shape): FilletBuilder;
-  };
-  ChamferBuilder: {
-    new(_0: TopoDS_Shape): ChamferBuilder;
+  Modeler: {
+    fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
+    chamfer(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
   };
   TopExp: {
     extractVertices(_0: TopoDS_Shape): any;
@@ -935,11 +909,6 @@ interface EmbindModule {
   TopExp_Explorer: {
     new(): TopExp_Explorer;
     new(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): TopExp_Explorer;
-  };
-  BRepTools: {
-    isValid(_0: TopoDS_Shape): boolean;
-    cleanShape(_0: TopoDS_Shape): void;
-    writeBRep(_0: TopoDS_Shape, _1: EmbindString): boolean;
   };
 }
 
