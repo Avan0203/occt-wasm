@@ -104,19 +104,8 @@ configure_file(
 # 7. User sources
 # ------------------------------------------------------------
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/shared/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/shared/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/brep/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/brep/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/geometry/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cxx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/mesher/*.cxx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cxx"
 )
 
 # ------------------------------------------------------------

@@ -25,7 +25,9 @@ EMSCRIPTEN_BINDINGS(Shared)
     register_type<TopoEdgeArray>("Array<TopoDS_Edge>");
     register_type<TopoFaceArray>("Array<TopoDS_Face>");
     register_type<TopoWireArray>("Array<TopoDS_Wire>");
-    register_type<ShellArray>("Array<TopoDS_Shell>");
+    register_type<TopoShellArray>("Array<TopoDS_Shell>");
+    register_type<TopoSolidArray>("Array<TopoDS_Solid>");
+    register_type<TopoCompoundArray>("Array<TopoDS_Compound>");
     register_type<GpPntArray>("Array<gp_Pnt>");
 
     register_optional<double>();

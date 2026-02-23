@@ -30,7 +30,7 @@ async function load(context: CaseContext): Promise<void> {
             BRepBuilderAPI_MakeFace,
             BRepPrimAPI_MakeBox,
             BRepPrimAPI_MakePrism,
-            Mesher,
+            Shape,
             gp_Trsf,
             gp_Vec,
             TopLoc_Location,
@@ -106,13 +106,13 @@ async function load(context: CaseContext): Promise<void> {
         // 场景里所有可被倒角替换的 shape 组，用数组统一管理，替换时只改对应下标
         const shapeGroups: BrepGroup[] = [];
 
-        const rectResult = Mesher.shapeToBRepResult(boxShape, 0.1, 0.5);
+        const rectResult = Shape.toBRepResult(boxShape, 0.1, 0.5);
         const rectGroup = createBrepGroup(boxShape, rectResult, material);
         shapeGroups.push(rectGroup);
         app.add(rectGroup);
 
         const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
-        const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
+        const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
         const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
         shapeGroups.push(triangleGroup);
         app.add(triangleGroup);
@@ -136,7 +136,7 @@ async function load(context: CaseContext): Promise<void> {
                 if (selectedEdges.length === 0) {
                     return alert('Please select at least one edge');
                 }
-                const shapeEdges: TopoDS_Edge[] = Mesher.getEdges(targetGroup.shape);
+                const shapeEdges: TopoDS_Edge[] = Shape.getEdges(targetGroup.shape);
                 const edgesToAdd = selectedEdges
                     .map(brepEdge => shapeEdges.find(se => se.isSame(brepEdge.geometry.shape!)))
                     .filter((e): e is TopoDS_Edge => e !== undefined);
@@ -158,7 +158,7 @@ async function load(context: CaseContext): Promise<void> {
                     return alert('Fillet/Chamfer failed (e.g. radius/distance too large or invalid edges)');
                 }
 
-                const newResult = Mesher.shapeToBRepResult(newShape, 0.1, 0.5);
+                const newResult = Shape.toBRepResult(newShape, 0.1, 0.5);
                 const newGroup = createBrepGroup(newShape, newResult, material);
 
                 const slotIndex = shapeGroups.indexOf(targetGroup);

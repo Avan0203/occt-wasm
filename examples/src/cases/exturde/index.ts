@@ -31,7 +31,7 @@ async function load(context: CaseContext): Promise<void> {
             BRepBuilderAPI_MakeWire,
             BRepBuilderAPI_MakeFace,
             BRepPrimAPI_MakePrism,
-            Mesher,
+            Shape,
         } = occtModule
 
         container.innerHTML = '';
@@ -107,13 +107,13 @@ async function load(context: CaseContext): Promise<void> {
             const direction = new gp_Vec(dir.x, dir.y, dir.z);
 
             const rectPrism = new BRepPrimAPI_MakePrism(rectFace, direction).shape();
-            const rectResult = Mesher.shapeToBRepResult(rectPrism, 0.1, 0.5);
+            const rectResult = Shape.toBRepResult(rectPrism, 0.1, 0.5);
             const rectGroup = createBrepGroup(rectPrism, rectResult, material);
             groups.push(rectGroup);
             app.add(rectGroup);
 
             const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
-            const triangleResult = Mesher.shapeToBRepResult(trianglePrism, 0.1, 0.5);
+            const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
             const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
             groups.push(triangleGroup);
             app.add(triangleGroup);

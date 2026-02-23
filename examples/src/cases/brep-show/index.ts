@@ -27,7 +27,7 @@ async function load(context: CaseContext): Promise<void> {
         const cylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 2);
         const cylinderShape = cylinder.shape();
 
-        const brepResult = occtModule.Mesher.shapeToBRepResult(cylinderShape, 0.1, 0.5);
+        const brepResult = occtModule.Shape.toBRepResult(cylinderShape, 0.1, 0.5);
         console.log('brepResult: ', brepResult);
 
         const group = createBrepGroup(cylinderShape, brepResult, new THREE.MeshMatcapMaterial({

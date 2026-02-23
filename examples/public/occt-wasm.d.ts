@@ -12,6 +12,22 @@ export interface ClassHandle {
   [Symbol.dispose](): void;
   clone(): this;
 }
+export interface FloatVector extends ClassHandle {
+  push_back(_0: number): void;
+  resize(_0: number, _1: number): void;
+  size(): number;
+  get(_0: number): number | undefined;
+  set(_0: number, _1: number): boolean;
+}
+
+export interface Uint32Vector extends ClassHandle {
+  push_back(_0: number): void;
+  resize(_0: number, _1: number): void;
+  size(): number;
+  get(_0: number): number | undefined;
+  set(_0: number, _1: number): boolean;
+}
+
 export interface Vertex extends ClassHandle {
 }
 
@@ -25,6 +41,12 @@ export interface Face extends ClassHandle {
 }
 
 export interface Solid extends ClassHandle {
+}
+
+export interface Compound extends ClassHandle {
+}
+
+export interface Shape extends ClassHandle {
 }
 
 export interface gp_Pnt extends ClassHandle {
@@ -611,52 +633,6 @@ export interface TopExp_Explorer extends ClassHandle {
 export interface BRepTools extends ClassHandle {
 }
 
-export interface FloatVector extends ClassHandle {
-  push_back(_0: number): void;
-  resize(_0: number, _1: number): void;
-  size(): number;
-  get(_0: number): number | undefined;
-  set(_0: number, _1: number): boolean;
-}
-
-export interface Uint32Vector extends ClassHandle {
-  push_back(_0: number): void;
-  resize(_0: number, _1: number): void;
-  size(): number;
-  get(_0: number): number | undefined;
-  set(_0: number, _1: number): boolean;
-}
-
-export type MeshResult = {
-  positions: FloatVector,
-  indices: Uint32Vector,
-  normals: FloatVector,
-  uvs: FloatVector
-};
-
-export interface MeshResultVector extends ClassHandle {
-  push_back(_0: MeshResult): void;
-  resize(_0: number, _1: MeshResult): void;
-  size(): number;
-  get(_0: number): MeshResult | undefined;
-  set(_0: number, _1: MeshResult): boolean;
-}
-
-export type EdgeDiscretizationResult = {
-  positions: FloatVector
-};
-
-export interface EdgeDiscretizationResultVector extends ClassHandle {
-  push_back(_0: EdgeDiscretizationResult): void;
-  resize(_0: number, _1: EdgeDiscretizationResult): void;
-  size(): number;
-  get(_0: number): EdgeDiscretizationResult | undefined;
-  set(_0: number, _1: EdgeDiscretizationResult): boolean;
-}
-
-export interface Mesher extends ClassHandle {
-}
-
 export type Vector3 = {
   x: number,
   y: number,
@@ -664,6 +640,12 @@ export type Vector3 = {
 };
 
 interface EmbindModule {
+  FloatVector: {
+    new(): FloatVector;
+  };
+  Uint32Vector: {
+    new(): Uint32Vector;
+  };
   Vertex: {
     toVector3(_0: TopoDS_Vertex): Vector3;
   };
@@ -671,8 +653,10 @@ interface EmbindModule {
     getLength(_0: TopoDS_Edge): number;
     isIntersect(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): boolean;
     trim(_0: TopoDS_Edge, _1: number, _2: number): TopoDS_Edge;
+    discretize(_0: TopoDS_Edge, _1: any, _2: any): any;
     fromCurve(_0: Geom_Curve | null): TopoDS_Edge;
     intersections(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): Array<Vector3>;
+    pointAt(_0: TopoDS_Edge, _1: number): Vector3;
   };
   Wire: {
     makeFace(_0: TopoDS_Wire): TopoDS_Face;
@@ -681,11 +665,24 @@ interface EmbindModule {
   };
   Face: {
     area(_0: TopoDS_Face): number;
+    triangulate(_0: TopoDS_Face, _1: number, _2: number): any;
     fromVertices(_0: Array<Vector3>, _1: Array<Array<Vector3>>): TopoDS_Face;
   };
   Solid: {
-    fromFaces(_0: TopoDS_Face): TopoDS_Solid;
     volume(_0: TopoDS_Solid): number;
+    fromFaces(_0: Array<TopoDS_Face>): TopoDS_Solid;
+  };
+  Compound: {
+    fromShapes(_0: Array<TopoDS_Shape>): TopoDS_Compound;
+  };
+  Shape: {
+    getVertices(_0: TopoDS_Shape): any;
+    getEdges(_0: TopoDS_Shape): any;
+    getFaces(_0: TopoDS_Shape): any;
+    getWires(_0: TopoDS_Shape): any;
+    getSolids(_0: TopoDS_Shape): any;
+    getCompounds(_0: TopoDS_Shape): any;
+    toBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
   };
   gp_Pnt: {
     new(): gp_Pnt;
@@ -943,28 +940,6 @@ interface EmbindModule {
     isValid(_0: TopoDS_Shape): boolean;
     cleanShape(_0: TopoDS_Shape): void;
     writeBRep(_0: TopoDS_Shape, _1: EmbindString): boolean;
-  };
-  FloatVector: {
-    new(): FloatVector;
-  };
-  Uint32Vector: {
-    new(): Uint32Vector;
-  };
-  MeshResultVector: {
-    new(): MeshResultVector;
-  };
-  EdgeDiscretizationResultVector: {
-    new(): EdgeDiscretizationResultVector;
-  };
-  Mesher: {
-    getVertices(_0: TopoDS_Shape): any;
-    getEdges(_0: TopoDS_Shape): any;
-    getFaces(_0: TopoDS_Shape): any;
-    triangulateFace(_0: TopoDS_Face, _1: number, _2: number): any;
-    discretizeEdge(_0: TopoDS_Edge, _1: number, _2: number): any;
-    getWires(_0: TopoDS_Shape): any;
-    shapeToBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
-    triangulatePolygon(_0: any, _1: any, _2: number): any;
   };
 }
 

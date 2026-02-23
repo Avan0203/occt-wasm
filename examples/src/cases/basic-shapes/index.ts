@@ -27,11 +27,11 @@ async function createBox(occtModule: MainModule): Promise<BrepGroup> {
   shape.deleteLater();
   makeBox.deleteLater();
 
-  console.log(occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5));
+  console.log(occtModule.Shape.toBRepResult(shape, 0.1, 0.5));
 
   return createBrepGroup(
     shape,
-    occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5),
+    occtModule.Shape.toBRepResult(shape, 0.1, 0.5),
     new THREE.MeshMatcapMaterial({
       matcap: texture,
       color: colors.box,
@@ -51,7 +51,7 @@ async function createSphere(occtModule: MainModule): Promise<BrepGroup> {
   });
   shape.deleteLater();
   makeSphere.deleteLater();
-  return createBrepGroup(shape,occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape,occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -67,7 +67,7 @@ async function createCylinder(occtModule: MainModule): Promise<BrepGroup> {
 
   shape.deleteLater();
   makeCylinder.deleteLater();
-  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -82,7 +82,7 @@ async function createCone(occtModule: MainModule): Promise<BrepGroup> {
     color: colors.cone,
     matcap: texture,
   });
-  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
 /**
@@ -97,7 +97,7 @@ async function createTorus(occtModule: any): Promise<BrepGroup> {
     color: colors.torus,
     matcap: texture,
   });
-  return createBrepGroup(shape, occtModule.Mesher.shapeToBRepResult(shape, 0.1, 0.5), material);
+  return createBrepGroup(shape, occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
 

@@ -24,7 +24,8 @@ export interface Edge extends BRep {
 export interface Face extends BRep {
     position: Float32Array; // 存放顶点
     index: Uint32Array; // 存放索引
-    uvs: Float32Array; // 存放UV
+    uv: Float32Array; // 存放UV
+    normal: Float32Array; // 存放法线
     shape:  TopoDS_Face;
 }
 

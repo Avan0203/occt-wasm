@@ -42,7 +42,7 @@ async function load(context: CaseContext): Promise<void> {
         app.setPickType(PickType.VERTEX);
 
         const builder = SketchBuilder.getInstance();
-        const { Mesher } = occtModule;
+        const { Shape } = occtModule;
         const material = new MeshStandardMaterial({ color: 0x4a90e2 });
 
         let drawType: 'line' | 'circle' | 'arc' | 'ellipse' | 'bSpline' | 'polyline' = 'line';
@@ -167,7 +167,7 @@ async function load(context: CaseContext): Promise<void> {
             if (shapes.length === 0) return;
 
             for (const shape of shapes) {
-                const brepResult = Mesher.shapeToBRepResult(shape, 0.1, 0.5);
+                const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
                 const group = createBrepGroup(shape, brepResult, material);
                 app.add(group);
             }

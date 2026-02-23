@@ -74,7 +74,7 @@ export function parseBRepResult2Geometry(result: BRepResult): ResultGeometry {
     const geometry = new BrepGeometry(face);
     geometry.setAttribute('position', new THREE.BufferAttribute(face.position, 3));
     geometry.setIndex([...face.index]);
-    geometry.setAttribute('uv', new THREE.BufferAttribute(face.uvs, 2));
+    geometry.setAttribute('uv', new THREE.BufferAttribute(face.uv, 2));
     facesGeo.push(geometry);
     geometry.computeVertexNormals();
   });

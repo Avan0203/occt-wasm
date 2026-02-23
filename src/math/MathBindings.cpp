@@ -20,23 +20,6 @@ using namespace emscripten;
 
 namespace MathBindings {
 
-// Helper function to convert array to gp_XYZ
-gp_XYZ arrayToXYZ(const val& arr) {
-    if (arr.isArray() && arr["length"].as<int>() >= 3) {
-        return gp_XYZ(arr[0].as<double>(), arr[1].as<double>(), arr[2].as<double>());
-    }
-    return gp_XYZ(0, 0, 0);
-}
-
-// Helper function to convert gp_XYZ to array
-val xyzToArray(const gp_XYZ& xyz) {
-    val result = val::array();
-    result.call<void>("push", xyz.X());
-    result.call<void>("push", xyz.Y());
-    result.call<void>("push", xyz.Z());
-    return result;
-}
-
 void registerBindings() {
     // ========== Point3 (gp_Pnt) ==========
     class_<gp_Pnt>("gp_Pnt")
