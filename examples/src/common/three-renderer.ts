@@ -393,7 +393,6 @@ class ThreeRenderer extends EventListener {
     this.camera.lookAt(center);
     this.controls.target.copy(center);
     this.controls.update();
-    super.clear();
   }
 
   /**

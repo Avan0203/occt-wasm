@@ -5,6 +5,8 @@
 #include <TopTools_IndexedMapOfShape.hxx>
 #include <BRep_Tool.hxx>
 #include <TopAbs.hxx>
+#include <TopTools_SequenceOfShape.hxx>
+#include <TopTools_ListOfShape.hxx>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include <vector>
@@ -136,4 +138,22 @@ void registerBindings() {
 }
 
 } // namespace UtilsBindings
+
+TopTools_SequenceOfShape topoShapeArrayToSequenceOfShape(const TopoShapeArray& shapes){
+    std::vector<TopoDS_Shape> shapeSequence = emscripten::vecFromJSArray<TopoDS_Shape>(shapes);
+    TopTools_SequenceOfShape result;
+    for (auto& shape : shapeSequence) {
+        result.Append(shape);
+    }
+    return result;
+}
+
+TopTools_ListOfShape topoShapeArrayToListOfShape(const TopoShapeArray& shapes){
+    std::vector<TopoDS_Shape> shapeList = emscripten::vecFromJSArray<TopoDS_Shape>(shapes);
+    TopTools_ListOfShape result;
+    for (auto& shape : shapeList) {
+        result.Append(shape);
+    }
+    return result;
+}
 

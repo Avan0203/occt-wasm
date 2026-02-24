@@ -1,5 +1,4 @@
 import { Case, CaseContext } from '@/router';
-import { ThreeRenderer } from '@/common/three-renderer';
 import * as THREE from 'three';
 import { createBrepGroup } from '@/common/shape-converter';
 import { App } from '@/common/app';

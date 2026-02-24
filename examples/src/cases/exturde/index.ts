@@ -22,9 +22,8 @@ async function load(context: CaseContext): Promise<void> {
     try {
 
         const {
-            gp_Vec,
+            Modeler,
             Face,
-            BRepPrimAPI_MakePrism,
             Shape,
         } = occtModule
 
@@ -64,21 +63,18 @@ async function load(context: CaseContext): Promise<void> {
                     group.dispose();
                 });
             };
-            const direction = new gp_Vec(dir.x, dir.y, dir.z);
 
-            const rectPrism = new BRepPrimAPI_MakePrism(rectFace, direction).shape();
+            const rectPrism =  Modeler.prism(rectFace, dir);
             const rectResult = Shape.toBRepResult(rectPrism, 0.1, 0.5);
             const rectGroup = createBrepGroup(rectPrism, rectResult, material);
             groups.push(rectGroup);
             app.add(rectGroup);
 
-            const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
+            const trianglePrism = Modeler.prism(triangleFace, dir);
             const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
             const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
             groups.push(triangleGroup);
             app.add(triangleGroup);
-
-            direction.deleteLater();
         }
 
 

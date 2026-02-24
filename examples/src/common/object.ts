@@ -237,6 +237,16 @@ class BrepGPUGroup extends THREE.Group {
 
 }
 
+function getBrepGroupFromBrepObject(obj: BrepObjectAll): BrepGroup | null {
+    let p: THREE.Object3D | null = obj.parent;
+    while (p) {
+        if (p instanceof BrepGroup) return p;
+        p = p.parent;
+    }
+    return null;
+}
+
+export { getBrepGroupFromBrepObject };
 export {
     BrepGroup,
     BrepFace,

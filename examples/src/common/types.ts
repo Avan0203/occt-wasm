@@ -13,6 +13,7 @@ export enum PickType {
 }
 
 export enum RenderMode {
-    IDLE = 'idle',
+    OBJECT = 'object',
     EDIT = 'edit',
+    SKETCH = 'sketch',
 }

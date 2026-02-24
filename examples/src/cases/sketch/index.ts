@@ -48,7 +48,7 @@ async function load(context: CaseContext): Promise<void> {
         let drawType: 'line' | 'circle' | 'arc' | 'ellipse' | 'bSpline' | 'polyline' = 'line';
 
         const params = {
-            mode: RenderMode.IDLE,
+            mode: RenderMode.OBJECT,
             planeNormal: new Vector3(0, 1, 0),
             planeDistance: 0,
             needClose: false,
@@ -212,16 +212,16 @@ async function load(context: CaseContext): Promise<void> {
         planeHelper.visible = false;
 
 
-        gui.add(params, 'mode', [RenderMode.IDLE, RenderMode.EDIT]).onChange((value: RenderMode) => {
+        gui.add(params, 'mode', [RenderMode.OBJECT, RenderMode.SKETCH]).onChange((value: RenderMode) => {
             app.setMode(value);
-            if (value === RenderMode.EDIT) {
+            if (value === RenderMode.SKETCH) {
                 isSelectingPoints = true;
                 sketchToolsFolder.show();
                 sketchToolsFolder.open();
                 planeFolder.show();
                 planeFolder.open();
                 planeHelper.visible = true;
-            } else {
+            } else if (value === RenderMode.OBJECT) {
                 isSelectingPoints = false;
                 sketchToolsFolder.hide();
                 planeFolder.hide();

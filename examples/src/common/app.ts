@@ -15,7 +15,7 @@ let isDragged = false;
 class App extends EventListener {
     private renderer: ThreeRenderer;
     private resizeObserver: ResizeObserver | null = null;
-    private mode = RenderMode.IDLE;
+    private mode = RenderMode.OBJECT;
     private workingPlane = new Plane(new Vector3(0, 1, 0), 0);
 
     constructor(private container: HTMLElement) {
@@ -82,12 +82,12 @@ class App extends EventListener {
         mouse.set(e.clientX, e.clientY);
         mouse.x = mouse.x - renderSize.z;
         mouse.y = mouse.y - renderSize.w;
-        if (this.mode === RenderMode.EDIT) {
+        if (this.mode === RenderMode.SKETCH) {
             const point = this.renderer.getPointOnPlane(mouse, this.workingPlane);
             if (point) {
                 this.dispatchEvent('editPointerMove', new CustomEvent('editPointerMove', { detail: { point } }));
             }
-        } else if (this.mode === RenderMode.IDLE) {
+        } else if (this.mode === RenderMode.OBJECT || this.mode === RenderMode.EDIT) {
             this.renderer.dispatchEvent('pointermove', new CustomEvent('pointermove', {
                 detail: {
                     mouse,
@@ -104,11 +104,11 @@ class App extends EventListener {
         mouse.y = mouse.y - renderSize.w;
         const releasedNearStart = startPos.distanceTo({ x: e.clientX, y: e.clientY }) < 1;
         if (releasedNearStart && !isDragged) {
-            if (this.mode === RenderMode.IDLE) {
+            if (this.mode === RenderMode.OBJECT || this.mode === RenderMode.EDIT) {
                 this.renderer.dispatchEvent('click', new CustomEvent('click', {
                     detail: { mouse, event: e }
                 }));
-            } else if (this.mode === RenderMode.EDIT) {
+            } else if (this.mode === RenderMode.SKETCH) {
                 const point = this.renderer.getPointOnPlane(mouse, this.workingPlane);
                 if (point) {
                     this.dispatchEvent('editClick', new CustomEvent('editClick', { detail: { point } }));

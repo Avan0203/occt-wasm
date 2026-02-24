@@ -24,17 +24,13 @@ async function load(context: CaseContext): Promise<void> {
     try {
 
         const {
-            gp_Pnt,
-            BRepBuilderAPI_MakeEdge,
-            BRepBuilderAPI_MakeWire,
-            BRepBuilderAPI_MakeFace,
+            Face,
             BRepPrimAPI_MakeBox,
-            BRepPrimAPI_MakePrism,
+            Modeler,
             Shape,
             gp_Trsf,
             gp_Vec,
             TopLoc_Location,
-            Modeler,
         } = occtModule
 
         container.innerHTML = '';
@@ -70,26 +66,12 @@ async function load(context: CaseContext): Promise<void> {
         trsf.deleteLater();
         translate.deleteLater();
         location.deleteLater();
+        
+        const triangleFace = Face.fromVertices(
+            [{ x: 5, y: -2, z: 0 }, { x: 8, y: -2, z: 0 }, { x: 6.5, y: -2, z: 2 }],
+            []
+        );
 
-
-        const a1 = new gp_Pnt(5, -2, 0);
-        const b1 = new gp_Pnt(8, -2, 0);
-        const c1 = new gp_Pnt(6.5, -2, 2);
-
-        const ab1 = new BRepBuilderAPI_MakeEdge(a1, b1).edge();
-        const bc1 = new BRepBuilderAPI_MakeEdge(b1, c1).edge();
-        const ca1 = new BRepBuilderAPI_MakeEdge(c1, a1).edge();
-        ;
-        const triangleWire = new BRepBuilderAPI_MakeWire(ab1, bc1, ca1).wire();
-        const triangleFace = BRepBuilderAPI_MakeFace.createFromWire(triangleWire, true).face();
-
-        a1.deleteLater();
-        b1.deleteLater();
-        c1.deleteLater();
-        ab1.deleteLater();
-        bc1.deleteLater();
-        ca1.deleteLater();
-        triangleWire.deleteLater();
         globalGC.push(triangleFace);
 
         const dir = new THREE.Vector3(0, 6, 0);
@@ -100,7 +82,6 @@ async function load(context: CaseContext): Promise<void> {
         });
 
 
-        const direction = new gp_Vec(dir.x, dir.y, dir.z);
 
         // 场景里所有可被倒角替换的 shape 组，用数组统一管理，替换时只改对应下标
         const shapeGroups: BrepGroup[] = [];
@@ -110,13 +91,12 @@ async function load(context: CaseContext): Promise<void> {
         shapeGroups.push(rectGroup);
         app.add(rectGroup);
 
-        const trianglePrism = new BRepPrimAPI_MakePrism(triangleFace, direction).shape();
+        const trianglePrism = Modeler.prism(triangleFace, dir);
         const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
         const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
         shapeGroups.push(triangleGroup);
         app.add(triangleGroup);
 
-        direction.deleteLater();
 
         const params: {
             radius: number;
