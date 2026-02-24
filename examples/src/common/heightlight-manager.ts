@@ -1,9 +1,11 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
+import type { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
 import { BrepObjectType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepObjectAll } from "./object";
+import { BrepObjectAll, BrepGroup } from "./object";
+import { App } from "./app";
 
 const faceColor = '#e6a23c';
 const lineColor = '#ffce00';
@@ -37,46 +39,59 @@ class HeightlightManager {
     private lastHighlightedObjects = new Set<BrepObjectAll>();
     private currentHighlightedObjects = new Set<BrepObjectAll>();
     private hasBeenHighlightedObjects = new Set<BrepObjectAll>();
-    // 存储原来的材质
     private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
-    constructor(private renderer: ThreeRenderer) { }
+    private currentHighlightedGroup: BrepGroup | null = null;
+    private renderedHighlightedGroup = new THREE.Group();
 
-    addHeightlight(object: BrepObjectAll): void {
+    constructor(private renderer: ThreeRenderer, private app: App) { }
+
+    addHeightlight(item: BrepObjectAll | BrepGroup): void {
+        if (item instanceof BrepGroup) {
+            if (this.currentHighlightedGroup === item) return;
+            this.currentHighlightedGroup = item;
+            this.renderedHighlightedGroup.clear();
+            this.renderedHighlightedGroup.add(...item.faces);
+            this.updateOutlineObjects();
+            return;
+        }
         const selectedSet = new Set(this.renderer.getSelectionObjects());
-        if (selectedSet.has(object)) {
-            return;
-        }
-        if (this.currentHighlightedObjects.size === 1 && this.currentHighlightedObjects.has(object)) {
-            return;
-        }
-        if (this.currentHighlightedObjects.size > 0) {
-            this.clearHeightlight();
-        }
-        this.materialMap.set(object, object.material);
-        this.currentHighlightedObjects.add(object);
-
+        if (selectedSet.has(item)) return;
+        if (this.currentHighlightedObjects.size === 1 && this.currentHighlightedObjects.has(item)) return;
+        if (this.currentHighlightedObjects.size > 0) this.clearHeightlight();
+        this.materialMap.set(item, item.material);
+        this.currentHighlightedObjects.add(item);
         this.updateHeightlight();
     }
 
-    /** 从高亮中移除单个对象并恢复原材质，供 remove/clear 场景时调用，避免 dispose 时误释放共享材质 */
-    public removeObject(object: BrepObjectAll): void {
-        const original = this.materialMap.get(object);
-        if (original !== undefined) {
-            object.material = original;
-            object.renderOrder = 0;
+    remove(item: BrepObjectAll | BrepGroup): void {
+        if (item instanceof BrepGroup) {
+            if (this.currentHighlightedGroup === item) {
+                this.currentHighlightedGroup = null;
+                this.renderedHighlightedGroup.clear();
+                this.updateOutlineObjects();
+            }
+            return;
         }
-        this.currentHighlightedObjects.delete(object);
-        this.lastHighlightedObjects.delete(object);
-        this.hasBeenHighlightedObjects.delete(object);
-        this.materialMap.delete(object);
+        const original = this.materialMap.get(item);
+        if (original !== undefined) {
+            item.material = original;
+            item.renderOrder = 0;
+        }
+        this.currentHighlightedObjects.delete(item);
+        this.lastHighlightedObjects.delete(item);
+        this.hasBeenHighlightedObjects.delete(item);
+        this.materialMap.delete(item);
+    }
+
+    /** 从高亮中移除单个对象并恢复原材质，供 remove/clear 场景时调用 */
+    public removeObject(object: BrepObjectAll): void {
+        this.remove(object);
     }
 
     private updateHeightlight(): void {
         this.currentHighlightedObjects.forEach(object => {
-            if (this.hasBeenHighlightedObjects.has(object)) {
-                return;
-            }
+            if (this.hasBeenHighlightedObjects.has(object)) return;
             if (object.type === BrepObjectType.FACE) {
                 object.material = this.heightLightFaceMaterial;
             } else if (object.type === BrepObjectType.POINT) {
@@ -87,15 +102,13 @@ class HeightlightManager {
             object.renderOrder = 2;
             this.hasBeenHighlightedObjects.add(object);
             this.lastHighlightedObjects.add(object);
-        })
+        });
     }
 
     private updateUnHeightlight(): void {
         const selectedSet = new Set(this.renderer.getSelectionObjects());
         this.lastHighlightedObjects.forEach(object => {
-            if (selectedSet.has(object)) {
-                return;
-            }
+            if (selectedSet.has(object)) return;
             const original = this.materialMap.get(object);
             if (original !== undefined) {
                 object.material = original;
@@ -110,6 +123,14 @@ class HeightlightManager {
         this.currentHighlightedObjects.clear();
         this.hasBeenHighlightedObjects.clear();
         this.materialMap.clear();
+        this.currentHighlightedGroup = null;
+        this.renderedHighlightedGroup.clear();
+        this.updateOutlineObjects();
+    }
+
+    /** 当选择变化后由 ThreeRenderer 调用，将选择与 hover 合并更新 outline */
+    private updateOutlineObjects(): void {
+        this.renderer.outlinePass.selectedObjects = this.renderedHighlightedGroup.children;
     }
 
     getHeightlightObjects(): BrepObjectAll[] {

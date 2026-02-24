@@ -18,9 +18,9 @@ class App extends EventListener {
     private mode = RenderMode.OBJECT;
     private workingPlane = new Plane(new Vector3(0, 1, 0), 0);
 
-    constructor(private container: HTMLElement) {
+    constructor(public container: HTMLElement) {
         super();
-        this.renderer = new ThreeRenderer(this.container);
+        this.renderer = new ThreeRenderer(this);
         this.resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;

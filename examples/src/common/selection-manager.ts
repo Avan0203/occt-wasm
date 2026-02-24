@@ -1,9 +1,9 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
-import { BrepObjectType } from "./types";
+import { BrepObjectType, RenderMode } from "./types";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepObjectAll } from "./object";
+import { BrepObjectAll, BrepGroup } from "./object";
 
 const faceColor = '#1890FF';
 const lineColor = '#409EFF';
@@ -21,37 +21,65 @@ class SelectionManager {
     // 存储原来的材质
     private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
+    private selectedGroups = new Set<BrepGroup>();
+
     constructor(private renderer: ThreeRenderer) { }
 
-    addSelection(object: BrepObjectAll): void {
-        if (this.currentSelectedObjects.has(object)) {
-            this.removeObject(object);
+    setMode(_mode: RenderMode): void {
+        this.clearSelection();
+    }
+
+    addSelection(item: BrepObjectAll | BrepGroup): void {
+        if (item instanceof BrepGroup) {
+            this.selectedGroups.add(item);
+            this.renderer.heightlightManager.updateOutlineObjects();
         } else {
-            const original = this.renderer.heightlightManager.getStoredOriginalMaterial(object) ?? object.material;
-            this.materialMap.set(object, original);
-            this.currentSelectedObjects.add(object);
+            if (this.currentSelectedObjects.has(item)) {
+                this.removeSelection(item);
+                return;
+            }
+            const original = this.renderer.heightlightManager.getStoredOriginalMaterial(item) ?? item.material;
+            this.materialMap.set(item, original);
+            this.currentSelectedObjects.add(item);
             this.updateSelection();
         }
     }
 
-    /** 从选择中移除单个对象并恢复原材质，供 remove/clear 场景时调用，避免 dispose 时误释放共享材质 */
-    public removeObject(object: BrepObjectAll): void {
-        const original = this.materialMap.get(object);
-        if (original !== undefined) {
-            object.material = original;
-            object.renderOrder = 0;
+    removeSelection(item: BrepObjectAll | BrepGroup): void {
+        if (item instanceof BrepGroup) {
+            this.selectedGroups.delete(item);
+            this.renderer.heightlightManager.updateOutlineObjects();
+        } else {
+            const original = this.materialMap.get(item);
+            if (original !== undefined) {
+                item.material = original;
+                item.renderOrder = 0;
+            }
+            this.currentSelectedObjects.delete(item);
+            this.lastSelectedObjects.delete(item);
+            this.hasBeenSelectedObjects.delete(item);
+            this.materialMap.delete(item);
         }
-        this.currentSelectedObjects.delete(object);
-        this.lastSelectedObjects.delete(object);
-        this.hasBeenSelectedObjects.delete(object);
-        this.materialMap.delete(object);
+    }
+
+    hasSelection(item: BrepObjectAll | BrepGroup): boolean {
+        if (item instanceof BrepGroup) return this.selectedGroups.has(item);
+        return this.currentSelectedObjects.has(item);
+    }
+
+    /** 从选择中移除单个对象并恢复原材质，供 remove/clear 场景时调用 */
+    public removeObject(object: BrepObjectAll): void {
+        this.removeSelection(object);
+    }
+
+    /** 从选择中移除组，供 remove 场景时调用 */
+    public removeGroup(group: BrepGroup): void {
+        this.removeSelection(group);
     }
 
     private updateSelection(): void {
         this.currentSelectedObjects.forEach(object => {
-            if (this.hasBeenSelectedObjects.has(object)) {
-                return;
-            }
+            if (this.hasBeenSelectedObjects.has(object)) return;
             if (object.type === BrepObjectType.FACE) {
                 object.material = this.selectionFaceMaterial;
             } else if (object.type === BrepObjectType.POINT) {
@@ -62,7 +90,7 @@ class SelectionManager {
             object.renderOrder = 1;
             this.hasBeenSelectedObjects.add(object);
             this.lastSelectedObjects.add(object);
-        })
+        });
     }
 
     private updateUnSelection(): void {
@@ -81,10 +109,23 @@ class SelectionManager {
         this.currentSelectedObjects.clear();
         this.hasBeenSelectedObjects.clear();
         this.materialMap.clear();
+        this.selectedGroups.clear();
+        this.renderer.heightlightManager.updateOutlineObjects();
     }
 
     getSelectionObjects(): BrepObjectAll[] {
         return Array.from(this.currentSelectedObjects);
+    }
+
+    getSelectionGroups(): BrepGroup[] {
+        return Array.from(this.selectedGroups);
+    }
+
+    dispose(): void {
+        this.clearSelection();
+        this.selectionFaceMaterial.dispose();
+        this.selectionPointMaterial.dispose();
+        this.selectionEdgeMaterial.dispose();
     }
 
     private createSelectionMaterial(type: BrepObjectType) {
@@ -115,14 +156,6 @@ class SelectionManager {
         material.depthTest = false;
         return material;
     }
-
-    dispose(): void {
-        this.clearSelection();
-        this.selectionFaceMaterial.dispose();
-        this.selectionPointMaterial.dispose();
-        this.selectionEdgeMaterial.dispose();
-    }
-
 }
 
 export { SelectionManager };
