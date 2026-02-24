@@ -1,14 +1,19 @@
 import * as THREE from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
-import { BrepObjectType, PickType } from './types';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { BrepObjectType, PickType, RenderMode } from './types';
 import { createGPUBrepGroup, getObjectById } from './shape-converter';
 import { color2id, createSpiralOrder } from './utils';
 import { HeightlightManager } from './heightlight-manager';
 import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
 import { Controls } from './controls';
-import { BrepGPUGroup, BrepGroup, BrepObjectAll } from './object';
+import { BrepGPUGroup, BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
+import { App } from './app';
 
 let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
@@ -32,15 +37,18 @@ class ThreeRenderer extends EventListener {
 
   private pickType: PickType = PickType.ALL;
   private isCameraDragging = false;
+  private mode = RenderMode.OBJECT;
   // width,height,left,top
   private renderSize = new THREE.Vector4(0, 0, 0, 0);
 
-  public heightlightManager = new HeightlightManager(this);
-  public selectionManager = new SelectionManager(this);
+  public heightlightManager: HeightlightManager;
+  public selectionManager: SelectionManager;
+  private composer!: EffectComposer;
+  outlinePass: OutlinePass;
 
-  constructor(container: HTMLElement) {
+  constructor(private app: App) {
     super();
-    this.container = container;
+    const container = this.container = app.container;
 
     // 创建场景
     this.scene = new THREE.Scene();
@@ -64,7 +72,7 @@ class ThreeRenderer extends EventListener {
     this.renderer.autoClear = false;
     this.renderer.sortObjects = false;
 
-  
+
     this.controls = new Controls(this.camera, this.renderer.domElement);
     this.controls.zoomSpeed = 2;
     this.controls.rotateSpeed = 1.5;
@@ -86,11 +94,22 @@ class ThreeRenderer extends EventListener {
 
     this.setPickSize(4);
 
+    const rect = container.getBoundingClientRect();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.outlinePass = new OutlinePass(new THREE.Vector2(w, h), this.scene, this.camera);
+    this.composer.addPass(this.outlinePass);
+    this.composer.addPass(new OutputPass());
+
+    this.heightlightManager = new HeightlightManager(this, this.app);
+    this.selectionManager = new SelectionManager(this, this.app);
+
+    this.handleResize(w, h, rect.left, rect.top);
+
     // 开始渲染循环
     this.animate();
-
-    const rect = container.getBoundingClientRect();
-    this.handleResize(container.clientWidth, container.clientHeight, rect.left, rect.top);
 
     this.pickType = PickType.ALL;
 
@@ -126,7 +145,7 @@ class ThreeRenderer extends EventListener {
    * @param target 可选，用于接收结果的 Vector3，避免分配
    * @returns 交点，若无交点（射线与平面平行）返回 null
    */
-  public getPointOnPlane( mouse: THREE.Vector2Like,
+  public getPointOnPlane(mouse: THREE.Vector2Like,
     plane: THREE.Plane,
     target?: THREE.Vector3
   ): THREE.Vector3 | null {
@@ -141,15 +160,33 @@ class ThreeRenderer extends EventListener {
 
   private onClick = (e: CustomEvent) => {
     const { mouse, event } = e.detail;
-    const result = this.pick(mouse);
-    if (result) {
-      if (!event.shiftKey) {
+    if (this.mode === RenderMode.OBJECT) {
+      const subResult = this.pick(mouse);
+      const group = subResult ? getBrepGroupFromBrepObject(subResult) : null;
+      if (group) {
+        if (!event.shiftKey) {
+          this.selectionManager.clearSelection();
+        }
+        if (this.selectionManager.hasSelection(group)) {
+          this.selectionManager.removeSelection(group);
+        } else {
+          this.selectionManager.addSelection(group);
+        }
+        this.dispatchEvent('selection', new CustomEvent('selection', { detail: { group } }));
+      } else {
         this.selectionManager.clearSelection();
       }
-      this.selectionManager.addSelection(result);
-      this.dispatchEvent('selection', new CustomEvent('selection', { detail: result }));
-    } else {
-      this.selectionManager.clearSelection();
+    } else if (this.mode === RenderMode.EDIT) {
+      const result = this.pick(mouse);
+      if (result) {
+        if (!event.shiftKey) {
+          this.selectionManager.clearSelection();
+        }
+        this.selectionManager.addSelection(result);
+        this.dispatchEvent('selection', new CustomEvent('selection', { detail: result }));
+      } else {
+        this.selectionManager.clearSelection();
+      }
     }
   }
 
@@ -159,12 +196,23 @@ class ThreeRenderer extends EventListener {
       return;
     }
     const { mouse } = e.detail;
-    const result = this.pick(mouse);
-    if (result) {
-      this.heightlightManager.addHeightlight(result);
-      this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: result }));
-    } else {
-      this.heightlightManager.clearHeightlight();
+    if (this.mode === RenderMode.OBJECT) {
+      const subResult = this.pick(mouse);
+      const group = subResult ? getBrepGroupFromBrepObject(subResult) : null;
+      if (group) {
+        this.heightlightManager.addHeightlight(group);
+        this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: { group } }));
+      } else {
+        this.heightlightManager.clearHeightlight();
+      }
+    } else if (this.mode === RenderMode.EDIT) {
+      const result = this.pick(mouse);
+      if (result) {
+        this.heightlightManager.addHeightlight(result);
+        this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: result }));
+      } else {
+        this.heightlightManager.clearHeightlight();
+      }
     }
   }
 
@@ -269,6 +317,9 @@ class ThreeRenderer extends EventListener {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
     this.renderSize.set(width, height, left, top);
+    this.composer.setSize(width, height);
+    this.composer.setPixelRatio(this.renderer.getPixelRatio());
+    this.heightlightManager.resizeOutline(width, height);
 
     this.mainGroup.traverse((object) => {
       if (object instanceof Line2 || object instanceof LineSegments2) {
@@ -288,8 +339,7 @@ class ThreeRenderer extends EventListener {
     this.renderer.clear();
     this.animationId = requestAnimationFrame(() => this.animate());
     this.controls.update();
-    this.renderer.render(this.scene, this.camera);
-    // this.renderer.render(this.GPUPickScene, this.camera);
+    this.composer.render();
   }
 
   /**
@@ -332,6 +382,8 @@ class ThreeRenderer extends EventListener {
       this.heightlightManager.removeObject(obj);
       this.selectionManager.removeObject(obj);
     });
+    this.selectionManager.removeSelection(group);
+    this.heightlightManager.remove(group);
   }
 
   /**
@@ -407,6 +459,7 @@ class ThreeRenderer extends EventListener {
     this.clear();
     this.heightlightManager.dispose();
     this.selectionManager.dispose();
+    this.composer.dispose();
     this.pickTarget.dispose();
     this.renderer.dispose();
     this.controls.dispose();
