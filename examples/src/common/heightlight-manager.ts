@@ -1,10 +1,9 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
-import type { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
 import { BrepObjectType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepObjectAll, BrepGroup } from "./object";
+import { BrepObjectAll } from "./object";
 import { App } from "./app";
 
 const faceColor = '#e6a23c';
@@ -41,20 +40,9 @@ class HeightlightManager {
     private hasBeenHighlightedObjects = new Set<BrepObjectAll>();
     private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
-    private currentHighlightedGroup: BrepGroup | null = null;
-    private renderedHighlightedGroup = new THREE.Group();
-
     constructor(private renderer: ThreeRenderer, private app: App) { }
 
-    addHeightlight(item: BrepObjectAll | BrepGroup): void {
-        if (item instanceof BrepGroup) {
-            if (this.currentHighlightedGroup === item) return;
-            this.currentHighlightedGroup = item;
-            this.renderedHighlightedGroup.clear();
-            this.renderedHighlightedGroup.add(...item.faces);
-            this.updateOutlineObjects();
-            return;
-        }
+    addHeightlight(item: BrepObjectAll): void {
         const selectedSet = new Set(this.renderer.getSelectionObjects());
         if (selectedSet.has(item)) return;
         if (this.currentHighlightedObjects.size === 1 && this.currentHighlightedObjects.has(item)) return;
@@ -64,15 +52,7 @@ class HeightlightManager {
         this.updateHeightlight();
     }
 
-    remove(item: BrepObjectAll | BrepGroup): void {
-        if (item instanceof BrepGroup) {
-            if (this.currentHighlightedGroup === item) {
-                this.currentHighlightedGroup = null;
-                this.renderedHighlightedGroup.clear();
-                this.updateOutlineObjects();
-            }
-            return;
-        }
+    remove(item: BrepObjectAll): void {
         const original = this.materialMap.get(item);
         if (original !== undefined) {
             item.material = original;
@@ -123,14 +103,6 @@ class HeightlightManager {
         this.currentHighlightedObjects.clear();
         this.hasBeenHighlightedObjects.clear();
         this.materialMap.clear();
-        this.currentHighlightedGroup = null;
-        this.renderedHighlightedGroup.clear();
-        this.updateOutlineObjects();
-    }
-
-    /** 当选择变化后由 ThreeRenderer 调用，将选择与 hover 合并更新 outline */
-    private updateOutlineObjects(): void {
-        this.renderer.outlinePass.selectedObjects = this.renderedHighlightedGroup.children;
     }
 
     getHeightlightObjects(): BrepObjectAll[] {

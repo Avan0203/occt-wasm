@@ -15,7 +15,7 @@ let isDragged = false;
 class App extends EventListener {
     private renderer: ThreeRenderer;
     private resizeObserver: ResizeObserver | null = null;
-    private mode = RenderMode.OBJECT;
+    private mode: RenderMode = null as unknown as RenderMode;
     private workingPlane = new Plane(new Vector3(0, 1, 0), 0);
 
     constructor(public container: HTMLElement) {
@@ -35,7 +35,7 @@ class App extends EventListener {
         this.container.addEventListener('pointerdown', this.onPointerDown);
         this.container.addEventListener('pointermove', this.onPointerMove);
         this.container.addEventListener('pointerup', this.onPointerUp);
-        this.container.addEventListener('keyup', this.onKeyUp);
+        window.addEventListener('keyup', this.onKeyUp);
         // 创建控制器（Blender 操作习惯：中键旋转，滚轮缩放，Shift+中键平移）
         this.renderer.controls.getMouseAction = (event: MouseEvent) => {
             const { button, shiftKey } = event;
@@ -50,6 +50,8 @@ class App extends EventListener {
 
         this.renderer.addEventListener('selection', this.onSelection);
         this.renderer.addEventListener('heightlight', this.onHeightlight);
+
+        this.setMode(RenderMode.OBJECT);
     }
 
     private onSelection = (e: CustomEvent): void => {
@@ -87,7 +89,7 @@ class App extends EventListener {
             if (point) {
                 this.dispatchEvent('editPointerMove', new CustomEvent('editPointerMove', { detail: { point } }));
             }
-        } else if (this.mode === RenderMode.OBJECT || this.mode === RenderMode.EDIT) {
+        } else if (this.mode === RenderMode.EDIT) {
             this.renderer.dispatchEvent('pointermove', new CustomEvent('pointermove', {
                 detail: {
                     mouse,
@@ -127,6 +129,14 @@ class App extends EventListener {
     }
 
     private onKeyUp = (e: KeyboardEvent) => {
+        const key = e.key.toUpperCase();
+        if(key === 'M'){
+            this.setMode(RenderMode.OBJECT)
+        }else if(key === 'E'){
+            this.setMode(RenderMode.EDIT)
+        }else if(key === 'S'){
+            this.setMode(RenderMode.SKETCH)
+        }
         this.dispatchEvent('keyup', new CustomEvent('keyup', { detail: e }));
     }
 
@@ -151,7 +161,12 @@ class App extends EventListener {
     }
 
     setMode(mode: RenderMode): void {
+        if(this.mode === mode) return;
+        const oldMode = this.mode;
         this.mode = mode;
+        this.clearSelection();
+        document.getElementById('current-mode')!.textContent = mode;
+        this.dispatchEvent('modeChange', new CustomEvent('modeChange', { detail: { oldMode, newMode: mode } }));
     }
 
     setWorkingPlane(normal: Vector3, distance: number): void {
@@ -187,6 +202,7 @@ class App extends EventListener {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
         }
+        window.removeEventListener('keyup', this.onKeyUp);
         super.clear();
     }
 }

@@ -106,6 +106,11 @@ class Router {
     this.currentContext = context;
     await caseItem.load(context);
 
+    // 如果gui为空，则不显示
+    if (this.gui.root.children.length === 0) {
+      this.gui.hide();
+    }
+
     // 更新案例列表的选中状态
     this.updateCaseListActiveState(caseId);
   }
