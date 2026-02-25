@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -21,12 +22,15 @@ const pickOrder: number[] = [];
 
 const raycaster = new THREE.Raycaster();
 
+const transformGroup = new THREE.Group();
+
 
 class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   public controls: Controls;
+  private transformControls: TransformControls;
   private container: HTMLElement;
   private animationId: number | null = null;
   private GPUPickScene: THREE.Scene;
@@ -87,6 +91,10 @@ class ThreeRenderer extends EventListener {
     this.controls.addEventListener('end', () => {
       this.isCameraDragging = false;
     });
+
+    this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+
+    this.addHelper(this.transformControls.getHelper());
 
     this.GPUPickScene = new THREE.Scene();
 
@@ -183,6 +191,7 @@ class ThreeRenderer extends EventListener {
         } else {
           this.selectionManager.addSelection(group);
         }
+        // this.transformControls.attach(transformGroup);
         this.dispatchEvent('selection', new CustomEvent('selection', { detail: { group } }));
       } else {
         this.selectionManager.clearSelection();
