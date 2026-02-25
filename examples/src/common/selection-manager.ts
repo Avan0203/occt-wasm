@@ -1,9 +1,10 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
-import { BrepObjectType, RenderMode } from "./types";
+import { BrepObjectType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepObjectAll, BrepGroup } from "./object";
+import { BrepObjectAll, BrepGroup, BrepFace } from "./object";
+import { App } from "./app";
 
 const faceColor = '#1890FF';
 const lineColor = '#409EFF';
@@ -23,17 +24,34 @@ class SelectionManager {
 
     private selectedGroups = new Set<BrepGroup>();
 
-    constructor(private renderer: ThreeRenderer) { }
+    private currentSelectedGroups = new Set<BrepGroup>();
+    private renderedSelectedGroup = new Set<BrepFace>();
 
-    setMode(_mode: RenderMode): void {
-        this.clearSelection();
+    constructor(private renderer: ThreeRenderer, private app: App) {
+        this.renderer.outlinePass.edgeThickness = 1;
+        this.renderer.outlinePass.edgeStrength = 10;
+        this.renderer.outlinePass.visibleEdgeColor.set(faceColor);
+        this.renderer.outlinePass.hiddenEdgeColor.set(pointColor);
+        // 使用 Alpha 混合替代加法混合，使描边颜色与配置一致（加法在亮背景上会偏浅）
+        this.renderer.outlinePass.overlayMaterial.blending = THREE.CustomBlending;
+        this.renderer.outlinePass.overlayMaterial.blendSrc = THREE.SrcAlphaFactor;
+        this.renderer.outlinePass.overlayMaterial.blendDst = THREE.OneMinusSrcAlphaFactor;
     }
 
     addSelection(item: BrepObjectAll | BrepGroup): void {
+        // OBJECT MODE
         if (item instanceof BrepGroup) {
-            this.selectedGroups.add(item);
-            this.renderer.heightlightManager.updateOutlineObjects();
+            // 如果已经选择，则移除, 实现反选功能
+            if (this.currentSelectedGroups.has(item)) {
+                this.removeSelection(item);
+                return;
+            };
+            this.currentSelectedGroups.add(item);
+            item.faces.forEach(face => this.renderedSelectedGroup.add(face));
+            this.updateOutlineObjects();
         } else {
+            // 
+            // 如果已经选择，则移除, 实现反选功能
             if (this.currentSelectedObjects.has(item)) {
                 this.removeSelection(item);
                 return;
@@ -47,8 +65,9 @@ class SelectionManager {
 
     removeSelection(item: BrepObjectAll | BrepGroup): void {
         if (item instanceof BrepGroup) {
-            this.selectedGroups.delete(item);
-            this.renderer.heightlightManager.updateOutlineObjects();
+            this.currentSelectedGroups.delete(item);
+            item.faces.forEach(face => this.renderedSelectedGroup.delete(face));
+            this.updateOutlineObjects();
         } else {
             const original = this.materialMap.get(item);
             if (original !== undefined) {
@@ -72,9 +91,10 @@ class SelectionManager {
         this.removeSelection(object);
     }
 
-    /** 从选择中移除组，供 remove 场景时调用 */
-    public removeGroup(group: BrepGroup): void {
-        this.removeSelection(group);
+
+    /** 当选择变化后由 ThreeRenderer 调用，将选择与 hover 合并更新 outline */
+    private updateOutlineObjects(): void {
+        this.renderer.outlinePass.selectedObjects = Array.from(this.renderedSelectedGroup);
     }
 
     private updateSelection(): void {
@@ -110,7 +130,9 @@ class SelectionManager {
         this.hasBeenSelectedObjects.clear();
         this.materialMap.clear();
         this.selectedGroups.clear();
-        this.renderer.heightlightManager.updateOutlineObjects();
+        this.currentSelectedGroups.clear();
+        this.renderedSelectedGroup.clear();
+        this.updateOutlineObjects();
     }
 
     getSelectionObjects(): BrepObjectAll[] {

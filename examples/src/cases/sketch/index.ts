@@ -39,7 +39,26 @@ async function load(context: CaseContext): Promise<void> {
         }
         container.innerHTML = '';
         app = new App(container)!;
-        app.setPickType(PickType.VERTEX);
+
+        app.addEventListener('modeChange', (event) => {
+            const mode = event.detail.newMode as RenderMode;
+            app.setPickType(mode === RenderMode.SKETCH ? PickType.VERTEX : PickType.ALL);
+
+            if (mode === RenderMode.SKETCH) {
+                isSelectingPoints = true;
+                sketchToolsFolder.show();
+                sketchToolsFolder.open();
+                planeFolder.show();
+                planeFolder.open();
+                planeHelper.visible = true;
+            } else {
+                isSelectingPoints = false;
+                sketchToolsFolder.hide();
+                planeFolder.hide();
+                planeHelper.visible = false;
+            }
+            selectedPoints.length = 0;
+        });
 
         const builder = SketchBuilder.getInstance();
         const { Shape } = occtModule;
@@ -195,13 +214,6 @@ async function load(context: CaseContext): Promise<void> {
         window.addEventListener('keyup', onKeyUp);
         keyUpCleanup = () => window.removeEventListener('keyup', onKeyUp);
 
-
-        // app.addEventListener('editPointerMove', (e: CustomEvent) => {
-        //     const { point } = e.detail;
-
-        // });
-
-        const plane = app.getWorkingPlane();
         const fakePlane = new Plane();
         fakePlane.set(params.planeNormal, params.planeDistance)
 
@@ -212,23 +224,6 @@ async function load(context: CaseContext): Promise<void> {
         planeHelper.visible = false;
 
 
-        gui.add(params, 'mode', [RenderMode.OBJECT, RenderMode.SKETCH]).onChange((value: RenderMode) => {
-            app.setMode(value);
-            if (value === RenderMode.SKETCH) {
-                isSelectingPoints = true;
-                sketchToolsFolder.show();
-                sketchToolsFolder.open();
-                planeFolder.show();
-                planeFolder.open();
-                planeHelper.visible = true;
-            } else if (value === RenderMode.OBJECT) {
-                isSelectingPoints = false;
-                sketchToolsFolder.hide();
-                planeFolder.hide();
-                planeHelper.visible = false;
-            }
-            selectedPoints.length = 0;
-        });
 
         const planeFolder = gui.addFolder('Edit Working Plane');
         const nx = planeFolder.add(params.planeNormal, 'x', -1, 1, 0.01);

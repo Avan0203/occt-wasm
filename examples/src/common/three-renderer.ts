@@ -4,6 +4,7 @@ import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
+import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { BrepObjectType, PickType, RenderMode } from './types';
 import { createGPUBrepGroup, getObjectById } from './shape-converter';
@@ -37,7 +38,6 @@ class ThreeRenderer extends EventListener {
 
   private pickType: PickType = PickType.ALL;
   private isCameraDragging = false;
-  private mode = RenderMode.OBJECT;
   // width,height,left,top
   private renderSize = new THREE.Vector4(0, 0, 0, 0);
 
@@ -45,6 +45,11 @@ class ThreeRenderer extends EventListener {
   public selectionManager: SelectionManager;
   private composer!: EffectComposer;
   outlinePass: OutlinePass;
+  private fxaaPass: FXAAPass;
+
+  private  get mode(): RenderMode {
+    return this.app.getMode();
+  }
 
   constructor(private app: App) {
     super();
@@ -101,6 +106,8 @@ class ThreeRenderer extends EventListener {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.outlinePass = new OutlinePass(new THREE.Vector2(w, h), this.scene, this.camera);
     this.composer.addPass(this.outlinePass);
+    this.fxaaPass = new FXAAPass();
+    this.composer.addPass(this.fxaaPass);
     this.composer.addPass(new OutputPass());
 
     this.heightlightManager = new HeightlightManager(this, this.app);
@@ -160,9 +167,9 @@ class ThreeRenderer extends EventListener {
 
   private onClick = (e: CustomEvent) => {
     const { mouse, event } = e.detail;
+    const result = this.pick(mouse, this.pickType);
     if (this.mode === RenderMode.OBJECT) {
-      const subResult = this.pick(mouse);
-      const group = subResult ? getBrepGroupFromBrepObject(subResult) : null;
+      const group = result ? getBrepGroupFromBrepObject(result) : null;
       if (group) {
         if (!event.shiftKey) {
           this.selectionManager.clearSelection();
@@ -177,7 +184,6 @@ class ThreeRenderer extends EventListener {
         this.selectionManager.clearSelection();
       }
     } else if (this.mode === RenderMode.EDIT) {
-      const result = this.pick(mouse);
       if (result) {
         if (!event.shiftKey) {
           this.selectionManager.clearSelection();
@@ -191,22 +197,14 @@ class ThreeRenderer extends EventListener {
   }
 
   private onPointerMove = (e: CustomEvent) => {
+    console.log('onPointerMove', this.mode, this.isCameraDragging);
     if (this.isCameraDragging) {
       this.heightlightManager.clearHeightlight();
       return;
     }
     const { mouse } = e.detail;
-    if (this.mode === RenderMode.OBJECT) {
-      const subResult = this.pick(mouse);
-      const group = subResult ? getBrepGroupFromBrepObject(subResult) : null;
-      if (group) {
-        this.heightlightManager.addHeightlight(group);
-        this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: { group } }));
-      } else {
-        this.heightlightManager.clearHeightlight();
-      }
-    } else if (this.mode === RenderMode.EDIT) {
-      const result = this.pick(mouse);
+    if (this.mode === RenderMode.EDIT) {
+      const result = this.pick(mouse, this.pickType);
       if (result) {
         this.heightlightManager.addHeightlight(result);
         this.dispatchEvent('heightlight', new CustomEvent('heightlight', { detail: result }));
@@ -319,7 +317,9 @@ class ThreeRenderer extends EventListener {
     this.renderSize.set(width, height, left, top);
     this.composer.setSize(width, height);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
-    this.heightlightManager.resizeOutline(width, height);
+
+    const pixelRatio = this.renderer.getPixelRatio();
+    this.fxaaPass.setSize(width * pixelRatio, height * pixelRatio);
 
     this.mainGroup.traverse((object) => {
       if (object instanceof Line2 || object instanceof LineSegments2) {
@@ -383,7 +383,6 @@ class ThreeRenderer extends EventListener {
       this.selectionManager.removeObject(obj);
     });
     this.selectionManager.removeSelection(group);
-    this.heightlightManager.remove(group);
   }
 
   /**

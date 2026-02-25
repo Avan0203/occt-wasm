@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { Case, CaseContext } from '@/router';
-import { ThreeRenderer } from '@/common/three-renderer';
 import { createBrepGroup } from '@/common/shape-converter';
 import type { TopoDS_Shape, Modeler, TopoDS_Edge } from 'public/occt-wasm';
-import { PickType } from '@/common/types';
+import { PickType, RenderMode } from '@/common/types';
 import { BrepGroup, BrepObjectAll } from '@/common/object';
 import { App } from '@/common/app';
 
@@ -36,11 +35,16 @@ async function load(context: CaseContext): Promise<void> {
         container.innerHTML = '';
         app = new App(container)!;
 
-        app.setPickType(PickType.EDGE);
+        app.addEventListener('modeChange', (event) => {
+            const mode = event.detail.newMode as RenderMode;
+            app.setPickType(mode === RenderMode.EDIT ? PickType.EDGE : PickType.ALL);
+        });
 
         let targetGroup: BrepGroup | null = null;
 
         app.addEventListener('selection', (event) => {
+            if (app.getMode() !== RenderMode.EDIT) return;
+            if (event.detail instanceof BrepGroup) return;
             const brepObject = event.detail as BrepObjectAll;
             const parent = brepObject.parent as BrepGroup;
 
@@ -66,7 +70,7 @@ async function load(context: CaseContext): Promise<void> {
         trsf.deleteLater();
         translate.deleteLater();
         location.deleteLater();
-        
+
         const triangleFace = Face.fromVertices(
             [{ x: 5, y: -2, z: 0 }, { x: 8, y: -2, z: 0 }, { x: 6.5, y: -2, z: 2 }],
             []
@@ -108,6 +112,9 @@ async function load(context: CaseContext): Promise<void> {
             distance: 0.5,
             operation: 'fillet',
             build: () => {
+                if (app.getMode() !== RenderMode.EDIT) {
+                    return alert('Please switch to edit mode');
+                };
                 if (targetGroup === null) {
                     return alert('Please select a Shape object');
                 }
