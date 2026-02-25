@@ -194,6 +194,12 @@ class BrepGroup extends THREE.Group {
         return this._shape;
     }
 
+    /** 设置点与线的渲染可见性（仅影响主场景，不影响 GPU 拾取） */
+    setWireframeVisible(visible: boolean): void {
+        this.points.forEach((p) => { p.visible = visible; });
+        this.edges.forEach((e) => { e.visible = visible; });
+    }
+
     dispose(): void {
         if (this.shape && !this.shape.isDeleted()) {
             this.shape.delete();

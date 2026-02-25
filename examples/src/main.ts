@@ -7,6 +7,7 @@ import {
   exturdeCase, 
   filletChamferCase ,
   sketchCase,
+  boolOperateCase,
 } from './cases';
 
 // 注册案例
@@ -15,6 +16,7 @@ router.register(brepShowCase);
 router.register(exturdeCase);
 router.register(filletChamferCase);
 router.register(sketchCase);
+router.register(boolOperateCase);
 // 初始化应用
 async function initApp() {
   const container = document.getElementById('viewer-container')!;

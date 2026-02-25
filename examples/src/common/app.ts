@@ -1,4 +1,4 @@
-import { BrepGroup, BrepObjectAll } from "./object";
+import { BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from "./object";
 import { ThreeRenderer } from "./three-renderer";
 import { EventListener } from "./event-listener";
 import { PickType, RenderMode } from "./types";
@@ -136,6 +136,16 @@ class App extends EventListener {
             this.setMode(RenderMode.EDIT)
         }else if(key === 'S'){
             this.setMode(RenderMode.SKETCH)
+        }else if(key === 'DELETE') {
+            if(this.mode === RenderMode.OBJECT){
+                const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                console.log('selectionGroups: ', selectionGroups);
+                selectionGroups.forEach((group)=>{
+                    this.remove(group);
+                    group.dispose();
+                })
+                this.clearSelection();
+            }
         }
         this.dispatchEvent('keyup', new CustomEvent('keyup', { detail: e }));
     }
@@ -165,6 +175,7 @@ class App extends EventListener {
         const oldMode = this.mode;
         this.mode = mode;
         this.clearSelection();
+        this.renderer.updateWireframeVisibilityByMode(mode);
         document.getElementById('current-mode')!.textContent = mode;
         this.dispatchEvent('modeChange', new CustomEvent('modeChange', { detail: { oldMode, newMode: mode } }));
     }
@@ -181,7 +192,7 @@ class App extends EventListener {
         this.renderer.fitToView();
     }
 
-    getSelectionObjects(): BrepObjectAll[] {
+    getSelectionObjects(): BrepObjectAll[] | BrepGroup[] {
         return this.renderer.getSelectionObjects();
     }
 

@@ -22,7 +22,6 @@ class SelectionManager {
     // 存储原来的材质
     private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
 
-    private selectedGroups = new Set<BrepGroup>();
 
     private currentSelectedGroups = new Set<BrepGroup>();
     private renderedSelectedGroup = new Set<BrepFace>();
@@ -41,21 +40,12 @@ class SelectionManager {
     addSelection(item: BrepObjectAll | BrepGroup): void {
         // OBJECT MODE
         if (item instanceof BrepGroup) {
-            // 如果已经选择，则移除, 实现反选功能
-            if (this.currentSelectedGroups.has(item)) {
-                this.removeSelection(item);
-                return;
-            };
+            if (this.currentSelectedGroups.has(item)) return;
             this.currentSelectedGroups.add(item);
             item.faces.forEach(face => this.renderedSelectedGroup.add(face));
             this.updateOutlineObjects();
         } else {
-            // 
-            // 如果已经选择，则移除, 实现反选功能
-            if (this.currentSelectedObjects.has(item)) {
-                this.removeSelection(item);
-                return;
-            }
+            if (this.currentSelectedObjects.has(item)) return;
             const original = this.renderer.heightlightManager.getStoredOriginalMaterial(item) ?? item.material;
             this.materialMap.set(item, original);
             this.currentSelectedObjects.add(item);
@@ -82,7 +72,7 @@ class SelectionManager {
     }
 
     hasSelection(item: BrepObjectAll | BrepGroup): boolean {
-        if (item instanceof BrepGroup) return this.selectedGroups.has(item);
+        if (item instanceof BrepGroup) return this.currentSelectedGroups.has(item);
         return this.currentSelectedObjects.has(item);
     }
 
@@ -129,7 +119,6 @@ class SelectionManager {
         this.currentSelectedObjects.clear();
         this.hasBeenSelectedObjects.clear();
         this.materialMap.clear();
-        this.selectedGroups.clear();
         this.currentSelectedGroups.clear();
         this.renderedSelectedGroup.clear();
         this.updateOutlineObjects();
@@ -140,7 +129,7 @@ class SelectionManager {
     }
 
     getSelectionGroups(): BrepGroup[] {
-        return Array.from(this.selectedGroups);
+        return Array.from(this.currentSelectedGroups);
     }
 
     dispose(): void {

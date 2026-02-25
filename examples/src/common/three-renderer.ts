@@ -137,8 +137,12 @@ class ThreeRenderer extends EventListener {
     this.pickType = type;
   }
 
-  public getSelectionObjects(): BrepObjectAll[] {
-    return this.selectionManager.getSelectionObjects();
+  public getSelectionObjects(): BrepObjectAll[] | BrepGroup[] {
+    if (this.mode === RenderMode.OBJECT) {
+      return this.selectionManager.getSelectionGroups();
+    } else {
+      return this.selectionManager.getSelectionObjects();
+    }
   }
 
   public getCamera(): THREE.PerspectiveCamera {
@@ -197,7 +201,6 @@ class ThreeRenderer extends EventListener {
   }
 
   private onPointerMove = (e: CustomEvent) => {
-    console.log('onPointerMove', this.mode, this.isCameraDragging);
     if (this.isCameraDragging) {
       this.heightlightManager.clearHeightlight();
       return;
@@ -343,10 +346,23 @@ class ThreeRenderer extends EventListener {
   }
 
   /**
+   * 根据模式更新所有 BrepGroup 中点与线的渲染可见性（object 模式隐藏，其它模式显示）
+   */
+  updateWireframeVisibilityByMode(mode: RenderMode): void {
+    const visible = mode !== RenderMode.OBJECT;
+    this.mainGroup.children.forEach((child) => {
+      if (child instanceof BrepGroup) {
+        child.setWireframeVisible(visible);
+      }
+    });
+  }
+
+  /**
    * 添加对象到场景
    */
   add(object: BrepGroup): void {
     this.mainGroup.add(object);
+    object.setWireframeVisible(this.mode !== RenderMode.OBJECT);
 
     const gpuObject = createGPUBrepGroup(object);
     this.GPUPickScene.add(gpuObject);

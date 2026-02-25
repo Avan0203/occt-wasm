@@ -3,3 +3,4 @@ export * from './brep-show';
 export * from './exturde';
 export * from './fillet-chamfer';
 export * from './sketch';
+export * from './bool-operate';
