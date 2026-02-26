@@ -43,7 +43,7 @@ class HeightlightManager {
     constructor(private renderer: ThreeRenderer, private app: App) { }
 
     addHeightlight(item: BrepObjectAll): void {
-        const selectedSet = new Set(this.renderer.getSelectionObjects());
+        const selectedSet = new Set(this.renderer.getSelectionObjects() as BrepObjectAll[]);
         if (selectedSet.has(item)) return;
         if (this.currentHighlightedObjects.size === 1 && this.currentHighlightedObjects.has(item)) return;
         if (this.currentHighlightedObjects.size > 0) this.clearHeightlight();
@@ -86,7 +86,7 @@ class HeightlightManager {
     }
 
     private updateUnHeightlight(): void {
-        const selectedSet = new Set(this.renderer.getSelectionObjects());
+        const selectedSet = new Set(this.renderer.getSelectionObjects() as BrepObjectAll[]);
         this.lastHighlightedObjects.forEach(object => {
             if (selectedSet.has(object)) return;
             const original = this.materialMap.get(object);

@@ -180,18 +180,20 @@ class BrepGPUEdge extends THREE.LineSegments implements BrepObject {
 
 
 class BrepGroup extends THREE.Group {
-    faces: BrepFace[];
-    points: BrepPoint[];
-    edges: BrepEdge[];
+    faces: BrepFace[] = [];
+    points: BrepPoint[] = [];
+    edges: BrepEdge[] = [];
+    boundingBox = new THREE.Box3();
     constructor(private _shape: TopoDS_Shape) {
         super();
-        this.faces = [];
-        this.points = [];
-        this.edges = [];
     }
 
     get shape(): TopoDS_Shape {
         return this._shape;
+    }
+
+    computeBoundingBox(): void {
+        this.boundingBox.setFromObject(this, true);
     }
 
     /** 设置点与线的渲染可见性（仅影响主场景，不影响 GPU 拾取） */

@@ -84,6 +84,7 @@ async function load(context: CaseContext): Promise<void> {
         dFolder.add(dir, 'z', -10, 10, 0.01).onChange(build);
         build();
 
+        app.fitToView();
     } catch (error) {
         console.error('Error loading box show case:', error);
     }

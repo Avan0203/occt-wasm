@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { createBrepGroup } from '@/common/shape-converter';
 import { App } from '@/common/app';
 import { BrepGroup } from '@/common/object';
+import { ShapeFactory } from '@/sdk';
 
 let app: App = null as unknown as App;
 
@@ -41,8 +42,7 @@ async function load(context: CaseContext): Promise<void> {
                 app.remove(group);
                 group.dispose();
             }
-            const cylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 2);
-            const cylinderShape = cylinder.shape();
+            const cylinderShape = ShapeFactory.Cylinder(1, 2);
             const brepResult = occtModule.Shape.toBRepResult(cylinderShape, params.lineDeflection, params.angleDeviation);
             group = createBrepGroup(cylinderShape, brepResult, material);
             app!.add(group);
@@ -53,6 +53,7 @@ async function load(context: CaseContext): Promise<void> {
 
         build();
 
+        app.fitToView();
     } catch (error) {
         console.error('Error loading box show case:', error);
     }

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { Case, CaseContext } from '@/router';
 import { createBrepGroup } from '@/common/shape-converter';
-import type { TopoDS_Shape, Modeler, TopoDS_Edge } from 'public/occt-wasm';
+import type { TopoDS_Shape, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType, RenderMode } from '@/common/types';
-import { BrepGroup, BrepObjectAll } from '@/common/object';
+import { BrepEdge, BrepGroup, BrepObjectAll } from '@/common/object';
 import { App } from '@/common/app';
+import { ShapeFactory } from '@/sdk';
 
 let app: App;
 
@@ -24,7 +25,6 @@ async function load(context: CaseContext): Promise<void> {
 
         const {
             Face,
-            BRepPrimAPI_MakeBox,
             Modeler,
             Shape,
             gp_Trsf,
@@ -60,7 +60,7 @@ async function load(context: CaseContext): Promise<void> {
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('/matcaps_64px.png');
 
-        const boxShape = new BRepPrimAPI_MakeBox(2, 6, 2).shape();
+        const boxShape = ShapeFactory.Box(2, 6, 2);
         const translate = new gp_Vec(0, -2, 0);
         const trsf = new gp_Trsf();
         trsf.setTranslation(translate);
@@ -118,7 +118,7 @@ async function load(context: CaseContext): Promise<void> {
                 if (targetGroup === null) {
                     return alert('Please select a Shape object');
                 }
-                const selectedEdges = app.getSelectionObjects();
+                const selectedEdges = app.getSelectionObjects() as BrepEdge[];
                 if (selectedEdges.length === 0) {
                     return alert('Please select at least one edge');
                 }
@@ -170,6 +170,8 @@ async function load(context: CaseContext): Promise<void> {
         gui.add(params, 'build');
 
         updateOperation(params.operation);
+
+        app.fitToView();
 
     } catch (error) {
         console.error('Error loading box show case:', error);

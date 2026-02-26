@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { MainModule } from 'public/occt-wasm';
 import { BrepGroup } from '@/common/object';
 import { App } from '@/common/app';
+import { ShapeFactory } from '@/sdk';
 
 let app: App | null = null;
 
@@ -22,13 +23,7 @@ const texture = textureLoader.load('/matcaps_64px.png');
  * 创建 Box
  */
 async function createBox(occtModule: MainModule): Promise<BrepGroup> {
-  const makeBox = new occtModule.BRepPrimAPI_MakeBox(2, 2, 2);
-  const shape = makeBox.shape();
-  shape.deleteLater();
-  makeBox.deleteLater();
-
-  console.log(occtModule.Shape.toBRepResult(shape, 0.1, 0.5));
-
+  const shape = ShapeFactory.Box(2, 2, 2);
   return createBrepGroup(
     shape,
     occtModule.Shape.toBRepResult(shape, 0.1, 0.5),
@@ -43,14 +38,11 @@ async function createBox(occtModule: MainModule): Promise<BrepGroup> {
  * 创建 Sphere
  */
 async function createSphere(occtModule: MainModule): Promise<BrepGroup> {
-  const makeSphere = new occtModule.BRepPrimAPI_MakeSphere(1.5);
-  const shape = makeSphere.shape();
+  const shape = ShapeFactory.Sphere(1.5);
   const material = new THREE.MeshMatcapMaterial({
     matcap: texture,
     color: colors.sphere,
   });
-  shape.deleteLater();
-  makeSphere.deleteLater();
   return createBrepGroup(shape,occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
@@ -58,15 +50,12 @@ async function createSphere(occtModule: MainModule): Promise<BrepGroup> {
  * 创建 Cylinder
  */
 async function createCylinder(occtModule: MainModule): Promise<BrepGroup> {
-  const makeCylinder = new occtModule.BRepPrimAPI_MakeCylinder(1, 3);
-  const shape = makeCylinder.shape();
+  const shape = ShapeFactory.Cylinder(1, 3);
   const material = new THREE.MeshMatcapMaterial({
     matcap: texture,
     color: colors.cylinder,
   });
 
-  shape.deleteLater();
-  makeCylinder.deleteLater();
   return createBrepGroup(shape, occtModule.Shape.toBRepResult(shape, 0.1, 0.5), material);
 }
 
@@ -74,10 +63,7 @@ async function createCylinder(occtModule: MainModule): Promise<BrepGroup> {
  * 创建 Cone
  */
 async function createCone(occtModule: MainModule): Promise<BrepGroup> {
-  const makeCone = new occtModule.BRepPrimAPI_MakeCone(1.5, 0.5, 3);
-  const shape = makeCone.shape();
-  shape.deleteLater();
-  makeCone.deleteLater();
+  const shape = ShapeFactory.Cone(1.5, 0.5, 3);
   const material = new THREE.MeshMatcapMaterial({
     color: colors.cone,
     matcap: texture,
@@ -89,10 +75,7 @@ async function createCone(occtModule: MainModule): Promise<BrepGroup> {
  * 创建 Torus
  */
 async function createTorus(occtModule: any): Promise<BrepGroup> {
-  const makeTorus = new occtModule.BRepPrimAPI_MakeTorus(1.5, 0.5);
-  const shape = makeTorus.shape();
-  shape.deleteLater();
-  makeTorus.deleteLater();
+  const shape = ShapeFactory.Torus(1.5, 0.5);
   const material = new THREE.MeshMatcapMaterial({
     color: colors.torus,
     matcap: texture,

@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -16,6 +15,7 @@ import { SelectionManager } from './selection-manager';
 import { Controls } from './controls';
 import { BrepGPUGroup, BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
 import { App } from './app';
+import { TransformControls } from './transform-controls';
 
 let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
@@ -36,7 +36,7 @@ class ThreeRenderer extends EventListener {
   private GPUPickScene: THREE.Scene;
   private helperGroup = new THREE.Group();
   private mainGroup = new THREE.Group();
-  private gpuObjectMap = new WeakMap<BrepGroup, BrepGPUGroup>();
+  private gpuObjectMap = new Map<BrepGroup, BrepGPUGroup>();
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
@@ -51,7 +51,9 @@ class ThreeRenderer extends EventListener {
   outlinePass: OutlinePass;
   private fxaaPass: FXAAPass;
 
-  private  get mode(): RenderMode {
+  private ndcMatrix = new THREE.Matrix4();
+
+  private get mode(): RenderMode {
     return this.app.getMode();
   }
 
@@ -92,7 +94,7 @@ class ThreeRenderer extends EventListener {
       this.isCameraDragging = false;
     });
 
-    this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
+    this.transformControls = new TransformControls(this);
 
     this.addHelper(this.transformControls.getHelper());
 
@@ -107,20 +109,21 @@ class ThreeRenderer extends EventListener {
 
     this.setPickSize(4);
 
-    const rect = container.getBoundingClientRect();
-    const w = container.clientWidth;
-    const h = container.clientHeight;
     this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.outlinePass = new OutlinePass(new THREE.Vector2(w, h), this.scene, this.camera);
-    this.composer.addPass(this.outlinePass);
     this.fxaaPass = new FXAAPass();
+    this.outlinePass = new OutlinePass(new THREE.Vector2(), this.scene, this.camera);
+
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.composer.addPass(this.outlinePass);
     this.composer.addPass(this.fxaaPass);
     this.composer.addPass(new OutputPass());
 
     this.heightlightManager = new HeightlightManager(this, this.app);
     this.selectionManager = new SelectionManager(this, this.app);
 
+    const rect = container.getBoundingClientRect();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
     this.handleResize(w, h, rect.left, rect.top);
 
     // 开始渲染循环
@@ -155,6 +158,10 @@ class ThreeRenderer extends EventListener {
 
   public getCamera(): THREE.PerspectiveCamera {
     return this.camera;
+  }
+
+  public getContainer(): HTMLElement {
+    return this.container;
   }
 
   /**
@@ -327,11 +334,9 @@ class ThreeRenderer extends EventListener {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
     this.renderSize.set(width, height, left, top);
-    this.composer.setSize(width, height);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
-
-    const pixelRatio = this.renderer.getPixelRatio();
-    this.fxaaPass.setSize(width * pixelRatio, height * pixelRatio);
+    this.composer.setSize(width, height);
+    createNDCMatrix(width, height, this.ndcMatrix);
 
     this.mainGroup.traverse((object) => {
       if (object instanceof Line2 || object instanceof LineSegments2) {
@@ -439,18 +444,15 @@ class ThreeRenderer extends EventListener {
       this.GPUPickScene.remove(child);
     });
     this.GPUPickScene.clear();
+    this.gpuObjectMap.clear();
   }
 
   /**
    * 自动调整相机位置以显示所有对象
    */
   fitToView(): void {
-    const box = new THREE.Box3();
-    this.scene.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        box.expandByObject(object);
-      }
-    });
+    this.mainGroup.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(this.mainGroup, true);
 
     if (box.isEmpty()) {
       return;
@@ -458,15 +460,58 @@ class ThreeRenderer extends EventListener {
 
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const distance = maxDim * 2;
+    const isOrthographic = this.camera instanceof THREE.OrthographicCamera;
+    const direction = new THREE.Vector3().subVectors(this.camera.position, this.controls.target).normalize();
 
-    this.camera.position.set(
-      center.x + distance,
-      center.y + distance,
-      center.z + distance
-    );
-    this.camera.lookAt(center);
+    if (isOrthographic) {
+      const box2d = new THREE.Box2();
+      const { min, max } = box;
+      const points = [
+        new THREE.Vector3(min.x, min.y, max.z),
+        new THREE.Vector3(max.x, min.y, max.z),
+        new THREE.Vector3(max.x, max.y, max.z),
+        new THREE.Vector3(min.x, max.y, max.z),
+        new THREE.Vector3(min.x, min.y, min.z),
+        new THREE.Vector3(max.x, min.y, min.z),
+        new THREE.Vector3(max.x, max.y, min.z),
+        new THREE.Vector3(min.x, max.y, min.z),
+      ];
+
+      points.forEach((v) => {
+        box2d.expandByPoint(this.projectToScreen(v));
+      });
+
+      const width = this.renderSize.x;
+      const height = this.renderSize.y;
+      const boxWidth = box2d.max.x - box2d.min.x;
+      const boxHeight = box2d.max.y - box2d.min.y;
+      const tempZoom = (this.camera as unknown as THREE.OrthographicCamera).zoom;
+      const targetWidth = width * 0.8;
+      const targetHeight = height * 0.8;
+      const radius = this.camera.position.distanceTo(this.controls.target);
+
+      const zoom = Math.min(
+        (targetWidth * tempZoom) / Math.max(boxWidth, 1e-6),
+        (targetHeight * tempZoom) / Math.max(boxHeight, 1e-6),
+      );
+      const position = direction.clone().multiplyScalar(radius).add(center);
+
+      this.controls.object.position.copy(position);
+      (this.controls.object as unknown as THREE.OrthographicCamera).zoom = zoom;
+    } else {
+      // 透视相机：用包围球半径 + FOV 公式计算距离，支持任意相机朝向
+      const cam = this.camera as THREE.PerspectiveCamera;
+      const fovRad = (cam.fov * Math.PI) / 180;
+      const fovH = 2 * Math.atan(Math.tan(fovRad / 2) * cam.aspect);
+      const fovLim = Math.min(fovRad, fovH);
+      const sphereRadius = 0.5 * size.length();
+      const margin = 1 / 0.8;
+      const distance = Math.max(sphereRadius / Math.tan(fovLim / 2), cam.near * 2) * margin;
+
+      const position = direction.clone().multiplyScalar(distance).add(center);
+
+      this.controls.object.position.copy(position);
+    }
     this.controls.target.copy(center);
     this.controls.update();
   }
@@ -498,6 +543,13 @@ class ThreeRenderer extends EventListener {
     }
   }
 
+  public projectToScreen(v: THREE.Vector3, target = new THREE.Vector2()): THREE.Vector2 {
+    v.applyMatrix4(this.camera.matrixWorldInverse);
+    v.applyMatrix4(this.camera.projectionMatrix);
+    v.applyMatrix4(this.ndcMatrix);
+    return target.set(v.x, v.y);
+  }
+
   public clearHeightlight(): void {
     this.heightlightManager.clearHeightlight();
   }
@@ -516,6 +568,19 @@ function getBrepObjectTypesByPickType(pickType: PickType): BrepObjectType[] {
     case PickType.ALL: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
     default: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
   }
+}
+
+/**
+ * @description: webgl -> canvas
+ * @param {Number} width canvas width
+ * @param {Number} height canvas height
+ * @param {THREE.Matrix4} target
+ * @return {THREE.Matrix4}
+ */
+function createNDCMatrix(width: number, height: number, target = new THREE.Matrix4()) {
+  const W = width / 2;
+  const H = height / 2;
+  return target.set(W, 0, 0, W, 0, -H, 0, H, 0, 0, 1, 0, 0, 0, 0, 1);
 }
 
 export { ThreeRenderer };

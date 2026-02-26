@@ -2,7 +2,7 @@ import { Case, CaseContext } from '@/router';
 import * as THREE from 'three';
 import { createBrepGroup } from '@/common/shape-converter';
 import { App } from '@/common/app';
-import { gc } from '@/sdk';
+import { ShapeFactory } from '@/sdk';
 
 let app: App | null = null;
 
@@ -21,38 +21,26 @@ async function load(context: CaseContext): Promise<void> {
         const {
             Modeler,
             Shape,
-            BRepPrimAPI_MakeBox,
-            BRepPrimAPI_MakeSphere,
-            BRepPrimAPI_MakeCone
         } = occtModule;
         const params = {
             operation: 'union',
             addBox: () => {
-                gc((c)=>{
-                    const maker = c(new BRepPrimAPI_MakeBox(2, 2, 2));
-                    const shape = maker.shape();
-                    const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                    const group = createBrepGroup(shape, brepResult, material);
-                    app!.add(group);
-                })
+                const shape = ShapeFactory.Box(2, 2, 2);
+                const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
+                const group = createBrepGroup(shape, brepResult, material);
+                app!.add(group);
             },
             addSphere: () => {
-                gc((c)=>{
-                    const maker = c(new BRepPrimAPI_MakeSphere(1.5));
-                    const shape = maker.shape();
-                    const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                    const group = createBrepGroup(shape, brepResult, material);
-                    app!.add(group);
-                })
+                const shape = ShapeFactory.Sphere(1.5);
+                const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
+                const group = createBrepGroup(shape, brepResult, material);
+                app!.add(group);
             },
             addCone: () => {
-                gc((c)=>{
-                    const maker = c(new BRepPrimAPI_MakeCone(1, 0.3, 1.5));
-                    const shape = maker.shape();
-                    const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                    const group = createBrepGroup(shape, brepResult, material);
-                    app!.add(group);
-                })
+                const shape = ShapeFactory.Cone(1, 0.3, 1.5);
+                const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
+                const group = createBrepGroup(shape, brepResult, material);
+                app!.add(group);
             },
             build: () => {
 

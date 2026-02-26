@@ -183,6 +183,7 @@ export function createBrepGroup(shape: TopoDS_Shape, brepResult: BRepResult, mat
     group.add(edge);
     return edge;
   });
+  group.computeBoundingBox();
   return group;
 }
 

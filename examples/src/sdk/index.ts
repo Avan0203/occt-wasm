@@ -4,4 +4,5 @@ export * from './curve';
 export * from './gc';
 export * from './types';
 export * from './utils';
-// export * from './shape';
+export * from './shape-factory';
+export * from './sketch';
