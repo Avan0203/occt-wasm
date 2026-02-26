@@ -84,7 +84,7 @@ class ThreeRenderer extends EventListener {
     this.renderer.sortObjects = false;
 
 
-    this.controls = new Controls(this.camera, this.renderer.domElement);
+    this.controls = new Controls(this.camera, this.container);
     this.controls.zoomSpeed = 2;
     this.controls.rotateSpeed = 1.5;
     this.controls.addEventListener('start', () => {

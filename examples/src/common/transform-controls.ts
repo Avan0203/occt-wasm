@@ -3,7 +3,6 @@ import { TransformControls as ThreeTransformControls } from "three/examples/jsm/
 import { ThreeRenderer } from "./three-renderer";
 import { BrepGroup } from "./object";
 
-const transformObject = new Object3D();
 const tmpBox = new Box3();
 const worldBox = new Box3();
 
@@ -17,16 +16,18 @@ const objectMatrixWorld = new Matrix4();
 const attachObjects = new Map<BrepGroup, Object3D>();
 
 class TransformControls extends ThreeTransformControls {
+    private transformObject: Object3D;
     constructor(renderer: ThreeRenderer) {
         super(renderer.getCamera(), renderer.getContainer());
+        this.transformObject = new Object3D();
     }
 
     private resetState(): void {
         attachObjects.clear();
-        transformObject.clear();
+        this.transformObject.clear();
         worldBox.makeEmpty();
-        transformObject.matrix.identity();
-        transformObject.matrix.decompose(transformObject.position, transformObject.quaternion, transformObject.scale);
+        this.transformObject.matrix.identity();
+        this.transformObject.matrix.decompose(this.transformObject.position, this.transformObject.quaternion, this.transformObject.scale);
     }
 
     attachObject(objects: BrepGroup[]): void {
@@ -39,23 +40,23 @@ class TransformControls extends ThreeTransformControls {
             attachObjects.set(object, object.parent as Object3D);
         });
 
-        worldBox.getCenter(transformObject.position);
+        worldBox.getCenter(this.transformObject.position);
 
         objects.forEach(object => {
             object.matrixWorld.decompose(worldPosition, worldQuaternion, worldScale);
 
             object.removeFromParent();
-            transformObject.add(object);
-            object.position.copy(worldPosition).sub(transformObject.position);
+            this.transformObject.add(object);
+            object.position.copy(worldPosition).sub(this.transformObject.position);
             object.quaternion.copy(worldQuaternion);
             object.scale.copy(worldScale);
         })
 
-        this.attach(transformObject);
+        this.attach(this.transformObject);
     }
 
     detachObject(): void {
-        const groups = transformObject.children as BrepGroup[];
+        const groups = this.transformObject.children as BrepGroup[];
         groups.forEach((object:BrepGroup) => {
             object.updateMatrixWorld();
             objectMatrixWorld.copy(object.matrixWorld);
@@ -71,6 +72,10 @@ class TransformControls extends ThreeTransformControls {
 
         this.detach();
         this.resetState();
+    }
+
+    getTransformObject(): Object3D {
+        return this.transformObject;
     }
 }
 
