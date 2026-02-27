@@ -6,6 +6,9 @@ import { Vertex, Edge, Face } from "./brep-result";
 import { LineGeometry, LineMaterial, LineSegments2 } from "three/examples/jsm/Addons.js";
 import { ObjectID } from "./id-tool";
 
+const _m = new THREE.Matrix4();
+const _pm = new THREE.Matrix4();
+
 type BrepGeometryType = BrepGeometry<Vertex> | BrepGeometry<Edge> | BrepGeometry<Face> | BrepLineGeometry;
 
 interface BrepObject extends THREE.Object3D {
@@ -215,8 +218,39 @@ class BrepGroup extends THREE.Group {
         this.edges.forEach((edge) => {
             edge.dispose();
         });
+        const id = this.id.toString();
+        OBJECT_MANAGER.deleteObject(id);
+        const gpuObject = OBJECT_MANAGER.getGPUGroup(id);
+        if (gpuObject) {
+            gpuObject.removeFromParent();
+            OBJECT_MANAGER.deleteGPUGroup(id);
+            gpuObject.dispose();
+        }
     }
 
+    /**
+     * @description: 当前物体移动到世界矩阵坐标系下位置
+     * @param {Matrix4} worldMatrix
+     * @return {void}
+     */
+    transformToWorldMatrix(worldMatrix: THREE.Matrix4): void {
+        this.updateWorldMatrix(true, false);
+        _m.copy(worldMatrix);
+        _pm.copy(this.parent!.matrixWorld!);
+        _m.premultiply(_pm.invert());
+        _m.decompose(this.position, this.quaternion, this.scale);
+        this.syncTransform(worldMatrix);
+    }
+
+    /** 同步 GPUPickScene 和 TopoDS_Shape location，默认使用当前 matrixWorld，也可传入指定的世界矩阵 */
+    syncTransform(worldMatrix: THREE.Matrix4 = this.matrixWorld): void {
+        const gpuObject = OBJECT_MANAGER.getGPUGroup(this.id.toString());
+        if (gpuObject) {
+            worldMatrix.decompose(gpuObject.position, gpuObject.quaternion, gpuObject.scale);
+            gpuObject.updateMatrixWorld(true);
+        }
+        this.shape.setLocationFromMatrix4(worldMatrix.elements);
+    }
 }
 
 

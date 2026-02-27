@@ -13,20 +13,20 @@ import { HeightlightManager } from './heightlight-manager';
 import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
 import { Controls } from './controls';
-import { BrepGPUGroup, BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
+import { BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
 import { App } from './app';
 import { TransformControls } from './transform-controls';
+import { OBJECT_MANAGER } from './object-manager';
+import { HelperRenderPass } from './helper-pass';
 
 let pickBuffer = new Uint8Array(0);
 const pickOrder: number[] = [];
 
 const raycaster = new THREE.Raycaster();
 
-const transformGroup = new THREE.Group();
-
-
 class ThreeRenderer extends EventListener {
   private scene: THREE.Scene;
+  private helperScene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   public controls: Controls;
@@ -36,7 +36,6 @@ class ThreeRenderer extends EventListener {
   private GPUPickScene: THREE.Scene;
   private helperGroup = new THREE.Group();
   private mainGroup = new THREE.Group();
-  private gpuObjectMap = new Map<BrepGroup, BrepGPUGroup>();
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
@@ -69,11 +68,18 @@ class ThreeRenderer extends EventListener {
     const gradientTexture = this.createGradientBackground();
     this.scene.background = gradientTexture;
 
+    // helperScene：仅放 Gizmo、Axes 等辅助对象，独立渲染在 OutlinePass 之后，避免被描边
+    this.helperScene = new THREE.Scene();
+
     // 创建相机
     const aspect = container.clientWidth / container.clientHeight;
     this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     this.camera.position.set(5, 5, 5);
     this.camera.lookAt(0, 0, 0);
+
+    const selectionTexture = new THREE.TextureLoader().load(new URL('/select.png', import.meta.url).href);
+    selectionTexture.wrapS = THREE.RepeatWrapping;
+    selectionTexture.wrapT = THREE.RepeatWrapping;
 
     // 创建渲染器
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -94,10 +100,6 @@ class ThreeRenderer extends EventListener {
       this.isCameraDragging = false;
     });
 
-    this.transformControls = new TransformControls(this);
-
-    this.addHelper(this.transformControls.getHelper());
-
     this.GPUPickScene = new THREE.Scene();
 
     // 添加灯光
@@ -105,16 +107,19 @@ class ThreeRenderer extends EventListener {
 
     // 添加坐标轴辅助
     const axesHelper = new THREE.AxesHelper(2);
-    this.helperGroup.add(axesHelper);
+    this.addHelper(axesHelper);
 
     this.setPickSize(4);
 
     this.composer = new EffectComposer(this.renderer);
     this.fxaaPass = new FXAAPass();
     this.outlinePass = new OutlinePass(new THREE.Vector2(), this.scene, this.camera);
+    this.outlinePass.usePatternTexture = true;
+    this.outlinePass.patternTexture = selectionTexture;
 
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.composer.addPass(this.outlinePass);
+    this.composer.addPass(new HelperRenderPass(this.helperScene, this.camera));
     this.composer.addPass(this.fxaaPass);
     this.composer.addPass(new OutputPass());
 
@@ -125,6 +130,10 @@ class ThreeRenderer extends EventListener {
     const w = container.clientWidth;
     const h = container.clientHeight;
     this.handleResize(w, h, rect.left, rect.top);
+
+    this.transformControls = new TransformControls(this);
+    this.addHelper(this.transformControls.getHelper());
+    this.helperGroup.add(this.transformControls.getTransformObject());
 
     // 开始渲染循环
     this.animate();
@@ -164,6 +173,14 @@ class ThreeRenderer extends EventListener {
     return this.container;
   }
 
+  public attachObject(objects: BrepGroup[]): void {
+    this.transformControls.attachObject(objects);
+  }
+
+  public detachObject(): void {
+    this.transformControls.detachObject();
+  }
+
   /**
    * 将画布坐标的鼠标点转换为射线与平面的交点（用于 EDIT 模式投影到工作平面）。
    * @param mouse 画布坐标系下的鼠标位置（与 pick 使用同一坐标系）
@@ -201,6 +218,7 @@ class ThreeRenderer extends EventListener {
         // this.transformControls.attach(transformGroup);
         this.dispatchEvent('selection', new CustomEvent('selection', { detail: { group } }));
       } else {
+        this.transformControls.detachObject();
         this.selectionManager.clearSelection();
       }
     } else if (this.mode === RenderMode.EDIT) {
@@ -380,7 +398,7 @@ class ThreeRenderer extends EventListener {
 
     const gpuObject = createGPUBrepGroup(object);
     this.GPUPickScene.add(gpuObject);
-    this.gpuObjectMap.set(object, gpuObject);
+    OBJECT_MANAGER.setGPUGroup(object.id.toString(), gpuObject);
   }
 
   /**
@@ -390,20 +408,14 @@ class ThreeRenderer extends EventListener {
     this.removeBrepGroupFromManagers(object);
     this.mainGroup.remove(object);
     object.dispose();
-    const gpuObject = this.gpuObjectMap.get(object);
-    if (gpuObject) {
-      this.GPUPickScene.remove(gpuObject);
-      this.gpuObjectMap.delete(object);
-      gpuObject.dispose();
-    }
   }
 
   addHelper(helper: THREE.Object3D): void {
-    this.helperGroup.add(helper);
+    this.helperScene.add(helper);
   }
 
   removeHelper(helper: THREE.Object3D): void {
-    this.helperGroup.remove(helper);
+    this.helperScene.remove(helper);
   }
 
   /** 在 dispose 前从高亮/选择中移除，避免 dispose 掉共享材质并释放对已销毁对象的引用 */
@@ -419,32 +431,38 @@ class ThreeRenderer extends EventListener {
    * 清空场景（保留灯光和辅助对象）
    */
   clear(): void {
-    Array.from(this.mainGroup.children).forEach((child) => {
+    [...this.mainGroup.children].forEach((child) => {
       if (child.hasOwnProperty('dispose')) {
         this.removeBrepGroupFromManagers(child as BrepGroup);
         (child as any).dispose();
       }
-      this.mainGroup.remove(child);
     });
     this.mainGroup.clear();
-    this.helperGroup.children.forEach((child) => {
+
+    [...this.helperGroup.children].forEach((child) => {
       if (child.hasOwnProperty('dispose')) {
         (child as any).dispose();
       }
-      this.helperGroup.remove(child);
     });
     this.helperGroup.clear();
     this.scene.remove(this.mainGroup);
     this.scene.remove(this.helperGroup);
 
-    this.GPUPickScene.children.forEach((child) => {
+    [...this.helperScene.children].forEach((child) => {
       if (child.hasOwnProperty('dispose')) {
         (child as any).dispose();
       }
-      this.GPUPickScene.remove(child);
+    });
+    this.helperScene.clear();
+
+    [...this.GPUPickScene.children].forEach((child) => {
+      if (child.hasOwnProperty('dispose')) {
+        (child as any).dispose();
+      }
     });
     this.GPUPickScene.clear();
-    this.gpuObjectMap.clear();
+    OBJECT_MANAGER.clear();
+    this.transformControls.detachObject();
   }
 
   /**
@@ -532,6 +550,8 @@ class ThreeRenderer extends EventListener {
     this.pickTarget.dispose();
     this.renderer.dispose();
     this.controls.dispose();
+    this.transformControls.dispose();
+    this.outlinePass.patternTexture.dispose();
     if (this.scene.background && typeof (this.scene.background as THREE.Texture).dispose === 'function') {
       (this.scene.background as THREE.Texture).dispose();
     }

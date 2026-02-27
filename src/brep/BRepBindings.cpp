@@ -1,4 +1,5 @@
 #include "BRepBindings.h"
+#include "shared/Shared.hpp"
 #include <TopoDS_Shape.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Edge.hxx>
@@ -119,6 +120,11 @@ void registerBindings() {
         .function("moved", 
             optional_override([](const TopoDS_Shape& shape, const TopLoc_Location& position) -> TopoDS_Shape {
                 return shape.Moved(position);
+            }))
+        .function("setLocationFromMatrix4",
+            optional_override([](TopoDS_Shape& shape, const val& elements) {
+                gp_Trsf trsf = trsfFromMatrix4Elements(elements);
+                shape.Location(TopLoc_Location(trsf));
             }))
         // Orientation - simplified for frontend
         .function("orientation", 

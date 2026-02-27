@@ -130,22 +130,35 @@ class App extends EventListener {
 
     private onKeyUp = (e: KeyboardEvent) => {
         const key = e.key.toUpperCase();
-        if(key === 'M'){
-            this.setMode(RenderMode.OBJECT)
-        }else if(key === 'E'){
-            this.setMode(RenderMode.EDIT)
-        }else if(key === 'S'){
-            this.setMode(RenderMode.SKETCH)
-        }else if(key === 'DELETE') {
-            if(this.mode === RenderMode.OBJECT){
-                const selectionGroups = this.getSelectionObjects() as BrepGroup[];
-                console.log('selectionGroups: ', selectionGroups);
-                selectionGroups.forEach((group)=>{
-                    this.remove(group);
-                    group.dispose();
-                })
-                this.clearSelection();
-            }
+
+        switch(key){
+            case 'M':
+                this.setMode(RenderMode.OBJECT)
+                break;
+            case 'E':
+                this.setMode(RenderMode.EDIT)
+                break;
+            case 'S':
+                this.setMode(RenderMode.SKETCH)
+                break;
+            case 'DELETE':
+                if(this.mode === RenderMode.OBJECT){
+                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    console.log('selectionGroups: ', selectionGroups);
+                    selectionGroups.forEach((group)=>{
+                        this.remove(group);
+                    })
+                    this.clearSelection();
+                }
+                break;
+            case 'G':
+                if(this.mode === RenderMode.OBJECT){
+                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    this.renderer.attachObject(selectionGroups);
+                }
+                break;
+            default:
+                break;
         }
         this.dispatchEvent('keyup', new CustomEvent('keyup', { detail: e }));
     }

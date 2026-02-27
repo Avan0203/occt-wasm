@@ -11,6 +11,8 @@
 #include <gp_Pln.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
+#include <gp_Trsf.hxx>
+#include <cmath>
 
 #define REGISTER_HANDLE(T)                                                    \
     class_<Handle(T)>("Handle_" #T)                                           \
@@ -71,6 +73,34 @@ struct Vector3 {
     }
 };
 
+
+/**
+ * Three.js Matrix4.elements (column-major, 16 doubles) -> gp_Trsf
+ * Supports rotation + translation + uniform scale.
+ */
+inline gp_Trsf trsfFromMatrix4Elements(const emscripten::val& elements) {
+    std::vector<double> e = emscripten::convertJSArrayToNumberVector<double>(elements);
+
+    double sx = std::sqrt(e[0]*e[0] + e[1]*e[1] + e[2]*e[2]);
+    double sy = std::sqrt(e[4]*e[4] + e[5]*e[5] + e[6]*e[6]);
+    double sz = std::sqrt(e[8]*e[8] + e[9]*e[9] + e[10]*e[10]);
+
+    double scale = (sx + sy + sz) / 3.0;
+    double invSx = 1.0 / sx, invSy = 1.0 / sy, invSz = 1.0 / sz;
+
+    gp_Trsf trsf;
+    trsf.SetValues(
+        e[0]*invSx,  e[4]*invSy,  e[8]*invSz,  e[12],
+        e[1]*invSx,  e[5]*invSy,  e[9]*invSz,  e[13],
+        e[2]*invSx,  e[6]*invSy,  e[10]*invSz, e[14]
+    );
+
+    if (std::abs(scale - 1.0) > 1e-14) {
+        trsf.SetScaleFactor(scale);
+    }
+
+    return trsf;
+}
 
 EMSCRIPTEN_DECLARE_VAL_TYPE(Int8Array)
 EMSCRIPTEN_DECLARE_VAL_TYPE(Int16Array)

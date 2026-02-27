@@ -10,16 +10,18 @@ const worldPosition = new Vector3();
 const worldQuaternion = new Quaternion();
 const worldScale = new Vector3();
 
-const parentMatrixWorld = new Matrix4();
 const objectMatrixWorld = new Matrix4();
 
 const attachObjects = new Map<BrepGroup, Object3D>();
+
 
 class TransformControls extends ThreeTransformControls {
     private transformObject: Object3D;
     constructor(renderer: ThreeRenderer) {
         super(renderer.getCamera(), renderer.getContainer());
         this.transformObject = new Object3D();
+
+        this.addEventListener('mouseUp',this.syncTransform.bind(this))
     }
 
     private resetState(): void {
@@ -55,23 +57,29 @@ class TransformControls extends ThreeTransformControls {
         this.attach(this.transformObject);
     }
 
-    detachObject(): void {
+    /** mouseUp 时同步 GPUPickScene 和 TopoDS_Shape location，物体保留在 transformObject 中 */
+    private syncTransform(): void {
         const groups = this.transformObject.children as BrepGroup[];
-        groups.forEach((object:BrepGroup) => {
+        groups.forEach((object: BrepGroup) => {
+            object.updateMatrixWorld();
+            object.syncTransform();
+        });
+    }
+
+    detachObject(): void {
+        const groups = [...this.transformObject.children] as BrepGroup[];
+        groups.forEach((object: BrepGroup) => {
             object.updateMatrixWorld();
             objectMatrixWorld.copy(object.matrixWorld);
             const parent = attachObjects.get(object)!;
-            parent.updateMatrixWorld();
-            parentMatrixWorld.copy(parent.matrixWorld);
-            objectMatrixWorld.premultiply(parentMatrixWorld.invert());
-            objectMatrixWorld.decompose(object.position, object.quaternion, object.scale);
 
             object.removeFromParent();
             parent.add(object);
-        })
+            object.transformToWorldMatrix(objectMatrixWorld);
+        });
 
-        this.detach();
         this.resetState();
+        super.detach();
     }
 
     getTransformObject(): Object3D {

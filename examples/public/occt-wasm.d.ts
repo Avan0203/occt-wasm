@@ -131,6 +131,8 @@ export interface gp_Trsf extends ClassHandle {
   inverted(): gp_Trsf;
   power(_0: number): void;
   powered(_0: number): gp_Trsf;
+  setFromMatrix4(_0: any): void;
+  toMatrix4(): any;
   setRotation(_0: gp_Ax1, _1: number): void;
   setMirrorAxis(_0: gp_Ax1): void;
   setMirrorPlane(_0: gp_Ax2): void;
@@ -327,6 +329,7 @@ export interface TopoDS_Shape extends ClassHandle {
   setLocation(_0: TopLoc_Location): void;
   located(_0: TopLoc_Location): TopoDS_Shape;
   moved(_0: TopLoc_Location): TopoDS_Shape;
+  setLocationFromMatrix4(_0: any): void;
   reverse(): void;
   reversed(): TopoDS_Shape;
   isPartner(_0: TopoDS_Shape): boolean;

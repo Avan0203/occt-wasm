@@ -3,8 +3,9 @@ import * as THREE from 'three';
 import { createBrepGroup } from '@/common/shape-converter';
 import { App } from '@/common/app';
 import { ShapeFactory } from '@/sdk';
+import { BrepGroup } from '@/common/object';
 
-let app: App | null = null;
+let app: App = null as unknown as App;
 
 export const boolOperateCase: Case = {
     id: 'bool-operate',
@@ -28,7 +29,7 @@ async function load(context: CaseContext): Promise<void> {
                 const shape = ShapeFactory.Box(2, 2, 2);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
                 const group = createBrepGroup(shape, brepResult, material);
-                app!.add(group);
+                app.add(group);
             },
             addSphere: () => {
                 const shape = ShapeFactory.Sphere(1.5);
@@ -43,7 +44,40 @@ async function load(context: CaseContext): Promise<void> {
                 app!.add(group);
             },
             build: () => {
+                const selection = app.getSelectionObjects();
+                if (selection.length < 2) {
+                    alert('Please select at least 2 objects');
+                    return;
+                }
+                if(!selection.every(item => item instanceof BrepGroup)){
+                    alert('Please select objects on OBJECT Mode');
+                    return;
+                }
 
+                console.log(selection);
+                const compare = selection[0] as BrepGroup;
+                const target = selection[1] as BrepGroup;
+
+                const result = (() => { 
+                    switch(params.operation as 'union' | 'intersection' | 'difference'){
+                        case 'union':
+                            return Modeler.union([compare.shape], [target.shape], Number.EPSILON);
+                        case 'intersection':
+                            return Modeler.intersection([compare.shape], [target.shape], Number.EPSILON);
+                        case 'difference':
+                            return Modeler.difference([compare.shape], [target.shape], Number.EPSILON);
+                    }
+                })();
+
+                if(result.isNull()){
+                    alert('Boolean operation failed');
+                    return;
+                }
+
+                app.remove(compare);
+                app.remove(target);
+                const group = createBrepGroup(result, Shape.toBRepResult(result, 0.1, 0.5), material);
+                app.add(group);
             }
         }
 
@@ -79,6 +113,6 @@ async function load(context: CaseContext): Promise<void> {
 function unload(context: CaseContext): void {
     if (app) {
         app.dispose();
-        app = null;
+        app = null as unknown as App;
     }
 }

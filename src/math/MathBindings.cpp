@@ -1,4 +1,5 @@
 #include "MathBindings.h"
+#include "shared/Shared.hpp"
 #include <emscripten/bind.h>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
@@ -132,6 +133,21 @@ void registerBindings() {
         .function("inverted", &gp_Trsf::Inverted)
         .function("power", &gp_Trsf::Power)
         .function("powered", &gp_Trsf::Powered)
+        .function("setFromMatrix4",
+            optional_override([](gp_Trsf& self, const val& elements) {
+                self = trsfFromMatrix4Elements(elements);
+            }))
+        .function("toMatrix4",
+            optional_override([](const gp_Trsf& self) -> val {
+                val result = val::array();
+                for (int col = 1; col <= 4; col++) {
+                    for (int row = 1; row <= 3; row++) {
+                        result.call<void>("push", self.Value(row, col));
+                    }
+                    result.call<void>("push", col == 4 ? 1.0 : 0.0);
+                }
+                return result;
+            }))
         ;
 
     // ========== Axis1 (gp_Ax1) ==========
