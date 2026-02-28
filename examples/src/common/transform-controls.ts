@@ -34,27 +34,39 @@ class TransformControls extends ThreeTransformControls {
 
     attachObject(objects: BrepGroup[]): void {
         if (objects.length === 0) return;
+        console.log('--- attachObject start ---');
+        console.log('worldBox before:', worldBox.min.toArray(), worldBox.max.toArray());
         objects.forEach(object => {
             object.updateMatrixWorld();
-            tmpBox.copy(object.boundingBox);
+            tmpBox.setFromObject(object, true);
             tmpBox.applyMatrix4(object.matrixWorld);
+            console.log(`object[${object.id}] setFromObject:`, tmpBox.min.toArray(), tmpBox.max.toArray());
+            console.log(`object[${object.id}] position:`, object.position.toArray());
+            console.log(`object[${object.id}] matrixWorld:`, object.matrixWorld.elements);
             worldBox.union(tmpBox);
             attachObjects.set(object, object.parent as Object3D);
         });
 
+        console.log(worldBox.clone(),'跟新后的worldBox');
+
         worldBox.getCenter(this.transformObject.position);
+        console.log('worldBox after:', worldBox.min.toArray(), worldBox.max.toArray());
+        console.log('transformObject.position (center):', this.transformObject.position.toArray());
 
         objects.forEach(object => {
             object.matrixWorld.decompose(worldPosition, worldQuaternion, worldScale);
+            console.log(`object[${object.id}] worldPosition:`, worldPosition.toArray());
 
             object.removeFromParent();
             this.transformObject.add(object);
             object.position.copy(worldPosition).sub(this.transformObject.position);
+            console.log(`object[${object.id}] localPosition after:`, object.position.toArray());
             object.quaternion.copy(worldQuaternion);
             object.scale.copy(worldScale);
         })
 
         this.attach(this.transformObject);
+        console.log('--- attachObject end ---');
     }
 
     /** mouseUp 时同步 GPUPickScene 和 TopoDS_Shape location，物体保留在 transformObject 中 */
@@ -87,4 +99,10 @@ class TransformControls extends ThreeTransformControls {
     }
 }
 
-export { TransformControls };
+enum TransformControlsMode {
+    TRANSLATE = 'translate',
+    ROTATE = 'rotate',
+    SCALE = 'scale',
+}
+
+export { TransformControls, TransformControlsMode };

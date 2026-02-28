@@ -29,6 +29,7 @@ async function load(context: CaseContext): Promise<void> {
                 const shape = ShapeFactory.Box(2, 2, 2);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
                 const group = createBrepGroup(shape, brepResult, material);
+                console.log('group: ', group);
                 app.add(group);
             },
             addSphere: () => {

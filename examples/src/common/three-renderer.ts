@@ -15,7 +15,7 @@ import { SelectionManager } from './selection-manager';
 import { Controls } from './controls';
 import { BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
 import { App } from './app';
-import { TransformControls } from './transform-controls';
+import { TransformControls, TransformControlsMode } from './transform-controls';
 import { OBJECT_MANAGER } from './object-manager';
 import { HelperRenderPass } from './helper-pass';
 
@@ -181,6 +181,11 @@ class ThreeRenderer extends EventListener {
     this.transformControls.detachObject();
   }
 
+  public setTransformControlsMode(mode: TransformControlsMode): void {
+    this.detachObject();
+    this.transformControls.setMode(mode);
+  }
+
   /**
    * 将画布坐标的鼠标点转换为射线与平面的交点（用于 EDIT 模式投影到工作平面）。
    * @param mouse 画布坐标系下的鼠标位置（与 pick 使用同一坐标系）
@@ -209,6 +214,7 @@ class ThreeRenderer extends EventListener {
       if (group) {
         if (!event.shiftKey) {
           this.selectionManager.clearSelection();
+          this.transformControls.detachObject();
         }
         if (this.selectionManager.hasSelection(group)) {
           this.selectionManager.removeSelection(group);

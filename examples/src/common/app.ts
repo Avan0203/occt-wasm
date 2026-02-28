@@ -4,6 +4,7 @@ import { EventListener } from "./event-listener";
 import { PickType, RenderMode } from "./types";
 import { MOUSE, Plane, Vector2, Vector3 } from 'three';
 import type { Object3D } from 'three';
+import { TransformControlsMode } from "./transform-controls";
 
 const startPos = new Vector2(0, 0);
 const mouse = new Vector2(0, 0);
@@ -138,7 +139,7 @@ class App extends EventListener {
             case 'E':
                 this.setMode(RenderMode.EDIT)
                 break;
-            case 'S':
+            case 'K':
                 this.setMode(RenderMode.SKETCH)
                 break;
             case 'DELETE':
@@ -154,6 +155,21 @@ class App extends EventListener {
             case 'G':
                 if(this.mode === RenderMode.OBJECT){
                     const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    this.renderer.setTransformControlsMode(TransformControlsMode.TRANSLATE);
+                    this.renderer.attachObject(selectionGroups);
+                }
+                break;
+            case 'R':
+                if(this.mode === RenderMode.OBJECT){
+                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    this.renderer.setTransformControlsMode(TransformControlsMode.ROTATE);
+                    this.renderer.attachObject(selectionGroups);
+                }
+                break;
+            case 'S':
+                if(this.mode === RenderMode.OBJECT){
+                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    this.renderer.setTransformControlsMode(TransformControlsMode.SCALE);
                     this.renderer.attachObject(selectionGroups);
                 }
                 break;
@@ -189,7 +205,7 @@ class App extends EventListener {
         this.mode = mode;
         this.clearSelection();
         this.renderer.updateWireframeVisibilityByMode(mode);
-        document.getElementById('current-mode')!.textContent = mode;
+        document.getElementById('current-mode')!.textContent = mode.toUpperCase();
         this.dispatchEvent('modeChange', new CustomEvent('modeChange', { detail: { oldMode, newMode: mode } }));
     }
 
