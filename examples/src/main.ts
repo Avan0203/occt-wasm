@@ -19,21 +19,24 @@ router.register(sketchCase);
 router.register(boolOperateCase);
 // 初始化应用
 async function initApp() {
-  const container = document.getElementById('viewer-container')!;
+  const viewport = document.getElementById('viewport')!;
   const caseList = document.getElementById('case-list')!;
   const sidebar = document.getElementById('sidebar')!;
   const sidebarToggle = document.getElementById('sidebar-toggle')!;
 
-  if (!container || !caseList || !sidebar || !sidebarToggle) {
+  if (!viewport || !caseList || !sidebar || !sidebarToggle) {
     console.error('Required DOM elements not found');
     return;
   }
 
   // 初始化侧边栏折叠功能
-  initSidebarToggle(sidebar, sidebarToggle, container);
+  initSidebarToggle(sidebar, sidebarToggle, viewport);
+
+  // 初始化快捷键弹框
+  initShortcutDialog();
 
   // 显示加载提示
-  container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 18px;">Loading OCCT module...</div>';
+  viewport.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-size: 18px;">Loading OCCT module...</div>';
 
   try {
     // 全局加载 OCCT 模块（只加载一次）
@@ -60,10 +63,10 @@ async function initApp() {
     renderCaseList();
 
     // 初始化hash路由（会自动处理初始hash或加载第一个案例）
-    router.initHashRouter(container);
+    router.initHashRouter(viewport);
   } catch (error) {
     console.error('Failed to initialize app:', error);
-    container.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error instanceof Error ? error.message : String(error)}</div>`;
+    viewport.innerHTML = `<div style="color: red; padding: 20px;">Error: ${error instanceof Error ? error.message : String(error)}</div>`;
   }
 
   function renderCaseList() {
@@ -88,6 +91,18 @@ async function initApp() {
           router.setHash(caseId);
         }
       });
+    });
+  }
+
+  function initShortcutDialog() {
+    const tooltip = document.getElementById('tooltip')!;
+    const overlay = document.getElementById('shortcut-overlay')!;
+    const closeBtn = document.getElementById('shortcut-close')!;
+
+    tooltip.addEventListener('click', () => overlay.classList.add('visible'));
+    closeBtn.addEventListener('click', () => overlay.classList.remove('visible'));
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('visible');
     });
   }
 

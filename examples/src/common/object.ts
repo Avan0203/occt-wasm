@@ -196,7 +196,8 @@ class BrepGroup extends THREE.Group {
     }
 
     computeBoundingBox(): void {
-        this.boundingBox.setFromObject(this, true);
+        this.boundingBox.makeEmpty();
+        this.boundingBox.setFromObject(this, false);
     }
 
     /** 设置点与线的渲染可见性（仅影响主场景，不影响 GPU 拾取） */

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -131,6 +132,129 @@
       border: 1px solid #e0e0e0;
     }
 
+    #tooltip {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      height: 40px;
+      width: 40px;
+      line-height: 40px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #505050;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    #tooltip:hover {
+      background: #e0e0e0;
+      color: #333;
+    }
+
+    #shortcut-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #shortcut-overlay.visible {
+      display: flex;
+    }
+
+    #shortcut-dialog {
+      position: relative;
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px 36px 28px;
+      min-width: 380px;
+      max-width: 480px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    #shortcut-dialog h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #shortcut-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      color: #999;
+      cursor: pointer;
+      border-radius: 4px;
+      line-height: 28px;
+      text-align: center;
+    }
+
+    #shortcut-close:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .shortcut-section {
+      margin-bottom: 16px;
+    }
+
+    .shortcut-section h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .shortcut-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .shortcut-row span {
+      font-size: 14px;
+      color: #555;
+    }
+
+    .shortcut-key {
+      display: inline-block;
+      min-width: 28px;
+      padding: 2px 8px;
+      background: #f3f3f3;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+      text-align: center;
+      color: #333;
+      box-shadow: 0 1px 0 #ccc;
+    }
+
+    #viewport {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+    }
+
     footer {
       border-top: 1px solid #e0e0e0;
       height: 18px;
@@ -208,9 +332,11 @@
       font-size: 12px;
       line-height: 18px;
     }
+
     #footer-content-left {
       flex: 1;
     }
+
     #footer-content-right {
       flex: 1;
       text-align: right;
@@ -229,8 +355,40 @@
         </div>
         <div id="case-list"></div>
       </div>
-      <div id="viewer-container"></div>
+      <div id="viewer-container">
+        <div id="viewport"></div>
+        <div id="tooltip" title="how to use"> ? </div>
+      </div>
     </main>
+    <div id="shortcut-overlay">
+      <div id="shortcut-dialog">
+        <button id="shortcut-close">&times;</button>
+        <h2>Keyboard Shortcuts</h2>
+        <div class="shortcut-section">
+          <h3>Mode Switch</h3>
+          <div class="shortcut-row"><span>Object Mode</span><kbd class="shortcut-key">M</kbd></div>
+          <div class="shortcut-row"><span>Edit Mode</span><kbd class="shortcut-key">E</kbd></div>
+          <div class="shortcut-row"><span>Sketch Mode</span><kbd class="shortcut-key">K</kbd></div>
+        </div>
+        <div class="shortcut-section">
+          <h3>Object Operations (OBJECT Mode)</h3>
+          <div class="shortcut-row"><span>Translate</span><kbd class="shortcut-key">G</kbd></div>
+          <div class="shortcut-row"><span>Rotate</span><kbd class="shortcut-key">R</kbd></div>
+          <div class="shortcut-row"><span>Scale</span><kbd class="shortcut-key">S</kbd></div>
+          <div class="shortcut-row"><span>Delete Selected</span><kbd class="shortcut-key">Delete</kbd></div>
+        </div>
+        <div class="shortcut-section">
+          <h3>Sketch Operations (SKETCH Mode)</h3>
+          <div class="shortcut-row"><span>Exit Sketch</span><kbd class="shortcut-key">Esc</kbd></div>
+        </div>
+        <div class="shortcut-section">
+          <h3>View Controls</h3>
+          <div class="shortcut-row"><span>Orbit</span><kbd class="shortcut-key">Mouse Middle Button</kbd></div>
+          <div class="shortcut-row"><span>Pan</span><kbd class="shortcut-key">Shift</kbd> + <kbd class="shortcut-key">Mouse Middle Button</kbd></div>
+          <div class="shortcut-row"><span>Zoom</span><kbd class="shortcut-key">Scroll</kbd></div>
+        </div>
+      </div>
+    </div>
     <footer>
       <div id="footer-content">
         <div id="footer-content-left">

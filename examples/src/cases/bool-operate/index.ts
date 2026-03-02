@@ -50,7 +50,7 @@ async function load(context: CaseContext): Promise<void> {
                     alert('Please select at least 2 objects');
                     return;
                 }
-                if(!selection.every(item => item instanceof BrepGroup)){
+                if (!selection.every(item => item instanceof BrepGroup)) {
                     alert('Please select objects on OBJECT Mode');
                     return;
                 }
@@ -59,8 +59,8 @@ async function load(context: CaseContext): Promise<void> {
                 const compare = selection[0] as BrepGroup;
                 const target = selection[1] as BrepGroup;
 
-                const result = (() => { 
-                    switch(params.operation as 'union' | 'intersection' | 'difference'){
+                const result = (() => {
+                    switch (params.operation as 'union' | 'intersection' | 'difference') {
                         case 'union':
                             return Modeler.union([compare.shape], [target.shape], Number.EPSILON);
                         case 'intersection':
@@ -70,7 +70,7 @@ async function load(context: CaseContext): Promise<void> {
                     }
                 })();
 
-                if(result.isNull()){
+                if (result.isNull()) {
                     alert('Boolean operation failed');
                     return;
                 }
