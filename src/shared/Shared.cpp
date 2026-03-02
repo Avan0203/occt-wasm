@@ -35,4 +35,5 @@ EMSCRIPTEN_BINDINGS(Shared)
 
 
     value_object<Vector3>("Vector3").field("x", &Vector3::x).field("y", &Vector3::y).field("z", &Vector3::z);
+    value_object<Axis1>("Axis1").field("origin", &Axis1::origin).field("direction", &Axis1::direction);
 }

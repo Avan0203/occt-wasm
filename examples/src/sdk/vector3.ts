@@ -131,8 +131,31 @@ class Vector3 {
         return new (getOCCTModule().gp_Dir)(this.x, this.y, this.z);
     }
 
+    negate(): this {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return this;
+    }
+
     static fromVec3(vec3: Vector3Wasm): Vector3 {
         return new Vector3(vec3.x, vec3.y, vec3.z);
+    }
+
+    static fromXYZ(xyz: gp_XYZ): Vector3 {
+        return new Vector3(xyz.x(), xyz.y(), xyz.z());
+    }
+
+    static fromPnt(pnt: gp_Pnt): Vector3 {
+        return new Vector3(pnt.x(), pnt.y(), pnt.z());
+    }
+
+    static fromVec(vec: gp_Vec): Vector3 {
+        return new Vector3(vec.x(), vec.y(), vec.z());
+    }
+
+    static fromDir(dir: gp_Dir): Vector3 {
+        return new Vector3(dir.x(), dir.y(), dir.z());
     }
 }
 

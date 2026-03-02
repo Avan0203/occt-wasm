@@ -10,6 +10,7 @@
 #include <BRepFilletAPI_MakeFillet.hxx>
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeRevol.hxx>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
@@ -121,7 +122,18 @@ TopoDS_Shape intersection(const TopoShapeArray& args, const TopoShapeArray& tool
     return booleanOperate(boolOperator, args, tools, fuzzyValue);
 }
 
-
+/**
+ * @description: 旋转
+ * @param {TopoDS_Shape&} shape
+ * @param {Axis1&} axis
+ * @param {double} angle
+ * @return {TopoDS_Shape} 旋转后的shape
+ */
+TopoDS_Shape revolve(const TopoDS_Shape& shape, const Axis1& axis, double angle) {
+    gp_Ax1 ax1 = Axis1::toAx1(axis);
+    BRepPrimAPI_MakeRevol makeRevol(shape, ax1, angle);
+    return makeRevol.IsDone() ? makeRevol.Shape() : TopoDS_Shape();
+}
 } // anonymous namespace
 
 namespace ModelerBindings {
@@ -135,7 +147,8 @@ void registerBindings() {
         .class_function("prism", &prism)
         .class_function("union", &fuse)
         .class_function("difference", &difference)
-        .class_function("intersection", &intersection);
+        .class_function("intersection", &intersection)
+        .class_function("revolve", &revolve);
 }
 
 } // namespace ModelerBindings

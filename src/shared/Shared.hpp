@@ -73,6 +73,21 @@ struct Vector3 {
     }
 };
 
+struct Axis1 {
+    Vector3 origin;
+    Vector3 direction;
+
+    Axis1() = default;
+    Axis1(const Vector3& origin_, const Vector3& direction_) : origin(origin_), direction(direction_) {}
+
+    static gp_Ax1 toAx1(const Axis1& axis) {
+        return gp_Ax1(Vector3::toPnt(axis.origin), Vector3::toDir(axis.direction));
+    }
+
+    static Axis1 fromAx1(const gp_Ax1& ax1) {
+        return Axis1(Vector3::fromPnt(ax1.Location()), Vector3::fromDir(ax1.Direction()));
+    }
+};
 
 /**
  * Three.js Matrix4.elements (column-major, 16 doubles) -> gp_Trsf

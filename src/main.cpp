@@ -8,6 +8,7 @@
 #include "geometry/ModelerBindings.h"
 #include "brep/BRepBindings.h"
 #include "utils/UtilsBindings.h"
+#include "exchange/ExchangeBindings.h"
 
 EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     // Register all module bindings
@@ -19,5 +20,6 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     PrimApiBindings::registerBindings();
     ModelerBindings::registerBindings();
     UtilsBindings::registerBindings();
+    ExchangeBindings::registerBindings();
 }
 

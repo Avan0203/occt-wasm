@@ -25,12 +25,16 @@ set(OCCT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/source/occt")
 set(OCCT_TOOLKITS
     # FoundationClasses
     TKernel TKMath
-    # ModelingData 
+    # ModelingData
     TKBRep TKG3d TKG2d TKGeomBase
     # ModelingAlgorithms
     TKGeomAlgo TKTopAlgo TKPrim TKBO TKBool TKHLR TKFillet TKOffset TKFeat TKMesh TKShHealing
+    # Visualization
+    TKService TKV3d
+    # XCAF Framework
+    TKCDF TKLCAF TKCAF TKXCAF
     # DataExchange
-    # TKDE TKXSBase TKDESTEP TKDEIGES TKDESTL
+    TKDE TKXSBase TKDESTEP TKDEIGES TKDESTL
 )
 
 # ------------------------------------------------------------
@@ -47,22 +51,11 @@ endforeach()
 list(REMOVE_DUPLICATES OCCT_USED_PACKAGES)
 
 # ------------------------------------------------------------
-# 3. Exclude modules that require TDF/XCAF
+# 3. Exclude visualization-dependent XCAF packages
 # ------------------------------------------------------------
-# list(REMOVE_ITEM OCCT_USED_PACKAGES
-#     TDF
-#     TDataStd
-#     TDocStd
-#     XCAFDoc
-#     XCAFDimTolObjects
-#     XCAFNoteObjects
-#     XCAFPrs
-#     XCAFView
-#     TKCAF
-#     TKCDF
-#     TKLCAF
-#     AppStd
-# )
+list(REMOVE_ITEM OCCT_USED_PACKAGES
+    XCAFApp
+)
 
 # ------------------------------------------------------------
 # 4. Include directories
@@ -74,6 +67,9 @@ endforeach()
 list(APPEND OCCT_INCLUDE_DIRS
     "${OCCT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_BINARY_DIR}/include"
+    # Header-only: excluded packages still needed for compilation
+    "${OCCT_SOURCE_DIR}/src/XCAFApp"
+    "${OCCT_SOURCE_DIR}/src/TPrsStd"
 )
 
 # ------------------------------------------------------------
@@ -84,6 +80,7 @@ foreach(pkg ${OCCT_USED_PACKAGES})
     file(GLOB PKG_SRCS CONFIGURE_DEPENDS
         "${OCCT_SOURCE_DIR}/src/${pkg}/*.cxx"
         "${OCCT_SOURCE_DIR}/src/${pkg}/*.cpp"
+        "${OCCT_SOURCE_DIR}/src/${pkg}/*.c"
     )
     list(APPEND OCCT_SOURCES ${PKG_SRCS})
 endforeach()

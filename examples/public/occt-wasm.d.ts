@@ -610,10 +610,27 @@ export interface TopExp_Explorer extends ClassHandle {
   depth(): number;
 }
 
+export interface ShapeNode extends ClassHandle {
+  shape: TopoDS_Shape | undefined;
+  get name(): string;
+  set name(value: EmbindString);
+  get color(): string | undefined;
+  set color(value: EmbindString | undefined);
+  getChildren(): Array<ShapeNode>;
+}
+
+export interface Exchange extends ClassHandle {
+}
+
 export type Vector3 = {
   x: number,
   y: number,
   z: number
+};
+
+export type Axis1 = {
+  origin: Vector3,
+  direction: Vector3
 };
 
 interface EmbindModule {
@@ -903,6 +920,7 @@ interface EmbindModule {
     fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
     chamfer(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
     prism(_0: TopoDS_Shape, _1: Vector3): TopoDS_Shape;
+    revolve(_0: TopoDS_Shape, _1: Axis1, _2: number): TopoDS_Shape;
   };
   TopExp: {
     extractVertices(_0: TopoDS_Shape): any;
@@ -916,6 +934,17 @@ interface EmbindModule {
   TopExp_Explorer: {
     new(): TopExp_Explorer;
     new(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): TopExp_Explorer;
+  };
+  ShapeNode: {};
+  Exchange: {
+    exportSTEP(_0: ShapeNode): any;
+    exportIGES(_0: ShapeNode): any;
+    importSTEP(_0: Uint8Array): ShapeNode | undefined;
+    importIGES(_0: Uint8Array): ShapeNode | undefined;
+    importSTL(_0: Uint8Array): ShapeNode | undefined;
+    importBREP(_0: Uint8Array): TopoDS_Shape;
+    exportSTL(_0: Array<TopoDS_Shape>, _1: number, _2: number): any;
+    exportBREP(_0: Array<TopoDS_Shape>): any;
   };
 }
 
