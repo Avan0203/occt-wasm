@@ -421,7 +421,7 @@ class ThreeRenderer extends EventListener {
     } else if (object instanceof BrepCompound) {
       collectBrepMeshes(object).forEach((mesh) => this.removeBrepMeshFromManagers(mesh));
     }
-    this.mainGroup.remove(object);
+    object.removeFromParent();
     object.dispose();
   }
 

@@ -28,7 +28,7 @@ async function load(context: CaseContext): Promise<void> {
         const { Exchange } = occtModule;
 
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('/matcaps_64px2.png');
+        const texture = textureLoader.load('public/matcaps_64px2.png');
         const defaultMaterial = new THREE.MeshMatcapMaterial({
             matcap: texture,
         });
@@ -41,6 +41,19 @@ async function load(context: CaseContext): Promise<void> {
         importFile.multiple = false;
 
         let globalShapeNode: ShapeNode | undefined;
+
+        fetch('public/test.stp').then(response => response.arrayBuffer()).then(arrayBuffer => {
+            const shapeNode = handleImportFile(arrayBuffer, 'STEP');
+            console.log('shapeNode: ', shapeNode);
+            if (shapeNode) {
+                globalShapeNode = shapeNode;
+                sceneRoot = shapeNodeToBrepRenderNode(shapeNode, defaultMaterial)
+                if (sceneRoot) {
+                    app.add(sceneRoot);
+                    app.fitToView();
+                };
+            }
+        });
 
         const params = {
             exportType: 'STEP',
