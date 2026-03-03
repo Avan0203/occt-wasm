@@ -1,4 +1,4 @@
-export enum BrepObjectType {
+export enum BrepNodeType {
     POINT = 'point',
     EDGE = 'edge',
     FACE = 'face',

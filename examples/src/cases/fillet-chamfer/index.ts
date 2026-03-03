@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { Case, CaseContext } from '@/router';
-import { createBrepGroup } from '@/common/shape-converter';
+import { createBrepMesh } from '@/common/shape-converter';
 import type { TopoDS_Shape, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType, RenderMode } from '@/common/types';
-import { BrepEdge, BrepGroup, BrepObjectAll } from '@/common/object';
+import { BrepEdge, BrepMesh, BrepObjectAll } from '@/common/object';
 import { App } from '@/common/app';
 import { ShapeFactory } from '@/sdk';
 
@@ -40,13 +40,13 @@ async function load(context: CaseContext): Promise<void> {
             app.setPickType(mode === RenderMode.EDIT ? PickType.EDGE : PickType.ALL);
         });
 
-        let targetGroup: BrepGroup | null = null;
+        let targetGroup: BrepMesh | null = null;
 
         app.addEventListener('selection', (event) => {
             if (app.getMode() !== RenderMode.EDIT) return;
-            if (event.detail instanceof BrepGroup) return;
+            if (event.detail instanceof BrepMesh) return;
             const brepObject = event.detail as BrepObjectAll;
-            const parent = brepObject.parent as BrepGroup;
+            const parent = brepObject.parent as BrepMesh;
 
             if (targetGroup === null) {
                 targetGroup = parent;
@@ -88,16 +88,16 @@ async function load(context: CaseContext): Promise<void> {
 
 
         // 场景里所有可被倒角替换的 shape 组，用数组统一管理，替换时只改对应下标
-        const shapeGroups: BrepGroup[] = [];
+        const shapeGroups: BrepMesh[] = [];
 
         const rectResult = Shape.toBRepResult(boxShape, 0.1, 0.5);
-        const rectGroup = createBrepGroup(boxShape, rectResult, material);
+        const rectGroup = createBrepMesh(boxShape, rectResult, material);
         shapeGroups.push(rectGroup);
         app.add(rectGroup);
 
         const trianglePrism = Modeler.prism(triangleFace, dir);
         const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
-        const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
+        const triangleGroup = createBrepMesh(trianglePrism, triangleResult, material);
         shapeGroups.push(triangleGroup);
         app.add(triangleGroup);
 
@@ -138,7 +138,7 @@ async function load(context: CaseContext): Promise<void> {
                 }
 
                 const newResult = Shape.toBRepResult(newShape, 0.1, 0.5);
-                const newGroup = createBrepGroup(newShape, newResult, material);
+                const newGroup = createBrepMesh(newShape, newResult, material);
 
                 const slotIndex = shapeGroups.indexOf(targetGroup);
                 if (slotIndex >= 0) {

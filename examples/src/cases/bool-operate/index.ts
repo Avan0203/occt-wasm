@@ -1,9 +1,9 @@
 import { Case, CaseContext } from '@/router';
 import * as THREE from 'three';
-import { createBrepGroup } from '@/common/shape-converter';
+import { createBrepMesh } from '@/common/shape-converter';
 import { App } from '@/common/app';
 import { ShapeFactory } from '@/sdk';
-import { BrepGroup } from '@/common/object';
+import { BrepMesh } from '@/common/object';
 
 let app: App = null as unknown as App;
 
@@ -28,20 +28,20 @@ async function load(context: CaseContext): Promise<void> {
             addBox: () => {
                 const shape = ShapeFactory.Box(2, 2, 2);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                const group = createBrepGroup(shape, brepResult, material);
+                const group = createBrepMesh(shape, brepResult, material);
                 console.log('group: ', group);
                 app.add(group);
             },
             addSphere: () => {
                 const shape = ShapeFactory.Sphere(1.5);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                const group = createBrepGroup(shape, brepResult, material);
+                const group = createBrepMesh(shape, brepResult, material);
                 app!.add(group);
             },
             addCone: () => {
                 const shape = ShapeFactory.Cone(1, 0.3, 1.5);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                const group = createBrepGroup(shape, brepResult, material);
+                const group = createBrepMesh(shape, brepResult, material);
                 app!.add(group);
             },
             build: () => {
@@ -50,14 +50,14 @@ async function load(context: CaseContext): Promise<void> {
                     alert('Please select at least 2 objects');
                     return;
                 }
-                if (!selection.every(item => item instanceof BrepGroup)) {
+                if (!selection.every(item => item instanceof BrepMesh)) {
                     alert('Please select objects on OBJECT Mode');
                     return;
                 }
 
                 console.log(selection);
-                const compare = selection[0] as BrepGroup;
-                const target = selection[1] as BrepGroup;
+                const compare = selection[0] as BrepMesh;
+                const target = selection[1] as BrepMesh;
 
                 const result = (() => {
                     switch (params.operation as 'union' | 'intersection' | 'difference') {
@@ -77,7 +77,7 @@ async function load(context: CaseContext): Promise<void> {
 
                 app.remove(compare);
                 app.remove(target);
-                const group = createBrepGroup(result, Shape.toBRepResult(result, 0.1, 0.5), material);
+                const group = createBrepMesh(result, Shape.toBRepResult(result, 0.1, 0.5), material);
                 app.add(group);
             }
         }

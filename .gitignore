@@ -3,4 +3,5 @@ build/
 source/
 *.log
 dist/
+.cache/
 .DS_Store

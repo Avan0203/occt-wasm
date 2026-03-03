@@ -1,7 +1,7 @@
 import { Box3, Object3D, Vector3, Quaternion, Matrix4 } from "three";
 import { TransformControls as ThreeTransformControls } from "three/examples/jsm/Addons.js";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepGroup } from "./object";
+import { BrepMesh } from "./object";
 
 const tmpBox = new Box3();
 const worldBox = new Box3();
@@ -12,7 +12,7 @@ const worldScale = new Vector3();
 
 const objectMatrixWorld = new Matrix4();
 
-const attachObjects = new Map<BrepGroup, Object3D>();
+const attachObjects = new Map<BrepMesh, Object3D>();
 
 
 class TransformControls extends ThreeTransformControls {
@@ -32,7 +32,7 @@ class TransformControls extends ThreeTransformControls {
         this.transformObject.matrix.decompose(this.transformObject.position, this.transformObject.quaternion, this.transformObject.scale);
     }
 
-    attachObject(objects: BrepGroup[]): void {
+    attachObject(objects: BrepMesh[]): void {
         if (objects.length === 0) return;
         objects.forEach(object => {
             object.updateMatrixWorld();
@@ -60,16 +60,16 @@ class TransformControls extends ThreeTransformControls {
 
     /** mouseUp 时同步 GPUPickScene 和 TopoDS_Shape location，物体保留在 transformObject 中 */
     private syncTransform(): void {
-        const groups = this.transformObject.children as BrepGroup[];
-        groups.forEach((object: BrepGroup) => {
+        const groups = this.transformObject.children as BrepMesh[];
+        groups.forEach((object: BrepMesh) => {
             object.updateMatrixWorld();
             object.syncTransform();
         });
     }
 
     detachObject(): void {
-        const groups = [...this.transformObject.children] as BrepGroup[];
-        groups.forEach((object: BrepGroup) => {
+        const groups = [...this.transformObject.children] as BrepMesh[];
+        groups.forEach((object: BrepMesh) => {
             object.updateMatrixWorld();
             objectMatrixWorld.copy(object.matrixWorld);
             const parent = attachObjects.get(object)!;

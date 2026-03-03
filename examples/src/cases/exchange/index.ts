@@ -1,12 +1,13 @@
 import { Case, CaseContext } from '@/router';
 import * as THREE from 'three';
 import { App } from '@/common/app';
-import { BrepGroup } from '@/common/object';
+import { BrepObject } from '@/common/object';
+import { shapeNodeToBrepRenderNode, collectShapesFromShapeNode } from '@/common/shape-converter';
 import { ShapeNode } from 'public/occt-wasm';
 
 let app: App = null as unknown as App;
 
-let group: BrepGroup | null = null;
+let sceneRoot: BrepObject | null = null;
 
 export const exChangeCase: Case = {
     id: 'exchange',
@@ -24,15 +25,11 @@ async function load(context: CaseContext): Promise<void> {
         app = new App(container)!;
 
         const fileTypes = ['STEP', 'IGES', 'BREP', 'STL'];
-
-
-
         const { Exchange } = occtModule;
 
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('/matcaps_64px2.png');
-
-        const material = new THREE.MeshMatcapMaterial({
+        const defaultMaterial = new THREE.MeshMatcapMaterial({
             matcap: texture,
         });
 
@@ -47,20 +44,49 @@ async function load(context: CaseContext): Promise<void> {
 
         const params = {
             exportType: 'STEP',
-        }
+            importFile: () => importFile.click(),
+            exportFile: () => {
+                if (!globalShapeNode) {
+                    console.error('No shape node to export');
+                    return;
+                }
+                switch (params.exportType) {
+                    case 'STEP':
+                        Exchange.exportSTEP(globalShapeNode);
+                        break;
+                    case 'IGES':
+                        Exchange.exportIGES(globalShapeNode);
+                        break;
+                    case 'BREP': {
+                        const shapes = collectShapesFromShapeNode(globalShapeNode);
+                        if (shapes.length > 0) {
+                            Exchange.exportBREP(shapes);
+                        }
+                        break;
+                    }
+                    case 'STL': {
+                        const shapes = collectShapesFromShapeNode(globalShapeNode);
+                        if (shapes.length > 0) {
+                            Exchange.exportSTL(shapes, 0.1, 0.5);
+                        }
+                        break;
+                    }
+                }
+            }
+        };
 
-        function handleImportFile(buffer: ArrayBuffer, type: string) {
+        function handleImportFile(buffer: ArrayBuffer, type: string): ShapeNode | undefined {
             let shapeNode: ShapeNode | undefined;
 
             const uint8Array = new Uint8Array(buffer);
             switch (type) {
                 case 'STEP':
-                    shapeNode = Exchange.importSTEP(uint8Array);
+                    shapeNode = Exchange.importSTEP(uint8Array) ?? undefined;
                     break;
                 case 'IGES':
-                    shapeNode = Exchange.importIGES(uint8Array);
+                    shapeNode = Exchange.importIGES(uint8Array) ?? undefined;
                     break;
-                case 'BREP':
+                case 'BREP': {
                     const topoShape = Exchange.importBREP(uint8Array);
                     shapeNode = {
                         shape: topoShape,
@@ -69,8 +95,9 @@ async function load(context: CaseContext): Promise<void> {
                         getChildren: () => [],
                     } as unknown as ShapeNode;
                     break;
+                }
                 case 'STL':
-                    shapeNode = Exchange.importSTL(uint8Array);
+                    shapeNode = Exchange.importSTL(uint8Array) ?? undefined;
                     break;
                 default:
                     console.error('Unsupported file type:', type);
@@ -79,60 +106,50 @@ async function load(context: CaseContext): Promise<void> {
             return shapeNode;
         }
 
-        function handleExportFile() {
-            if (!globalShapeNode) {
-                console.error('No shape node to export');
-                return;
-            }
-
-            switch (params.exportType) {
-                case 'STEP':
-                    Exchange.exportSTEP(globalShapeNode);
-                    break;
-                case 'IGES':
-                    Exchange.exportIGES(globalShapeNode);
-                    break;
-                case 'BREP':
-                    Exchange.exportBREP(globalShapeNode.shape!);
-                    break;
-                case 'STL':
-                    Exchange.exportSTL([globalShapeNode.shape!], 0.1, 0.5);
-                    break;
-            }
-        }
-
         importFile.onchange = (event) => {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    const arrayBuffer = event.target?.result as ArrayBuffer;
+                reader.onload = (e) => {
+                    const arrayBuffer = e.target?.result as ArrayBuffer;
                     if (arrayBuffer) {
                         const shapeNode = handleImportFile(arrayBuffer, file.name.split('.').pop()!.toUpperCase());
+                        console.log('shapeNode: ', shapeNode);
+                        if (shapeNode) {
+                            if (sceneRoot) {
+                                app.remove(sceneRoot);
+                                sceneRoot.dispose();
+                                sceneRoot = null;
+                            }
+                            globalShapeNode = shapeNode;
+                            sceneRoot = shapeNodeToBrepRenderNode(shapeNode, defaultMaterial)
+                            if (sceneRoot) {
+                                app.add(sceneRoot);
+                                app.fitToView();
+                            };
+
+                        }
                     }
-                }
+                };
+                reader.readAsArrayBuffer(file);
             }
-        }
+        };
 
-        const params = {
-            importFile: null,
-            exportFile: null,
-        }
-
-        gui.add(params, 'importFile');
-        gui.add(params, 'exportFile');
+        gui.add(params, 'exportType', ['STEP', 'IGES', 'BREP', 'STL']);
+        gui.add(params, 'importFile').name('Import');
+        gui.add(params, 'exportFile').name('Export');
 
     } catch (error) {
-        console.error('Error loading box show case:', error);
+        console.error('Error loading exchange case:', error);
     }
 }
 
 function unload(context: CaseContext): void {
     if (app) {
-        if (group) {
-            app.remove(group);
-            group.dispose();
-            group = null;
+        if (sceneRoot) {
+            app.remove(sceneRoot);
+            sceneRoot.dispose();
+            sceneRoot = null;
         }
         app.dispose();
         app = null as unknown as App;

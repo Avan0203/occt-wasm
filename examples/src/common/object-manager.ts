@@ -1,9 +1,9 @@
 import { ObjectID } from "./id-tool";
-import { BrepObjectAll } from "./object";
+import { BrepNodes } from "./object";
 import { BrepGPUGroup } from "./object";
 
 const USE_ID_MAP = new Map<string, ObjectID>();
-const ID_OBJECT_MAP = new Map<string, BrepObjectAll>();
+const ID_OBJECT_MAP = new Map<string, BrepNodes>();
 const OBJECT_GPU_MAP = new Map<string, BrepGPUGroup>();
 
 class ObjectManager {
@@ -14,7 +14,7 @@ class ObjectManager {
      * @param {BrepObjectAll} object
      * @return {void}
      */
-    addObject(key: string, object: BrepObjectAll): void {
+    addObject(key: string, object: BrepNodes): void {
         ID_OBJECT_MAP.set(key, object);
     }
 
@@ -23,7 +23,7 @@ class ObjectManager {
      * @param {string} key
      * @return {BrepObjectAll | undefined}
      */
-    getObject(key: string): BrepObjectAll | undefined {
+    getObject(key: string): BrepNodes | undefined {
         return ID_OBJECT_MAP.get(key);
     }
 

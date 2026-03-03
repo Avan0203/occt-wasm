@@ -1,9 +1,9 @@
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import * as THREE from 'three';
 import { createPointMaterial, createLineMaterial } from './shape-converter';
-import { BrepObjectType } from "./types";
+import { BrepNodeType } from "./types";
 import { ThreeRenderer } from "./three-renderer";
-import { BrepObjectAll, BrepGroup, BrepFace } from "./object";
+import { BrepNodes, BrepMesh, BrepFace, BrepNode } from "./object";
 import { App } from "./app";
 
 const faceColor = '#1890FF';
@@ -12,18 +12,18 @@ const pointColor = '#50BFFF';
 
 
 class SelectionManager {
-    private selectionFaceMaterial = this.createSelectionMaterial(BrepObjectType.FACE);
-    private selectionPointMaterial = this.createSelectionMaterial(BrepObjectType.POINT);
-    private selectionEdgeMaterial = this.createSelectionMaterial(BrepObjectType.EDGE);
+    private selectionFaceMaterial = this.createSelectionMaterial(BrepNodeType.FACE);
+    private selectionPointMaterial = this.createSelectionMaterial(BrepNodeType.POINT);
+    private selectionEdgeMaterial = this.createSelectionMaterial(BrepNodeType.EDGE);
 
-    private lastSelectedObjects = new Set<BrepObjectAll>();
-    private currentSelectedObjects = new Set<BrepObjectAll>();
-    private hasBeenSelectedObjects = new Set<BrepObjectAll>();
+    private lastSelectedObjects = new Set<BrepNodes>();
+    private currentSelectedObjects = new Set<BrepNodes>();
+    private hasBeenSelectedObjects = new Set<BrepNodes>();
     // 存储原来的材质
-    private materialMap = new Map<BrepObjectAll, THREE.Material | LineMaterial>();
+    private materialMap = new Map<BrepNodes, THREE.Material | LineMaterial>();
 
 
-    private currentSelectedGroups = new Set<BrepGroup>();
+    private currentSelectedGroups = new Set<BrepMesh>();
     private renderedSelectedGroup = new Set<BrepFace>();
 
     constructor(private renderer: ThreeRenderer, private app: App) {
@@ -37,9 +37,9 @@ class SelectionManager {
         this.renderer.outlinePass.overlayMaterial.blendDst = THREE.OneMinusSrcAlphaFactor;
     }
 
-    addSelection(item: BrepObjectAll | BrepGroup): void {
+    addSelection(item: BrepNodes | BrepMesh): void {
         // OBJECT MODE
-        if (item instanceof BrepGroup) {
+        if (item instanceof BrepMesh) {
             if (this.currentSelectedGroups.has(item)) return;
             this.currentSelectedGroups.add(item);
             item.faces.forEach(face => this.renderedSelectedGroup.add(face));
@@ -53,8 +53,8 @@ class SelectionManager {
         }
     }
 
-    removeSelection(item: BrepObjectAll | BrepGroup): void {
-        if (item instanceof BrepGroup) {
+    removeSelection(item: BrepNodes | BrepMesh): void {
+        if (item instanceof BrepMesh) {
             this.currentSelectedGroups.delete(item);
             item.faces.forEach(face => this.renderedSelectedGroup.delete(face));
             this.updateOutlineObjects();
@@ -71,13 +71,13 @@ class SelectionManager {
         }
     }
 
-    hasSelection(item: BrepObjectAll | BrepGroup): boolean {
-        if (item instanceof BrepGroup) return this.currentSelectedGroups.has(item);
+    hasSelection(item: BrepNodes | BrepMesh): boolean {
+        if (item instanceof BrepMesh) return this.currentSelectedGroups.has(item);
         return this.currentSelectedObjects.has(item);
     }
 
     /** 从选择中移除单个对象并恢复原材质，供 remove/clear 场景时调用 */
-    public removeObject(object: BrepObjectAll): void {
+    public removeObject(object: BrepNodes | BrepMesh): void {
         this.removeSelection(object);
     }
 
@@ -90,11 +90,11 @@ class SelectionManager {
     private updateSelection(): void {
         this.currentSelectedObjects.forEach(object => {
             if (this.hasBeenSelectedObjects.has(object)) return;
-            if (object.type === BrepObjectType.FACE) {
+            if (object.type === BrepNodeType.FACE) {
                 object.material = this.selectionFaceMaterial;
-            } else if (object.type === BrepObjectType.POINT) {
+            } else if (object.type === BrepNodeType.POINT) {
                 object.material = this.selectionPointMaterial;
-            } else if (object.type === BrepObjectType.EDGE) {
+            } else if (object.type === BrepNodeType.EDGE) {
                 object.material = this.selectionEdgeMaterial;
             }
             object.renderOrder = 1;
@@ -124,11 +124,11 @@ class SelectionManager {
         this.updateOutlineObjects();
     }
 
-    getSelectionObjects(): BrepObjectAll[] {
+    getSelectionObjects(): BrepNodes[] {
         return Array.from(this.currentSelectedObjects);
     }
 
-    getSelectionGroups(): BrepGroup[] {
+    getSelectionGroups(): BrepMesh[] {
         return Array.from(this.currentSelectedGroups);
     }
 
@@ -139,10 +139,10 @@ class SelectionManager {
         this.selectionEdgeMaterial.dispose();
     }
 
-    private createSelectionMaterial(type: BrepObjectType) {
+    private createSelectionMaterial(type: BrepNodeType) {
         let material: THREE.Material | LineMaterial;
         switch (type) {
-            case BrepObjectType.FACE:
+            case BrepNodeType.FACE:
                 material = new THREE.MeshLambertMaterial({
                     color: faceColor,
                     depthWrite: false,
@@ -153,12 +153,12 @@ class SelectionManager {
                     depthTest: false,
                 });
                 break;
-            case BrepObjectType.POINT:
+            case BrepNodeType.POINT:
                 material = createPointMaterial(pointColor);
                 material.transparent = true;
                 (material as THREE.PointsMaterial).size = (material as THREE.PointsMaterial).size + 1;
                 break;
-            case BrepObjectType.EDGE:
+            case BrepNodeType.EDGE:
                 material = createLineMaterial(lineColor);
                 (material as LineMaterial).transparent = true;
                 (material as LineMaterial).linewidth = (material as LineMaterial).linewidth + 1;

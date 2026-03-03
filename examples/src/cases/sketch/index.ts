@@ -11,7 +11,7 @@ import { PickType, RenderMode } from '@/common/types';
 import { App } from '@/common/app';
 import { SketchBuilder } from '@/sdk/sketch';
 import { Vector3 as Vec3 } from '@/sdk/vector3';
-import { createBrepGroup } from '@/common/shape-converter';
+import { createBrepMesh } from '@/common/shape-converter';
 
 let app: App;
 
@@ -187,7 +187,7 @@ async function load(context: CaseContext): Promise<void> {
 
             for (const shape of shapes) {
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
-                const group = createBrepGroup(shape, brepResult, material);
+                const group = createBrepMesh(shape, brepResult, material);
                 app.add(group);
             }
             exitSketch();

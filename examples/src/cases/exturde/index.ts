@@ -1,8 +1,8 @@
 import { Case, CaseContext } from '@/router';
 import * as THREE from 'three';
-import { createBrepGroup } from '@/common/shape-converter';
+import { createBrepMesh } from '@/common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
-import { BrepGroup } from '@/common/object';
+import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
 
 export const exturdeCase: Case = {
@@ -53,7 +53,7 @@ async function load(context: CaseContext): Promise<void> {
             color: "#00cfff"
         });
 
-        let groups: BrepGroup[] = [];
+        let groups: BrepMesh[] = [];
 
 
         function build() {
@@ -66,13 +66,13 @@ async function load(context: CaseContext): Promise<void> {
 
             const rectPrism =  Modeler.prism(rectFace, dir);
             const rectResult = Shape.toBRepResult(rectPrism, 0.1, 0.5);
-            const rectGroup = createBrepGroup(rectPrism, rectResult, material);
+            const rectGroup = createBrepMesh(rectPrism, rectResult, material);
             groups.push(rectGroup);
             app.add(rectGroup);
 
             const trianglePrism = Modeler.prism(triangleFace, dir);
             const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
-            const triangleGroup = createBrepGroup(trianglePrism, triangleResult, material);
+            const triangleGroup = createBrepMesh(trianglePrism, triangleResult, material);
             groups.push(triangleGroup);
             app.add(triangleGroup);
         }

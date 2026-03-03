@@ -6,14 +6,14 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js';
 import { FXAAPass } from 'three/addons/postprocessing/FXAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { BrepObjectType, PickType, RenderMode } from './types';
-import { createGPUBrepGroup, getObjectById } from './shape-converter';
+import { BrepNodeType, PickType, RenderMode } from './types';
+import { createGPUBrepGroup, getObjectById, collectBrepMeshes } from './shape-converter';
 import { color2id, createSpiralOrder } from './utils';
 import { HeightlightManager } from './heightlight-manager';
 import { EventListener } from './event-listener';
 import { SelectionManager } from './selection-manager';
 import { Controls } from './controls';
-import { BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from './object';
+import { BrepMesh, BrepCompound, getBrepMeshFromBrepObject, BrepObject, BrepNode, BrepNodes } from './object';
 import { App } from './app';
 import { TransformControls, TransformControlsMode } from './transform-controls';
 import { OBJECT_MANAGER } from './object-manager';
@@ -35,7 +35,7 @@ class ThreeRenderer extends EventListener {
   private animationId: number | null = null;
   private GPUPickScene: THREE.Scene;
   private helperGroup = new THREE.Group();
-  private mainGroup = new THREE.Group();
+  private mainGroup: THREE.Group & { children: BrepObject[] } = new THREE.Group() as any;
   private pickTarget = new THREE.WebGLRenderTarget(1, 1);
   private pickSize = 1;
 
@@ -157,7 +157,7 @@ class ThreeRenderer extends EventListener {
     this.pickType = type;
   }
 
-  public getSelectionObjects(): BrepObjectAll[] | BrepGroup[] {
+  public getSelectionObjects(): BrepNodes[] | BrepMesh[] {
     if (this.mode === RenderMode.OBJECT) {
       return this.selectionManager.getSelectionGroups();
     } else {
@@ -173,7 +173,7 @@ class ThreeRenderer extends EventListener {
     return this.container;
   }
 
-  public attachObject(objects: BrepGroup[]): void {
+  public attachObject(objects: BrepMesh[]): void {
     this.transformControls.attachObject(objects);
   }
 
@@ -210,19 +210,18 @@ class ThreeRenderer extends EventListener {
     const { mouse, event } = e.detail;
     const result = this.pick(mouse, this.pickType);
     if (this.mode === RenderMode.OBJECT) {
-      const group = result ? getBrepGroupFromBrepObject(result) : null;
-      if (group) {
+      const mesh = result ? getBrepMeshFromBrepObject(result) : null;
+      if (mesh) {
         if (!event.shiftKey) {
           this.selectionManager.clearSelection();
           this.transformControls.detachObject();
         }
-        if (this.selectionManager.hasSelection(group)) {
-          this.selectionManager.removeSelection(group);
+        if (this.selectionManager.hasSelection(mesh)) {
+          this.selectionManager.removeSelection(mesh);
         } else {
-          this.selectionManager.addSelection(group);
+          this.selectionManager.addSelection(mesh);
         }
-        // this.transformControls.attach(transformGroup);
-        this.dispatchEvent('selection', new CustomEvent('selection', { detail: { group } }));
+        this.dispatchEvent('selection', new CustomEvent('selection', { detail: { group: mesh } }));
       } else {
         this.transformControls.detachObject();
         this.selectionManager.clearSelection();
@@ -264,7 +263,7 @@ class ThreeRenderer extends EventListener {
     this.pickTarget.setSize(size, size);
   }
 
-  public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepObjectAll | null {
+  public pick(pos: THREE.Vector2Like, pickType = this.pickType): BrepNodes | null {
     this.preparePick();
 
     const length = this.pickSize * 2;
@@ -288,7 +287,7 @@ class ThreeRenderer extends EventListener {
 
 
     const allowedTypes = getBrepObjectTypesByPickType(pickType);
-    const candidateByType: Partial<Record<BrepObjectType, BrepObjectAll>> = {};
+    const candidateByType: Partial<Record<BrepNodeType, BrepNodes>> = {};
 
     for (let i of pickOrder) {
       const index = i * 4;
@@ -297,15 +296,15 @@ class ThreeRenderer extends EventListener {
 
       if (object && allowedTypes.includes(object.type) && candidateByType[object.type] === undefined) {
         candidateByType[object.type] = object;
-        if (allowedTypes.every((t) => candidateByType[t] !== undefined)) {
+        if (allowedTypes.every((t: BrepNodeType) => candidateByType[t] !== undefined)) {
           break;
         }
       }
     }
 
     for (const type of allowedTypes) {
-      if (candidateByType[type]) {
-        return candidateByType[type]!;
+      if (candidateByType[type as BrepNodeType]) {
+        return candidateByType[type as BrepNodeType]!;
       }
     }
 
@@ -384,34 +383,44 @@ class ThreeRenderer extends EventListener {
   }
 
   /**
-   * 根据模式更新所有 BrepGroup 中点与线的渲染可见性（object 模式隐藏，其它模式显示）
+   * 根据模式更新所有 BrepNode 中点与线的渲染可见性（object 模式隐藏，其它模式显示）
    */
   updateWireframeVisibilityByMode(mode: RenderMode): void {
     const visible = mode !== RenderMode.OBJECT;
-    this.mainGroup.children.forEach((child) => {
-      if (child instanceof BrepGroup) {
+    this.mainGroup.children.forEach((child : BrepObject) => {
         child.setWireframeVisible(visible);
-      }
     });
   }
 
   /**
-   * 添加对象到场景
+   * 添加对象到场景（支持 BrepMesh 或 BrepCompound）
    */
-  add(object: BrepGroup): void {
+  add(object: BrepObject): void {
     this.mainGroup.add(object);
     object.setWireframeVisible(this.mode !== RenderMode.OBJECT);
 
-    const gpuObject = createGPUBrepGroup(object);
-    this.GPUPickScene.add(gpuObject);
-    OBJECT_MANAGER.setGPUGroup(object.id.toString(), gpuObject);
+    if (object instanceof BrepMesh) {
+      const gpuObject = createGPUBrepGroup(object);
+      this.GPUPickScene.add(gpuObject);
+      OBJECT_MANAGER.setGPUGroup(object.id.toString(), gpuObject);
+    } else if (object instanceof BrepCompound) {
+      collectBrepMeshes(object).forEach((mesh) => {
+        const gpuObject = createGPUBrepGroup(mesh);
+        this.GPUPickScene.add(gpuObject);
+        OBJECT_MANAGER.setGPUGroup(mesh.id.toString(), gpuObject);
+      });
+    }
   }
 
   /**
-   * 从场景移除对象
+   * 从场景移除对象（支持 BrepMesh 或 BrepCompound）
    */
-  remove(object: BrepGroup): void {
-    this.removeBrepGroupFromManagers(object);
+  remove(object: BrepObject): void {
+    if (object instanceof BrepMesh) {
+      this.removeBrepMeshFromManagers(object);
+    } else if (object instanceof BrepCompound) {
+      collectBrepMeshes(object).forEach((mesh) => this.removeBrepMeshFromManagers(mesh));
+    }
     this.mainGroup.remove(object);
     object.dispose();
   }
@@ -425,12 +434,12 @@ class ThreeRenderer extends EventListener {
   }
 
   /** 在 dispose 前从高亮/选择中移除，避免 dispose 掉共享材质并释放对已销毁对象的引用 */
-  private removeBrepGroupFromManagers(group: BrepGroup): void {
-    [...group.faces, ...group.points, ...group.edges].forEach((obj) => {
+  private removeBrepMeshFromManagers(mesh: BrepMesh): void {
+    [...mesh.faces, ...mesh.points, ...mesh.edges].forEach((obj) => {
       this.heightlightManager.removeObject(obj);
       this.selectionManager.removeObject(obj);
     });
-    this.selectionManager.removeSelection(group);
+    this.selectionManager.removeSelection(mesh);
   }
 
   /**
@@ -438,10 +447,12 @@ class ThreeRenderer extends EventListener {
    */
   clear(): void {
     [...this.mainGroup.children].forEach((child) => {
-      if (child.hasOwnProperty('dispose')) {
-        this.removeBrepGroupFromManagers(child as BrepGroup);
-        (child as any).dispose();
-      }
+        if (child instanceof BrepMesh) {
+          this.removeBrepMeshFromManagers(child);
+        } else if (child instanceof BrepCompound) {
+          collectBrepMeshes(child).forEach((mesh) => this.removeBrepMeshFromManagers(mesh));
+        }
+        child.dispose();
     });
     this.mainGroup.clear();
 
@@ -586,13 +597,13 @@ class ThreeRenderer extends EventListener {
 
 }
 
-function getBrepObjectTypesByPickType(pickType: PickType): BrepObjectType[] {
+function getBrepObjectTypesByPickType(pickType: PickType): BrepNodeType[] {
   switch (pickType) {
-    case PickType.VERTEX: return [BrepObjectType.POINT];
-    case PickType.EDGE: return [BrepObjectType.EDGE];
-    case PickType.FACE: return [BrepObjectType.FACE];
-    case PickType.ALL: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
-    default: return [BrepObjectType.POINT, BrepObjectType.EDGE, BrepObjectType.FACE];
+    case PickType.VERTEX: return [BrepNodeType.POINT];
+    case PickType.EDGE: return [BrepNodeType.EDGE];
+    case PickType.FACE: return [BrepNodeType.FACE];
+    case PickType.ALL: return [BrepNodeType.POINT, BrepNodeType.EDGE, BrepNodeType.FACE];
+    default: return [BrepNodeType.POINT, BrepNodeType.EDGE, BrepNodeType.FACE];
   }
 }
 

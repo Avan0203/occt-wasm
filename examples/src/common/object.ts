@@ -1,6 +1,6 @@
 import { TopoDS_Shape } from "public/occt-wasm";
 import * as THREE from 'three';
-import { BrepObjectType } from "./types";
+import { BrepNodeType } from "./types";
 import { OBJECT_MANAGER } from "./object-manager";
 import { Vertex, Edge, Face } from "./brep-result";
 import { LineGeometry, LineMaterial, LineSegments2 } from "three/examples/jsm/Addons.js";
@@ -11,10 +11,10 @@ const _pm = new THREE.Matrix4();
 
 type BrepGeometryType = BrepGeometry<Vertex> | BrepGeometry<Edge> | BrepGeometry<Face> | BrepLineGeometry;
 
-interface BrepObject extends THREE.Object3D {
+interface BrepNode extends BrepBase {
     readonly objectId: string;
     dispose: () => void;
-    readonly type: BrepObjectType;
+    readonly type: BrepNodeType;
     geometry: BrepGeometryType;
     material: THREE.Material | LineMaterial;
 }
@@ -30,7 +30,7 @@ function cleanupBrepGeometry(geometry: BrepGeometry<Vertex | Edge | Face> | Brep
     }
 }
 
-function disposeObject(object: BrepObject) {
+function disposeObject(object: BrepNode) {
     OBJECT_MANAGER.deleteObject(object.objectId);
     object.geometry.dispose();
     const material = Array.isArray(object.material) ? object.material : [object.material];
@@ -95,18 +95,18 @@ class BrepLineGeometry extends LineGeometry {
 }
 
 
-type BrepObjectAll = BrepFace | BrepPoint | BrepEdge;
+type BrepNodes = BrepFace | BrepPoint | BrepEdge;
 
-class BrepFace extends THREE.Mesh implements BrepObject {
+class BrepFace extends THREE.Mesh implements BrepNode {
     readonly objectId: string;
-    readonly type: BrepObjectType;
+    readonly type: BrepNodeType;
     geometry: BrepGeometry<Face>;
     material: THREE.Material;
 
     constructor(geometry: BrepGeometry<Face>, material: THREE.Material) {
         super(geometry, material);
         this.objectId = geometry.objectId;
-        this.type = BrepObjectType.FACE;
+        this.type = BrepNodeType.FACE;
         this.geometry = geometry;
         this.material = material;
     }
@@ -118,15 +118,15 @@ class BrepFace extends THREE.Mesh implements BrepObject {
     }
 }
 
-class BrepPoint extends THREE.Points implements BrepObject {
+class BrepPoint extends THREE.Points implements BrepNode {
     readonly objectId: string;
-    readonly type: BrepObjectType;
+    readonly type: BrepNodeType;
     geometry: BrepGeometry<Vertex>;
     material: THREE.Material;
     constructor(geometry: BrepGeometry<Vertex>, material: THREE.Material) {
         super(geometry, material);
         this.objectId = geometry.objectId;
-        this.type = BrepObjectType.POINT;
+        this.type = BrepNodeType.POINT;
         this.geometry = geometry;
         this.material = material;
     }
@@ -139,15 +139,15 @@ class BrepPoint extends THREE.Points implements BrepObject {
     }
 }
 
-class BrepEdge extends LineSegments2 implements BrepObject {
+class BrepEdge extends LineSegments2 implements BrepNode {
     readonly objectId: string;
-    readonly type: BrepObjectType;
+    readonly type: BrepNodeType;
     geometry: BrepLineGeometry;
     material: LineMaterial;
     constructor(geometry: BrepLineGeometry, material: LineMaterial) {
         super(geometry, material);
         this.objectId = geometry.objectId;
-        this.type = BrepObjectType.EDGE;
+        this.type = BrepNodeType.EDGE;
         this.geometry = geometry;
         this.material = material;
     }
@@ -160,16 +160,16 @@ class BrepEdge extends LineSegments2 implements BrepObject {
     }
 }
 
-class BrepGPUEdge extends THREE.LineSegments implements BrepObject {
+class BrepGPUEdge extends THREE.LineSegments implements BrepNode {
     readonly objectId: string;
-    readonly type: BrepObjectType;
+    readonly type: BrepNodeType;
     readonly geometry: BrepGeometry<Edge>;
     readonly material: THREE.Material;
 
     constructor(geometry: BrepGeometry<Edge>, material: THREE.Material) {
         super(geometry, material);
         this.objectId = geometry.objectId;
-        this.type = BrepObjectType.EDGE;
+        this.type = BrepNodeType.EDGE;
         this.geometry = geometry;
         this.material = material;
     }
@@ -181,12 +181,25 @@ class BrepGPUEdge extends THREE.LineSegments implements BrepObject {
 
 }
 
+/** 场景中可添加的 brep 节点基类（区分于 BrepObject：face/edge/point 子对象） */
+abstract class BrepBase extends THREE.Object3D {
+    abstract dispose(): void;
+}
 
-class BrepGroup extends THREE.Group {
+abstract class BrepRenderBase extends BrepBase {
+    boundingBox = new THREE.Box3();
+    abstract get shape(): TopoDS_Shape;
+    abstract setWireframeVisible(visible: boolean): void;
+    abstract computeBoundingBox(): void;
+    abstract transformToWorldMatrix(worldMatrix: THREE.Matrix4): void;
+    abstract syncTransform(worldMatrix: THREE.Matrix4): void;
+}
+
+/** 叶子节点：单个 shape 的网格化表示 */
+class BrepMesh extends BrepRenderBase {
     faces: BrepFace[] = [];
     points: BrepPoint[] = [];
     edges: BrepEdge[] = [];
-    boundingBox = new THREE.Box3();
     constructor(private _shape: TopoDS_Shape) {
         super();
     }
@@ -254,8 +267,57 @@ class BrepGroup extends THREE.Group {
     }
 }
 
+/** 容器节点：children 为 BrepMesh | BrepCompound */
+class BrepCompound extends BrepRenderBase {
+    children: BrepRenderBase[] = [];
 
-class BrepGPUGroup extends THREE.Group {
+    constructor(private _shape: TopoDS_Shape) {
+        super();
+    }
+
+    get shape(): TopoDS_Shape {
+        return this._shape;
+    }
+
+    computeBoundingBox(): void {
+        this.boundingBox.makeEmpty();
+        this.children.forEach((child) => {
+            child.computeBoundingBox();
+            this.boundingBox.union(child.boundingBox);
+        });
+    }
+
+    setWireframeVisible(visible: boolean): void {
+        this.children.forEach((child) => {
+            child.setWireframeVisible(visible);
+        });
+    }
+
+    transformToWorldMatrix(worldMatrix: THREE.Matrix4): void {
+        this.children.forEach((child) => {
+            child.transformToWorldMatrix(worldMatrix);
+        });
+    }
+
+    syncTransform(worldMatrix: THREE.Matrix4): void {
+        this.children.forEach((child) => {
+            child.syncTransform(worldMatrix);
+        });
+    }
+
+    dispose(): void {
+        const children = [...this.children];
+        children.forEach((child) => {
+            if (child instanceof BrepRenderBase) {
+                child.dispose();
+            }
+        });
+    }
+}
+
+type BrepObject = BrepMesh | BrepCompound
+
+class BrepGPUGroup extends BrepBase {
     faces: BrepFace[];
     points: BrepPoint[];
     edges: BrepGPUEdge[];
@@ -280,26 +342,26 @@ class BrepGPUGroup extends THREE.Group {
 
 }
 
-function getBrepGroupFromBrepObject(obj: BrepObjectAll): BrepGroup | null {
+function getBrepMeshFromBrepObject(obj: BrepNodes): BrepMesh | null {
     let p: THREE.Object3D | null = obj.parent;
     while (p) {
-        if (p instanceof BrepGroup) return p;
+        if (p instanceof BrepMesh) return p;
         p = p.parent;
     }
     return null;
 }
 
-export { getBrepGroupFromBrepObject };
+export { getBrepMeshFromBrepObject };
 export {
-    BrepGroup,
+    BrepMesh,
+    BrepCompound,
     BrepFace,
     BrepPoint,
     BrepEdge,
     BrepGeometry,
     BrepLineGeometry,
-    BrepObjectType,
+    BrepNodeType,
     BrepGPUEdge,
     BrepGPUGroup
 };
-export type { BrepObject, BrepGeometryType, BrepObjectAll };
-
+export type { BrepNode, BrepGeometryType, BrepNodes, BrepObject };

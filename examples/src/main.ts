@@ -8,6 +8,7 @@ import {
   filletChamferCase ,
   sketchCase,
   boolOperateCase,
+  exChangeCase,
 } from './cases';
 
 // 注册案例
@@ -17,6 +18,7 @@ router.register(exturdeCase);
 router.register(filletChamferCase);
 router.register(sketchCase);
 router.register(boolOperateCase);
+router.register(exChangeCase);
 // 初始化应用
 async function initApp() {
   const viewport = document.getElementById('viewport')!;

@@ -1,4 +1,4 @@
-import { BrepGroup, BrepObjectAll, getBrepGroupFromBrepObject } from "./object";
+import { BrepMesh, BrepNodes, BrepObject } from "./object";
 import { ThreeRenderer } from "./three-renderer";
 import { EventListener } from "./event-listener";
 import { PickType, RenderMode } from "./types";
@@ -144,7 +144,7 @@ class App extends EventListener {
                 break;
             case 'DELETE':
                 if(this.mode === RenderMode.OBJECT){
-                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    const selectionGroups = this.getSelectionObjects() as BrepMesh[];
                     console.log('selectionGroups: ', selectionGroups);
                     selectionGroups.forEach((group)=>{
                         this.remove(group);
@@ -154,21 +154,21 @@ class App extends EventListener {
                 break;
             case 'G':
                 if(this.mode === RenderMode.OBJECT){
-                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    const selectionGroups = this.getSelectionObjects() as BrepMesh[];
                     this.renderer.setTransformControlsMode(TransformControlsMode.TRANSLATE);
                     this.renderer.attachObject(selectionGroups);
                 }
                 break;
             case 'R':
                 if(this.mode === RenderMode.OBJECT){
-                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    const selectionGroups = this.getSelectionObjects() as BrepMesh[];
                     this.renderer.setTransformControlsMode(TransformControlsMode.ROTATE);
                     this.renderer.attachObject(selectionGroups);
                 }
                 break;
             case 'S':
                 if(this.mode === RenderMode.OBJECT){
-                    const selectionGroups = this.getSelectionObjects() as BrepGroup[];
+                    const selectionGroups = this.getSelectionObjects() as BrepMesh[];
                     this.renderer.setTransformControlsMode(TransformControlsMode.SCALE);
                     this.renderer.attachObject(selectionGroups);
                 }
@@ -179,11 +179,11 @@ class App extends EventListener {
         this.dispatchEvent('keyup', new CustomEvent('keyup', { detail: e }));
     }
 
-    add(object: BrepGroup): void {
+    add(object: BrepObject): void {
         this.renderer.add(object);
     }
 
-    remove(object: BrepGroup): void {
+    remove(object: BrepObject): void {
         this.renderer.remove(object);
     }
 
@@ -221,7 +221,7 @@ class App extends EventListener {
         this.renderer.fitToView();
     }
 
-    getSelectionObjects(): BrepObjectAll[] | BrepGroup[] {
+    getSelectionObjects(): BrepNodes[] | BrepMesh[] {
         return this.renderer.getSelectionObjects();
     }
 
