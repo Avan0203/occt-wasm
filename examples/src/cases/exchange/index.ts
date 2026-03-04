@@ -24,7 +24,7 @@ async function load(context: CaseContext): Promise<void> {
         container.innerHTML = '';
         app = new App(container)!;
 
-        const fileTypes = ['STEP', 'IGES', 'BREP', 'STL'];
+        const fileTypes = ['STEP', 'IGES', 'BREP', 'STL','STP'];
         const { Exchange } = occtModule;
 
         const textureLoader = new THREE.TextureLoader();
@@ -63,28 +63,37 @@ async function load(context: CaseContext): Promise<void> {
                     console.error('No shape node to export');
                     return;
                 }
+                let res = null;
                 switch (params.exportType) {
                     case 'STEP':
-                        Exchange.exportSTEP(globalShapeNode);
+                        res = Exchange.exportSTEP(globalShapeNode);
                         break;
                     case 'IGES':
-                        Exchange.exportIGES(globalShapeNode);
+                        res = Exchange.exportIGES(globalShapeNode);
                         break;
                     case 'BREP': {
                         const shapes = collectShapesFromShapeNode(globalShapeNode);
                         if (shapes.length > 0) {
-                            Exchange.exportBREP(shapes);
+                            res = Exchange.exportBREP(shapes);
                         }
                         break;
                     }
                     case 'STL': {
                         const shapes = collectShapesFromShapeNode(globalShapeNode);
                         if (shapes.length > 0) {
-                            Exchange.exportSTL(shapes, 0.1, 0.5);
+                            res = Exchange.exportSTL(shapes, 0.1, 0.5);
                         }
                         break;
                     }
                 }
+                // download the res
+                const blob = new Blob([res], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `export.${params.exportType.toLowerCase()}`;
+                a.click();
+                URL.revokeObjectURL(url);
             }
         };
 
@@ -94,6 +103,7 @@ async function load(context: CaseContext): Promise<void> {
             const uint8Array = new Uint8Array(buffer);
             switch (type) {
                 case 'STEP':
+                case 'STP':
                     shapeNode = Exchange.importSTEP(uint8Array) ?? undefined;
                     break;
                 case 'IGES':
@@ -123,6 +133,11 @@ async function load(context: CaseContext): Promise<void> {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (file) {
                 const reader = new FileReader();
+                //清理老的 globalShapeNode
+                if(globalShapeNode){
+                    globalShapeNode.delete();
+                    globalShapeNode = undefined;
+                }
                 reader.onload = (e) => {
                     const arrayBuffer = e.target?.result as ArrayBuffer;
                     if (arrayBuffer) {

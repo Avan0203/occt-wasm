@@ -293,30 +293,62 @@ const getMaterial = (color: string | undefined | number | THREE.Color, defaultMa
   return color ? createFaceMaterial(color) : defaultMaterial;
 }
 
+function shapeToMinimalShapeNode(shape: TopoDS_Shape): ShapeNode {
+  return {
+    shape,
+    name: '',
+    color: undefined,
+    getChildren: () => [],
+  } as unknown as ShapeNode;
+}
+
+/** 获取 Compound 的有效子节点：优先 ShapeNode.children，否则从 TopoDS_Shape.children 转换 */
+function getCompoundChildren(node: ShapeNode): ShapeNode[] {
+  const snChildren = node.getChildren();
+  if (snChildren && snChildren.length > 0) return snChildren;
+  const shape = node.shape;
+  if (!checkShape(shape)) return [];
+  const shapeChildren = shape!.children() as TopoDS_Shape[] | undefined;
+  if (!shapeChildren || shapeChildren.length === 0) return [];
+  return shapeChildren.map(shapeToMinimalShapeNode);
+}
+
+function createCompoundWithChildren(
+  shape: TopoDS_Shape,
+  children: ShapeNode[],
+  node: ShapeNode,
+  defaultMaterial: THREE.Material,
+): BrepCompound {
+  const compound = new BrepCompound(shape);
+  node.name && (compound.name = node.name);
+  for (const child of children) {
+    compound.add(shapeNodeToBrepRenderNode(child, defaultMaterial));
+  }
+  compound.computeBoundingBox();
+  return compound;
+}
+
 /** ShapeNode 转为场景对象：有 shape 为 BrepMesh，无 shape 有 children 为 BrepCompound */
 export function shapeNodeToBrepRenderNode(node: ShapeNode, defaultMaterial: THREE.Material): BrepMesh | BrepCompound {
   const { Shape, TopAbs_ShapeEnum, Compound } = getOCCTModule();
   const children = node.getChildren();
+
+  // 有有效 shape
   if (checkShape(node.shape)) {
-    // 判断是否为 Compound
-    if (node.shape!.shapeType() === TopAbs_ShapeEnum.TopAbs_COMPOUND || node.shape!.shapeType() === TopAbs_ShapeEnum.TopAbs_COMPSOLID) {
-      const compound = new BrepCompound(node.shape!);
-      node.name && (compound.name = node.name);
-      if (children && children.length > 0) {
-        for (let i = 0; i < children.length; i++) {
-          compound.add(shapeNodeToBrepRenderNode(children[i], defaultMaterial));
-        }
-      }
-      compound.computeBoundingBox();
-      return compound;
-    } else {
-      const material = getMaterial(node.color, defaultMaterial);
-      const brepResult = Shape.toBRepResult(node.shape!, 0.1, 0.5);
-      const mesh = createBrepMesh(node.shape!, brepResult, material);
-      node.name && (mesh.name = node.name);
-      return mesh;
+    const shapeType = node.shape!.shapeType();
+    const isCompound = shapeType === TopAbs_ShapeEnum.TopAbs_COMPOUND || shapeType === TopAbs_ShapeEnum.TopAbs_COMPSOLID;
+
+    if (isCompound) {
+      return createCompoundWithChildren(node.shape!, getCompoundChildren(node), node, defaultMaterial);
     }
+    const material = getMaterial(node.color, defaultMaterial);
+    const brepResult = Shape.toBRepResult(node.shape!, 0.1, 0.5);
+    const mesh = createBrepMesh(node.shape!, brepResult, material);
+    node.name && (mesh.name = node.name);
+    return mesh;
   }
+
+  // 无 shape，有 children
   if (children && children.length > 0) {
     if (children.length === 1) {
       return shapeNodeToBrepRenderNode(children[0], defaultMaterial);
@@ -324,16 +356,10 @@ export function shapeNodeToBrepRenderNode(node: ShapeNode, defaultMaterial: THRE
     const shapes = collectShapesFromShapeNode(node);
     if (shapes.length > 0) {
       const compoundShape = Compound.fromShapes(shapes);
-      const compound = new BrepCompound(compoundShape);
-      node.name && (compound.name = node.name);
-      for (let i = 0; i < children.length; i++) {
-        compound.add(shapeNodeToBrepRenderNode(children[i], defaultMaterial));
-      }
-      compound.computeBoundingBox();
-      console.log('compound: ', compound);
-      return compound;
+      return createCompoundWithChildren(compoundShape, children, node, defaultMaterial);
     }
   }
+
   throw new Error('ShapeNode is not a valid shape');
 }
 
