@@ -382,13 +382,20 @@ class ThreeRenderer extends EventListener {
     this.composer.render();
   }
 
+  /** 当对象无面（如 wire）时，wireframe 在 OBJECT 模式下也需显示 */
+  private getWireframeVisible(object: BrepObject, mode: RenderMode): boolean {
+    const hasNoFaces = object instanceof BrepMesh
+      ? object.faces.length === 0
+      : collectBrepMeshes(object).every((m) => m.faces.length === 0);
+    return hasNoFaces || mode !== RenderMode.OBJECT;
+  }
+
   /**
-   * 根据模式更新所有 BrepNode 中点与线的渲染可见性（object 模式隐藏，其它模式显示）
+   * 根据模式更新所有 BrepNode 中点与线的渲染可见性（object 模式隐藏，其它模式显示；无面对象始终显示）
    */
   updateWireframeVisibilityByMode(mode: RenderMode): void {
-    const visible = mode !== RenderMode.OBJECT;
-    this.mainGroup.children.forEach((child : BrepObject) => {
-        child.setWireframeVisible(visible);
+    this.mainGroup.children.forEach((child: BrepObject) => {
+      child.setWireframeVisible(this.getWireframeVisible(child, mode));
     });
   }
 
@@ -397,7 +404,7 @@ class ThreeRenderer extends EventListener {
    */
   add(object: BrepObject): void {
     this.mainGroup.add(object);
-    object.setWireframeVisible(this.mode !== RenderMode.OBJECT);
+    object.setWireframeVisible(this.getWireframeVisible(object, this.mode));
 
     if (object instanceof BrepMesh) {
       const gpuObject = createGPUBrepGroup(object);

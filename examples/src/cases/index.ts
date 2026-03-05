@@ -5,3 +5,4 @@ export * from './fillet-chamfer';
 export * from './sketch';
 export * from './bool-operate';
 export * from './exchange';
+export * from './revolve';

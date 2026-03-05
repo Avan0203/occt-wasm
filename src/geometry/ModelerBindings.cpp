@@ -1,4 +1,6 @@
 #include "ModelerBindings.h"
+#include "TopoDS_Solid.hxx"
+#include "TopoDS_Wire.hxx"
 #include "shared/Shared.hpp"
 #include "utils/UtilsBindings.h"
 #include <TopoDS_Shape.hxx>
@@ -11,6 +13,9 @@
 #include <BRepFilletAPI_MakeChamfer.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepPrimAPI_MakeRevol.hxx>
+#include <BRepOffsetAPI_MakePipeShell.hxx>
+#include <BRepBuilderAPI_TransitionMode.hxx>
+#include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
@@ -134,6 +139,58 @@ TopoDS_Shape revolve(const TopoDS_Shape& shape, const Axis1& axis, double angle)
     BRepPrimAPI_MakeRevol makeRevol(shape, ax1, angle);
     return makeRevol.IsDone() ? makeRevol.Shape() : TopoDS_Shape();
 }
+
+/**
+ * @description: 扫掠
+ * @param {TopoWireArray&} profile 扫掠的轮廓
+ * @param {TopoDS_Wire&} path 扫掠的路径
+ * @param {bool} isFrenet 是否使用Frenet模式
+ * @param {bool} isForceC1 是否强制C1连续
+ * @return {TopoDS_Shape} 扫掠后的shape
+ */
+TopoDS_Shape sweep(const TopoWireArray& profile, const TopoDS_Wire& path, bool isFrenet, bool isRound ) {
+    BRepOffsetAPI_MakePipeShell makePipeShell(path);
+
+    // 是否使用Frenet模式
+    if (isFrenet) {
+        makePipeShell.SetMode(isFrenet);
+    }
+
+    // 拐点处理模式
+    if (isRound) {
+        // 圆角处理模式
+        makePipeShell.SetTransitionMode(BRepBuilderAPI_RoundCorner);
+        makePipeShell.SetForceApproxC1(true);
+    }else{
+        // 拐角处理模式
+        makePipeShell.SetTransitionMode(BRepBuilderAPI_RightCorner);
+    }
+
+    std::vector<TopoDS_Wire> wireList = emscripten::vecFromJSArray<TopoDS_Wire>(profile);
+    for (const TopoDS_Wire& wire : wireList) {
+        makePipeShell.Add(wire);
+    }
+
+    makePipeShell.Build();
+    makePipeShell.MakeSolid();
+
+    return makePipeShell.IsDone() ? makePipeShell.Shape() : TopoDS_Shape();
+}
+
+/**
+ * @description: 抽壳
+ * @param {TopoDS_Shape&} shape
+ * @param {double} thickness
+ * @return {TopoDS_Shape} 抽壳后的shape
+*/
+TopoDS_Shape thickSolid(const TopoDS_Solid& solid, const TopoShapeArray& faces, double thickness, double tolerance = Constants::EPSILON){
+    // 空列表
+    TopTools_ListOfShape facesList = topoShapeArrayToListOfShape(faces);
+
+    BRepOffsetAPI_MakeThickSolid makeThickSolid;
+    makeThickSolid.MakeThickSolidByJoin(solid, facesList, thickness, tolerance);
+    return makeThickSolid.IsDone() ? makeThickSolid.Shape() : TopoDS_Shape();
+}
 } // anonymous namespace
 
 namespace ModelerBindings {
@@ -148,7 +205,10 @@ void registerBindings() {
         .class_function("union", &fuse)
         .class_function("difference", &difference)
         .class_function("intersection", &intersection)
-        .class_function("revolve", &revolve);
+        .class_function("revolve", &revolve)
+        .class_function("sweep", &sweep)
+        .class_function("thickSolid", &thickSolid)
+        ;
 }
 
 } // namespace ModelerBindings

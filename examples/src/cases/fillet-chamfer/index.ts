@@ -3,7 +3,7 @@ import { Case, CaseContext } from '@/router';
 import { createBrepMesh } from '@/common/shape-converter';
 import type { TopoDS_Shape, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType, RenderMode } from '@/common/types';
-import { BrepEdge, BrepMesh, BrepObjectAll } from '@/common/object';
+import { BrepEdge, BrepMesh, BrepNode } from '@/common/object';
 import { App } from '@/common/app';
 import { ShapeFactory } from '@/sdk';
 
@@ -45,7 +45,7 @@ async function load(context: CaseContext): Promise<void> {
         app.addEventListener('selection', (event) => {
             if (app.getMode() !== RenderMode.EDIT) return;
             if (event.detail instanceof BrepMesh) return;
-            const brepObject = event.detail as BrepObjectAll;
+            const brepObject = event.detail as BrepNode;
             const parent = brepObject.parent as BrepMesh;
 
             if (targetGroup === null) {

@@ -9,6 +9,7 @@ import {
   sketchCase,
   boolOperateCase,
   exChangeCase,
+  revolveCase,
 } from './cases';
 
 // 注册案例
@@ -19,6 +20,7 @@ router.register(filletChamferCase);
 router.register(sketchCase);
 router.register(boolOperateCase);
 router.register(exChangeCase);
+router.register(revolveCase);
 // 初始化应用
 async function initApp() {
   const viewport = document.getElementById('viewport')!;
