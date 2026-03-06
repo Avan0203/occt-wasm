@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { createBrepMesh } from '@/common/shape-converter';
 import { App } from '@/common/app';
 import { BrepMesh } from '@/common/object';
-import { ShapeFactory } from '@/sdk';
+import { ShapeFactory, Shape } from '@/sdk';
 
 let app: App = null as unknown as App;
 
@@ -18,7 +18,7 @@ export const brepShowCase: Case = {
 }
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule , gui } = context;
+    const { container , gui } = context;
     try {
 
         container.innerHTML = '';
@@ -43,7 +43,7 @@ async function load(context: CaseContext): Promise<void> {
                 group.dispose();
             }
             const cylinderShape = ShapeFactory.Cylinder(1, 2);
-            const brepResult = occtModule.Shape.toBRepResult(cylinderShape, params.lineDeflection, params.angleDeviation);
+            const brepResult =  Shape.toBRepResult(cylinderShape, params.lineDeflection, params.angleDeviation);
             group = createBrepMesh(cylinderShape, brepResult, material);
             app!.add(group);
         }

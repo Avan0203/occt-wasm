@@ -12,6 +12,7 @@ import { App } from '@/common/app';
 import { SketchBuilder } from '@/sdk/sketch';
 import { Vector3 as Vec3 } from '@/sdk/vector3';
 import { createBrepMesh } from '@/common/shape-converter';
+import { Shape } from '@/sdk';
 
 let app: App;
 
@@ -27,7 +28,7 @@ const globalGC: TopoDS_Shape[] = [];
 let keyUpCleanup: (() => void) | null = null;
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
 
     const selectedPoints: Vec3[] = [];
     let isSelectingPoints = false;
@@ -61,7 +62,6 @@ async function load(context: CaseContext): Promise<void> {
         });
 
         const builder = SketchBuilder.getInstance();
-        const { Shape } = occtModule;
         const material = new MeshStandardMaterial({ color: 0x4a90e2 });
 
         let drawType: 'line' | 'circle' | 'arc' | 'ellipse' | 'bSpline' | 'polyline' = 'line';

@@ -5,7 +5,7 @@ import type { TopoDS_Shape, TopoDS_Edge } from 'public/occt-wasm';
 import { PickType, RenderMode } from '@/common/types';
 import { BrepEdge, BrepMesh, BrepNode } from '@/common/object';
 import { App } from '@/common/app';
-import { ShapeFactory } from '@/sdk';
+import { ShapeFactory, Face, Modeler, Shape, Vector3 } from '@/sdk';
 
 let app: App;
 
@@ -20,18 +20,8 @@ export const filletChamferCase: Case = {
 const globalGC: TopoDS_Shape[] = [];
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Face,
-            Modeler,
-            Shape,
-            gp_Trsf,
-            gp_Vec,
-            TopLoc_Location,
-        } = occtModule
-
         container.innerHTML = '';
         app = new App(container)!;
 
@@ -61,24 +51,16 @@ async function load(context: CaseContext): Promise<void> {
         const texture = textureLoader.load('/matcaps_64px.png');
 
         const boxShape = ShapeFactory.Box(2, 6, 2);
-        const translate = new gp_Vec(0, -2, 0);
-        const trsf = new gp_Trsf();
-        trsf.setTranslation(translate);
-        const location = TopLoc_Location.createWithTrsf(trsf);
-        boxShape.setLocation(location);
-
-        trsf.deleteLater();
-        translate.deleteLater();
-        location.deleteLater();
+        boxShape.setLocationFromMatrix4(new THREE.Matrix4().makeTranslation(0, -2, 0));
 
         const triangleFace = Face.fromVertices(
-            [{ x: 5, y: -2, z: 0 }, { x: 8, y: -2, z: 0 }, { x: 6.5, y: -2, z: 2 }],
+            [new Vector3(5, -2, 0), new Vector3(8, -2, 0), new Vector3(6.5, -2, 2)],
             []
         );
 
         globalGC.push(triangleFace);
 
-        const dir = new THREE.Vector3(0, 6, 0);
+        const dir = new Vector3(0, 6, 0);
 
         const material = new THREE.MeshMatcapMaterial({
             matcap: texture,

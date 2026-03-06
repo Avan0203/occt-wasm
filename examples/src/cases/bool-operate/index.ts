@@ -2,7 +2,7 @@ import { Case, CaseContext } from '@/router';
 import * as THREE from 'three';
 import { createBrepMesh } from '@/common/shape-converter';
 import { App } from '@/common/app';
-import { ShapeFactory } from '@/sdk';
+import { ShapeFactory, Shape, Modeler } from '@/sdk';
 import { BrepMesh } from '@/common/object';
 
 let app: App = null as unknown as App;
@@ -16,13 +16,8 @@ export const boolOperateCase: Case = {
 }
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Modeler,
-            Shape,
-        } = occtModule;
         const params = {
             operation: 'union',
             addBox: () => {

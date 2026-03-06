@@ -4,6 +4,7 @@ import { App } from '@/common/app';
 import { BrepObject } from '@/common/object';
 import { shapeNodeToBrepRenderNode, collectShapesFromShapeNode } from '@/common/shape-converter';
 import { ShapeNode } from 'public/occt-wasm';
+import { Exchange } from '@/sdk';
 
 let app: App = null as unknown as App;
 
@@ -18,14 +19,13 @@ export const exChangeCase: Case = {
 }
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
 
         container.innerHTML = '';
         app = new App(container)!;
 
         const fileTypes = ['STEP', 'IGES', 'BREP', 'STL','STP'];
-        const { Exchange } = occtModule;
 
         const textureLoader = new THREE.TextureLoader();
         const texture = textureLoader.load('public/matcaps_64px2.png');
@@ -87,7 +87,7 @@ async function load(context: CaseContext): Promise<void> {
                     }
                 }
                 // download the res
-                const blob = new Blob([res], { type: 'application/octet-stream' });
+                const blob = new Blob([res as unknown as ArrayBuffer], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;

@@ -3,7 +3,7 @@ import { Case, CaseContext } from '@/router';
 import { createBrepMesh } from '@/common/shape-converter';
 import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
-import { Axis1, Vector3, gc } from '@/sdk';
+import { Axis1, Vector3, gc, Modeler, Shape, Wire } from '@/sdk';
 import { TopoDS_Wire } from 'public/occt-wasm';
 
 let app: App;
@@ -20,14 +20,8 @@ let object: BrepMesh | null = null;
 let wire: TopoDS_Wire | null = null;
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Modeler,
-            Shape,
-            Wire
-        } = occtModule
 
         container.innerHTML = '';
         app = new App(container)!;

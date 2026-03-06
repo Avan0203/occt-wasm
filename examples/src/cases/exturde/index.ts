@@ -4,6 +4,7 @@ import { createBrepMesh } from '@/common/shape-converter';
 import { TopoDS_Shape } from 'public/occt-wasm';
 import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
+import { Modeler, Face, Shape, Vector3 } from '@/sdk';
 
 export const exturdeCase: Case = {
     id: 'exturde',
@@ -18,15 +19,8 @@ const globalGC: TopoDS_Shape[] = [];
 let app: App;
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Modeler,
-            Face,
-            Shape,
-        } = occtModule
-
         container.innerHTML = '';
 
         app = new App(container);
@@ -35,18 +29,18 @@ async function load(context: CaseContext): Promise<void> {
         const texture = textureLoader.load('/matcaps_64px.png');
 
         const rectFace = Face.fromVertices(
-            [{ x: -2, y: -2, z: 2 }, { x: -2, y: -2, z: -2 }, { x: 2, y: -2, z: -2 }, { x: 2, y: -2, z: 2 }],
+            [new Vector3(-2, -2, 2), new Vector3(-2, -2, -2), new Vector3(2, -2, -2), new Vector3(2, -2, 2)],
             []
         );
         globalGC.push(rectFace);
 
         const triangleFace = Face.fromVertices(
-            [{ x: 5, y: -2, z: 0 }, { x: 8, y: -2, z: 0 }, { x: 6.5, y: -2, z: 2 }],
+            [new Vector3(5, -2, 0), new Vector3(8, -2, 0), new Vector3(6.5, -2, 2)],
             []
         );
         globalGC.push(triangleFace);
 
-        const dir = new THREE.Vector3(0, 6, 0);
+        const dir = new Vector3(0, 6, 0);
 
         const material = new THREE.MeshMatcapMaterial({
             matcap: texture,

@@ -3,7 +3,7 @@ import { Case, CaseContext } from '@/router';
 import { createBrepMesh } from '@/common/shape-converter';
 import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
-import { Axis1, ShapeFactory, Vector3, gc } from '@/sdk';
+import { Axis1, ShapeFactory, Vector3, Modeler, Shape } from '@/sdk';
 
 let app: App;
 
@@ -17,13 +17,8 @@ export const shellCase: Case = {
 
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Modeler,
-            Shape,
-        } = occtModule
 
         container.innerHTML = '';
         app = new App(container)!;
@@ -66,7 +61,7 @@ async function load(context: CaseContext): Promise<void> {
                         mesh = null;
                     }
                 });
-           
+
 
                 const box = ShapeFactory.Box(4, 4, 4);
                 boxMesh = createBrepMesh(box, Shape.toBRepResult(box, 0.1, 0.5), boxMaterial);
@@ -74,7 +69,7 @@ async function load(context: CaseContext): Promise<void> {
                 app.add(boxMesh);
 
                 const boxShellResult = Modeler.thickSolid(box, [], params.thickness, 1e-6);
-                if(!boxShellResult.status){
+                if (!boxShellResult.status) {
                     alert(boxShellResult.message);
                 }
                 boxShellMesh = createBrepMesh(boxShellResult.shape, Shape.toBRepResult(boxShellResult.shape, 0.1, 0.5), boxMaterial);
@@ -88,7 +83,7 @@ async function load(context: CaseContext): Promise<void> {
 
                 const cylinderLeftFace = cylinderMesh.faces[1];
                 const cylinderShellResult = Modeler.thickSolid(cylinder, [cylinderLeftFace.shape!], params.thickness, 1e-6);
-                if(!cylinderShellResult.status){
+                if (!cylinderShellResult.status) {
                     alert(cylinderShellResult.message);
                 }
                 cylinderShellMesh = createBrepMesh(cylinderShellResult.shape, Shape.toBRepResult(cylinderShellResult.shape, 0.1, 0.5), cylinderMaterial);

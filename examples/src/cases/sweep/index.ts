@@ -5,7 +5,7 @@ import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
 import { EN_Direction, Vector3, gc } from '@/sdk';
 import { SketchBuilder } from '@/sdk/sketch';
-import type { TopoDS_Wire } from 'public/occt-wasm';
+import { Modeler, Shape } from '@/sdk';
 
 let app: App;
 
@@ -20,14 +20,8 @@ export const sweepCase: Case = {
 let object: BrepMesh | null = null;
 
 async function load(context: CaseContext): Promise<void> {
-    const { container, occtModule, gui } = context;
+    const { container, gui } = context;
     try {
-
-        const {
-            Modeler,
-            Shape,
-        } = occtModule
-
         container.innerHTML = '';
         app = new App(container)!;
 

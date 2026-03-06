@@ -7,3 +7,6 @@ export * from './utils';
 export * from './shape-factory';
 export * from './sketch';
 export * from './axis';
+export * from './shape';
+export * from './modeler';
+export * from './exchange';
