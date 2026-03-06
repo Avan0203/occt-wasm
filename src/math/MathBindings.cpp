@@ -325,49 +325,6 @@ void registerBindings() {
         .function("transformed", &gp_Dir::Transformed)
         ;
 
-    // ========== TrsfForm (gp_TrsfForm) ==========
-    enum_<gp_TrsfForm>("gp_TrsfForm")
-        .value("gp_Identity", gp_Identity)
-        .value("gp_Rotation", gp_Rotation)
-        .value("gp_Translation", gp_Translation)
-        .value("gp_PntMirror", gp_PntMirror)
-        .value("gp_Ax1Mirror", gp_Ax1Mirror)
-        .value("gp_Ax2Mirror", gp_Ax2Mirror)
-        .value("gp_Scale", gp_Scale)
-        .value("gp_CompoundTrsf", gp_CompoundTrsf)
-        .value("gp_Other", gp_Other)
-        ;
-
-    // ========== EulerSequence (gp_EulerSequence) ==========
-    enum_<gp_EulerSequence>("gp_EulerSequence")
-        .value("gp_EulerAngles", gp_EulerAngles)
-        .value("gp_YawPitchRoll", gp_YawPitchRoll)
-        .value("gp_Extrinsic_XYZ", gp_Extrinsic_XYZ)
-        .value("gp_Extrinsic_XZY", gp_Extrinsic_XZY)
-        .value("gp_Extrinsic_YZX", gp_Extrinsic_YZX)
-        .value("gp_Extrinsic_YXZ", gp_Extrinsic_YXZ)
-        .value("gp_Extrinsic_ZXY", gp_Extrinsic_ZXY)
-        .value("gp_Extrinsic_ZYX", gp_Extrinsic_ZYX)
-        .value("gp_Intrinsic_XYZ", gp_Intrinsic_XYZ)
-        .value("gp_Intrinsic_XZY", gp_Intrinsic_XZY)
-        .value("gp_Intrinsic_YZX", gp_Intrinsic_YZX)
-        .value("gp_Intrinsic_YXZ", gp_Intrinsic_YXZ)
-        .value("gp_Intrinsic_ZXY", gp_Intrinsic_ZXY)
-        .value("gp_Intrinsic_ZYX", gp_Intrinsic_ZYX)
-        .value("gp_Extrinsic_XYX", gp_Extrinsic_XYX)
-        .value("gp_Extrinsic_XZX", gp_Extrinsic_XZX)
-        .value("gp_Extrinsic_YZY", gp_Extrinsic_YZY)
-        .value("gp_Extrinsic_YXY", gp_Extrinsic_YXY)
-        .value("gp_Extrinsic_ZXZ", gp_Extrinsic_ZXZ)
-        .value("gp_Extrinsic_ZYZ", gp_Extrinsic_ZYZ)
-        .value("gp_Intrinsic_XYX", gp_Intrinsic_XYX)
-        .value("gp_Intrinsic_XZX", gp_Intrinsic_XZX)
-        .value("gp_Intrinsic_YZY", gp_Intrinsic_YZY)
-        .value("gp_Intrinsic_YXY", gp_Intrinsic_YXY)
-        .value("gp_Intrinsic_ZXZ", gp_Intrinsic_ZXZ)
-        .value("gp_Intrinsic_ZYZ", gp_Intrinsic_ZYZ)
-        ;
-
     // ========== Line (gp_Lin) ==========
     class_<gp_Lin>("gp_Lin")
         .constructor<>()

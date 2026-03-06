@@ -16,7 +16,6 @@
 #include <Geom_BezierCurve.hxx>
 #include <Geom_BSplineCurve.hxx>
 #include <Geom_OffsetCurve.hxx>
-#include <GeomAbs_Shape.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <gp_Ax1.hxx>
@@ -64,9 +63,10 @@ TopoDS_Edge edgeFromCurve(const Geom_Curve* curve) {
 }
 
 // ----- Helper: Trim curve (raw pointer -> Handle) -----
-Handle(Geom_TrimmedCurve) trimCurve(const Geom_Curve* curve, double u1, double u2) {
+// adjustPeriodic=false 时，不调整周期曲线的参数，从而 trim(u1,u2) 在 u2<u1 时可得到「反向」弧
+Handle(Geom_TrimmedCurve) trimCurve(const Geom_Curve* curve, double u1, double u2, bool adjustPeriodic = true) {
     if (!curve) return Handle(Geom_TrimmedCurve)();
-    return new Geom_TrimmedCurve(Handle(Geom_Curve)(const_cast<Geom_Curve*>(curve)), u1, u2);
+    return new Geom_TrimmedCurve(Handle(Geom_Curve)(const_cast<Geom_Curve*>(curve)), u1, u2, true, adjustPeriodic);
 }
 
 // ----- Helper: Make line (point + direction) -> Handle_Geom_Line -----
@@ -125,17 +125,6 @@ val curveD1(const Geom_Curve* curve, double u) {
 }
 
 void registerBindings() {
-    // ========== GeomAbs_Shape (continuity enum for Geom_Curve::Continuity) ==========
-    enum_<GeomAbs_Shape>("GeomAbs_Shape")
-        .value("GeomAbs_C0", GeomAbs_C0)
-        .value("GeomAbs_G1", GeomAbs_G1)
-        .value("GeomAbs_C1", GeomAbs_C1)
-        .value("GeomAbs_G2", GeomAbs_G2)
-        .value("GeomAbs_C2", GeomAbs_C2)
-        .value("GeomAbs_C3", GeomAbs_C3)
-        .value("GeomAbs_CN", GeomAbs_CN)
-        ;
-
     // ========== Standard_Transient (base for Geom, refcount) ==========
     class_<Standard_Transient>("Standard_Transient")
         .function("getRefCount", &Standard_Transient::GetRefCount)
@@ -271,7 +260,10 @@ void registerBindings() {
 
     class_<GeomNamespace>("Geom")
         .class_function("makeLine", &makeLine)
-        .class_function("trim", &trimCurve, allow_raw_pointers())
+        .class_function("trim", optional_override(
+            [](const Geom_Curve* curve, double u1, double u2, bool adjustPeriodic) {
+                return trimCurve(curve, u1, u2, adjustPeriodic);
+            }), allow_raw_pointers())
         .class_function("curveFromEdge", &curveFromEdge)
         .class_function("edgeFromCurve", &edgeFromCurve, allow_raw_pointers())
         .class_function("edgeFromBSpline", optional_override(

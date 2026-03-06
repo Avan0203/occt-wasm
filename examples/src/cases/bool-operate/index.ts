@@ -70,14 +70,14 @@ async function load(context: CaseContext): Promise<void> {
                     }
                 })();
 
-                if (result.isNull()) {
-                    alert('Boolean operation failed');
+                if (!result.status) {
+                    alert(result.message);
                     return;
                 }
 
                 app.remove(compare);
                 app.remove(target);
-                const group = createBrepMesh(result, Shape.toBRepResult(result, 0.1, 0.5), material);
+                const group = createBrepMesh(result.shape, Shape.toBRepResult(result.shape, 0.1, 0.5), material);
                 app.add(group);
             }
         }

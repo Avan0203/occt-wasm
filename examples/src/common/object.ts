@@ -110,9 +110,15 @@ class BrepFace extends THREE.Mesh implements BrepNode {
         this.geometry = geometry;
         this.material = material;
     }
+
+    get shape(): TopoDS_Shape | null {
+        return this.geometry.shape;
+    }
+
     getData(): Face {
         return this.geometry.data;
     }
+
     dispose(): void {
         disposeObject(this);
     }
@@ -130,6 +136,11 @@ class BrepPoint extends THREE.Points implements BrepNode {
         this.geometry = geometry;
         this.material = material;
     }
+
+    get shape(): TopoDS_Shape | null {
+        return this.geometry.shape;
+    }
+
     getData(): Vertex {
         return this.geometry.data;
     }
@@ -151,6 +162,11 @@ class BrepEdge extends LineSegments2 implements BrepNode {
         this.geometry = geometry;
         this.material = material;
     }
+
+    get shape(): TopoDS_Shape | null {
+        return this.geometry.shape;
+    }
+
     getData(): Edge {
         return this.geometry.data;
     }
@@ -191,8 +207,6 @@ abstract class BrepRenderBase extends BrepBase {
     abstract get shape(): TopoDS_Shape;
     abstract setWireframeVisible(visible: boolean): void;
     abstract computeBoundingBox(): void;
-    abstract transformToWorldMatrix(worldMatrix: THREE.Matrix4): void;
-    abstract syncTransform(worldMatrix: THREE.Matrix4): void;
 }
 
 /** 叶子节点：单个 shape 的网格化表示 */
@@ -242,22 +256,29 @@ class BrepMesh extends BrepRenderBase {
         }
     }
 
-    /**
-     * @description: 当前物体移动到世界矩阵坐标系下位置
-     * @param {Matrix4} worldMatrix
-     * @return {void}
-     */
-    transformToWorldMatrix(worldMatrix: THREE.Matrix4): void {
-        this.updateWorldMatrix(true, false);
+    /** 重写：渲染前自动同步 GPUPickScene 和 TopoDS_Shape location，position.set 等可无感使用 */
+    updateMatrixWorld(force?: boolean): void {
+        super.updateMatrixWorld(force);
+        this._syncTransform(this.matrixWorld);
+    }
+
+    /** 更换父级并保持世界变换（供 TransformControls detach 等内部使用） */
+    reParentPreservingWorldTransform(newParent: THREE.Object3D, worldMatrix?: THREE.Matrix4): void {
+        const matrix = worldMatrix ?? this.matrixWorld.clone();
+        this.removeFromParent();
+        newParent.add(this);
+        this._applyWorldMatrix(matrix);
+    }
+
+    private _applyWorldMatrix(worldMatrix: THREE.Matrix4): void {
         _m.copy(worldMatrix);
         _pm.copy(this.parent!.matrixWorld!);
         _m.premultiply(_pm.invert());
         _m.decompose(this.position, this.quaternion, this.scale);
-        this.syncTransform(worldMatrix);
+        this._syncTransform(worldMatrix);
     }
 
-    /** 同步 GPUPickScene 和 TopoDS_Shape location，默认使用当前 matrixWorld，也可传入指定的世界矩阵 */
-    syncTransform(worldMatrix: THREE.Matrix4 = this.matrixWorld): void {
+    private _syncTransform(worldMatrix: THREE.Matrix4): void {
         const gpuObject = OBJECT_MANAGER.getGPUGroup(this.id.toString());
         if (gpuObject) {
             worldMatrix.decompose(gpuObject.position, gpuObject.quaternion, gpuObject.scale);
@@ -290,18 +311,6 @@ class BrepCompound extends BrepRenderBase {
     setWireframeVisible(visible: boolean): void {
         this.children.forEach((child) => {
             child.setWireframeVisible(visible);
-        });
-    }
-
-    transformToWorldMatrix(worldMatrix: THREE.Matrix4): void {
-        this.children.forEach((child) => {
-            child.transformToWorldMatrix(worldMatrix);
-        });
-    }
-
-    syncTransform(worldMatrix: THREE.Matrix4): void {
-        this.children.forEach((child) => {
-            child.syncTransform(worldMatrix);
         });
     }
 

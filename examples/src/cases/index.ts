@@ -6,3 +6,5 @@ export * from './sketch';
 export * from './bool-operate';
 export * from './exchange';
 export * from './revolve';
+export * from './sweep';
+export * from './shell';

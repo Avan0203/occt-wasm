@@ -8,7 +8,8 @@ import {
     BspLineCurve
 } from "./curve";
 import { EN_Direction } from "./types";
-import type { TopoDS_Shape } from "public/occt-wasm";
+import type { TopoDS_Shape, TopoDS_Wire, TopoDS_Edge } from "public/occt-wasm";
+import { getOCCTModule } from "./occt-loader";
 
 let builderInstance: SketchBuilder | null = null;
 
@@ -197,6 +198,17 @@ class Sketch {
             }
         }
         return shapes;
+    }
+
+    /**
+     * 将草图曲线构建为 Wire。需要至少一条有效 edge。
+     */
+    toWire(): TopoDS_Wire {
+        const { Wire, TopoDS_Wire } = getOCCTModule();
+        const shapes = this.getShapes();
+        if (shapes.length === 0) return new TopoDS_Wire();
+        const edges = shapes as TopoDS_Edge[];
+        return Wire.fromEdges(edges);
     }
 
     dispose(): void {

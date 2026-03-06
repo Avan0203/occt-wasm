@@ -96,9 +96,10 @@ async function load(context: CaseContext): Promise<void> {
         app.add(rectGroup);
 
         const trianglePrism = Modeler.prism(triangleFace, dir);
-        const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
-        const triangleGroup = createBrepMesh(trianglePrism, triangleResult, material);
+        const triangleResult = Shape.toBRepResult(trianglePrism.shape, 0.1, 0.5);
+        const triangleGroup = createBrepMesh(trianglePrism.shape, triangleResult, material);
         shapeGroups.push(triangleGroup);
+        trianglePrism.deleteLater();
         app.add(triangleGroup);
 
 
@@ -130,15 +131,16 @@ async function load(context: CaseContext): Promise<void> {
                     return alert('Selected edges could not be matched to shape');
                 }
 
-                const newShape = params.operation === 'fillet'
+                const result = params.operation === 'fillet'
                     ? Modeler.fillet(targetGroup.shape, edgesToAdd, params.radius)
                     : Modeler.chamfer(targetGroup.shape, edgesToAdd, params.distance);
-                if (newShape.isNull()) {
-                    return alert('Fillet/Chamfer failed (e.g. radius/distance too large or invalid edges)');
+                if (!result.status) {
+                    return alert(result.message);
                 }
 
-                const newResult = Shape.toBRepResult(newShape, 0.1, 0.5);
-                const newGroup = createBrepMesh(newShape, newResult, material);
+                const meshResult = Shape.toBRepResult(result.shape, 0.1, 0.5);
+                const newGroup = createBrepMesh(result.shape, meshResult, material);
+                result.deleteLater();
 
                 const slotIndex = shapeGroups.indexOf(targetGroup);
                 if (slotIndex >= 0) {

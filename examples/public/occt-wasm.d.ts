@@ -251,16 +251,6 @@ export interface gp_Dir extends ClassHandle {
   transformed(_0: gp_Trsf): gp_Dir;
 }
 
-export interface gp_TrsfFormValue<T extends number> {
-  value: T;
-}
-export type gp_TrsfForm = gp_TrsfFormValue<0>|gp_TrsfFormValue<1>|gp_TrsfFormValue<2>|gp_TrsfFormValue<3>|gp_TrsfFormValue<4>|gp_TrsfFormValue<5>|gp_TrsfFormValue<6>|gp_TrsfFormValue<7>|gp_TrsfFormValue<8>;
-
-export interface gp_EulerSequenceValue<T extends number> {
-  value: T;
-}
-export type gp_EulerSequence = gp_EulerSequenceValue<0>|gp_EulerSequenceValue<1>|gp_EulerSequenceValue<2>|gp_EulerSequenceValue<3>|gp_EulerSequenceValue<4>|gp_EulerSequenceValue<5>|gp_EulerSequenceValue<6>|gp_EulerSequenceValue<7>|gp_EulerSequenceValue<8>|gp_EulerSequenceValue<9>|gp_EulerSequenceValue<10>|gp_EulerSequenceValue<11>|gp_EulerSequenceValue<12>|gp_EulerSequenceValue<13>|gp_EulerSequenceValue<14>|gp_EulerSequenceValue<15>|gp_EulerSequenceValue<16>|gp_EulerSequenceValue<17>|gp_EulerSequenceValue<19>|gp_EulerSequenceValue<18>|gp_EulerSequenceValue<20>|gp_EulerSequenceValue<21>|gp_EulerSequenceValue<22>|gp_EulerSequenceValue<23>|gp_EulerSequenceValue<24>|gp_EulerSequenceValue<25>;
-
 export interface gp_Lin extends ClassHandle {
   location(): gp_Pnt;
   direction(): gp_Dir;
@@ -366,26 +356,6 @@ export interface TopoDS_Solid extends TopoDS_Shape {
 export interface TopoDS_Compound extends TopoDS_Shape {
 }
 
-export interface TopAbs_ShapeEnumValue<T extends number> {
-  value: T;
-}
-export type TopAbs_ShapeEnum = TopAbs_ShapeEnumValue<0>|TopAbs_ShapeEnumValue<1>|TopAbs_ShapeEnumValue<2>|TopAbs_ShapeEnumValue<3>|TopAbs_ShapeEnumValue<4>|TopAbs_ShapeEnumValue<5>|TopAbs_ShapeEnumValue<6>|TopAbs_ShapeEnumValue<7>;
-
-export interface TopAbs_OrientationValue<T extends number> {
-  value: T;
-}
-export type TopAbs_Orientation = TopAbs_OrientationValue<0>|TopAbs_OrientationValue<1>|TopAbs_OrientationValue<2>|TopAbs_OrientationValue<3>;
-
-export interface GeomAbs_CurveTypeValue<T extends number> {
-  value: T;
-}
-export type GeomAbs_CurveType = GeomAbs_CurveTypeValue<0>|GeomAbs_CurveTypeValue<1>|GeomAbs_CurveTypeValue<2>|GeomAbs_CurveTypeValue<3>|GeomAbs_CurveTypeValue<4>|GeomAbs_CurveTypeValue<5>|GeomAbs_CurveTypeValue<6>|GeomAbs_CurveTypeValue<7>|GeomAbs_CurveTypeValue<8>;
-
-export interface GeomAbs_ShapeValue<T extends number> {
-  value: T;
-}
-export type GeomAbs_Shape = GeomAbs_ShapeValue<0>|GeomAbs_ShapeValue<1>|GeomAbs_ShapeValue<2>|GeomAbs_ShapeValue<3>|GeomAbs_ShapeValue<4>|GeomAbs_ShapeValue<5>|GeomAbs_ShapeValue<6>;
-
 export interface Standard_Transient extends ClassHandle {
   getRefCount(): number;
 }
@@ -411,9 +381,9 @@ export interface Geom_Curve extends Geom_Geometry {
   value(_0: number): gp_Pnt;
   d0(_0: number): gp_Pnt;
   d1(_0: number): any;
-  continuity(): GeomAbs_Shape;
   isCN(_0: number): boolean;
   reversed(): Handle_Geom_Curve;
+  continuity(): GeomAbs_Shape;
 }
 
 export interface Geom_Conic extends Geom_Curve {
@@ -574,11 +544,6 @@ export interface BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
   addWire(_0: TopoDS_Wire): void;
 }
 
-export interface BRepBuilderAPI_ShellErrorValue<T extends number> {
-  value: T;
-}
-export type BRepBuilderAPI_ShellError = BRepBuilderAPI_ShellErrorValue<0>|BRepBuilderAPI_ShellErrorValue<1>|BRepBuilderAPI_ShellErrorValue<2>|BRepBuilderAPI_ShellErrorValue<3>;
-
 export interface BRepBuilderAPI_MakeShell extends BRepBuilderAPI_MakeShape {
   shape(): TopoDS_Shape;
   isDone(): boolean;
@@ -600,7 +565,6 @@ export interface TopExp extends ClassHandle {
 }
 
 export interface TopExp_Explorer extends ClassHandle {
-  init(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): void;
   more(): boolean;
   next(): void;
   current(): TopoDS_Shape;
@@ -608,6 +572,7 @@ export interface TopExp_Explorer extends ClassHandle {
   value(): TopoDS_Shape;
   clear(): void;
   depth(): number;
+  init(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): void;
 }
 
 export interface ShapeNode extends ClassHandle {
@@ -632,6 +597,48 @@ export type Axis1 = {
   origin: Vector3,
   direction: Vector3
 };
+
+export interface TopoResult extends ClassHandle {
+  shape: TopoDS_Shape;
+  status: boolean;
+  get message(): string;
+  set message(value: EmbindString);
+}
+
+export interface GeomAbs_ShapeValue<T extends number> {
+  value: T;
+}
+export type GeomAbs_Shape = GeomAbs_ShapeValue<0>|GeomAbs_ShapeValue<1>|GeomAbs_ShapeValue<2>|GeomAbs_ShapeValue<3>|GeomAbs_ShapeValue<4>|GeomAbs_ShapeValue<5>|GeomAbs_ShapeValue<6>;
+
+export interface TopAbs_ShapeEnumValue<T extends number> {
+  value: T;
+}
+export type TopAbs_ShapeEnum = TopAbs_ShapeEnumValue<0>|TopAbs_ShapeEnumValue<1>|TopAbs_ShapeEnumValue<2>|TopAbs_ShapeEnumValue<3>|TopAbs_ShapeEnumValue<4>|TopAbs_ShapeEnumValue<5>|TopAbs_ShapeEnumValue<6>|TopAbs_ShapeEnumValue<7>;
+
+export interface TopAbs_OrientationValue<T extends number> {
+  value: T;
+}
+export type TopAbs_Orientation = TopAbs_OrientationValue<0>|TopAbs_OrientationValue<1>|TopAbs_OrientationValue<2>|TopAbs_OrientationValue<3>;
+
+export interface GeomAbs_CurveTypeValue<T extends number> {
+  value: T;
+}
+export type GeomAbs_CurveType = GeomAbs_CurveTypeValue<0>|GeomAbs_CurveTypeValue<1>|GeomAbs_CurveTypeValue<2>|GeomAbs_CurveTypeValue<3>|GeomAbs_CurveTypeValue<4>|GeomAbs_CurveTypeValue<5>|GeomAbs_CurveTypeValue<6>|GeomAbs_CurveTypeValue<7>|GeomAbs_CurveTypeValue<8>;
+
+export interface BRepBuilderAPI_ShellErrorValue<T extends number> {
+  value: T;
+}
+export type BRepBuilderAPI_ShellError = BRepBuilderAPI_ShellErrorValue<0>|BRepBuilderAPI_ShellErrorValue<1>|BRepBuilderAPI_ShellErrorValue<2>|BRepBuilderAPI_ShellErrorValue<3>;
+
+export interface gp_TrsfFormValue<T extends number> {
+  value: T;
+}
+export type gp_TrsfForm = gp_TrsfFormValue<0>|gp_TrsfFormValue<1>|gp_TrsfFormValue<2>|gp_TrsfFormValue<3>|gp_TrsfFormValue<4>|gp_TrsfFormValue<5>|gp_TrsfFormValue<6>|gp_TrsfFormValue<7>|gp_TrsfFormValue<8>;
+
+export interface gp_EulerSequenceValue<T extends number> {
+  value: T;
+}
+export type gp_EulerSequence = gp_EulerSequenceValue<0>|gp_EulerSequenceValue<1>|gp_EulerSequenceValue<2>|gp_EulerSequenceValue<3>|gp_EulerSequenceValue<4>|gp_EulerSequenceValue<5>|gp_EulerSequenceValue<6>|gp_EulerSequenceValue<7>|gp_EulerSequenceValue<8>|gp_EulerSequenceValue<9>|gp_EulerSequenceValue<10>|gp_EulerSequenceValue<11>|gp_EulerSequenceValue<12>|gp_EulerSequenceValue<13>|gp_EulerSequenceValue<14>|gp_EulerSequenceValue<15>|gp_EulerSequenceValue<16>|gp_EulerSequenceValue<17>|gp_EulerSequenceValue<19>|gp_EulerSequenceValue<18>|gp_EulerSequenceValue<20>|gp_EulerSequenceValue<21>|gp_EulerSequenceValue<22>|gp_EulerSequenceValue<23>|gp_EulerSequenceValue<24>|gp_EulerSequenceValue<25>;
 
 interface EmbindModule {
   FloatVector: {
@@ -727,8 +734,6 @@ interface EmbindModule {
     new(_0: number, _1: number, _2: number): gp_Dir;
     new(_0: gp_XYZ): gp_Dir;
   };
-  gp_TrsfForm: {gp_Identity: gp_TrsfFormValue<0>, gp_Rotation: gp_TrsfFormValue<1>, gp_Translation: gp_TrsfFormValue<2>, gp_PntMirror: gp_TrsfFormValue<3>, gp_Ax1Mirror: gp_TrsfFormValue<4>, gp_Ax2Mirror: gp_TrsfFormValue<5>, gp_Scale: gp_TrsfFormValue<6>, gp_CompoundTrsf: gp_TrsfFormValue<7>, gp_Other: gp_TrsfFormValue<8>};
-  gp_EulerSequence: {gp_EulerAngles: gp_EulerSequenceValue<0>, gp_YawPitchRoll: gp_EulerSequenceValue<1>, gp_Extrinsic_XYZ: gp_EulerSequenceValue<2>, gp_Extrinsic_XZY: gp_EulerSequenceValue<3>, gp_Extrinsic_YZX: gp_EulerSequenceValue<4>, gp_Extrinsic_YXZ: gp_EulerSequenceValue<5>, gp_Extrinsic_ZXY: gp_EulerSequenceValue<6>, gp_Extrinsic_ZYX: gp_EulerSequenceValue<7>, gp_Intrinsic_XYZ: gp_EulerSequenceValue<8>, gp_Intrinsic_XZY: gp_EulerSequenceValue<9>, gp_Intrinsic_YZX: gp_EulerSequenceValue<10>, gp_Intrinsic_YXZ: gp_EulerSequenceValue<11>, gp_Intrinsic_ZXY: gp_EulerSequenceValue<12>, gp_Intrinsic_ZYX: gp_EulerSequenceValue<13>, gp_Extrinsic_XYX: gp_EulerSequenceValue<14>, gp_Extrinsic_XZX: gp_EulerSequenceValue<15>, gp_Extrinsic_YZY: gp_EulerSequenceValue<16>, gp_Extrinsic_YXY: gp_EulerSequenceValue<17>, gp_Extrinsic_ZXZ: gp_EulerSequenceValue<19>, gp_Extrinsic_ZYZ: gp_EulerSequenceValue<18>, gp_Intrinsic_XYX: gp_EulerSequenceValue<20>, gp_Intrinsic_XZX: gp_EulerSequenceValue<21>, gp_Intrinsic_YZY: gp_EulerSequenceValue<22>, gp_Intrinsic_YXY: gp_EulerSequenceValue<23>, gp_Intrinsic_ZXZ: gp_EulerSequenceValue<24>, gp_Intrinsic_ZYZ: gp_EulerSequenceValue<25>};
   gp_Lin: {
     new(): gp_Lin;
     new(_0: gp_Ax1): gp_Lin;
@@ -785,10 +790,6 @@ interface EmbindModule {
     new(): TopoDS_Compound;
     new(_0: TopoDS_Compound): TopoDS_Compound;
   };
-  TopAbs_ShapeEnum: {TopAbs_COMPOUND: TopAbs_ShapeEnumValue<0>, TopAbs_COMPSOLID: TopAbs_ShapeEnumValue<1>, TopAbs_SOLID: TopAbs_ShapeEnumValue<2>, TopAbs_SHELL: TopAbs_ShapeEnumValue<3>, TopAbs_FACE: TopAbs_ShapeEnumValue<4>, TopAbs_WIRE: TopAbs_ShapeEnumValue<5>, TopAbs_EDGE: TopAbs_ShapeEnumValue<6>, TopAbs_VERTEX: TopAbs_ShapeEnumValue<7>};
-  TopAbs_Orientation: {TopAbs_FORWARD: TopAbs_OrientationValue<0>, TopAbs_REVERSED: TopAbs_OrientationValue<1>, TopAbs_INTERNAL: TopAbs_OrientationValue<2>, TopAbs_EXTERNAL: TopAbs_OrientationValue<3>};
-  GeomAbs_CurveType: {GeomAbs_Line: GeomAbs_CurveTypeValue<0>, GeomAbs_Circle: GeomAbs_CurveTypeValue<1>, GeomAbs_Ellipse: GeomAbs_CurveTypeValue<2>, GeomAbs_Hyperbola: GeomAbs_CurveTypeValue<3>, GeomAbs_Parabola: GeomAbs_CurveTypeValue<4>, GeomAbs_BezierCurve: GeomAbs_CurveTypeValue<5>, GeomAbs_BSplineCurve: GeomAbs_CurveTypeValue<6>, GeomAbs_OffsetCurve: GeomAbs_CurveTypeValue<7>, GeomAbs_OtherCurve: GeomAbs_CurveTypeValue<8>};
-  GeomAbs_Shape: {GeomAbs_C0: GeomAbs_ShapeValue<0>, GeomAbs_G1: GeomAbs_ShapeValue<1>, GeomAbs_C1: GeomAbs_ShapeValue<2>, GeomAbs_G2: GeomAbs_ShapeValue<3>, GeomAbs_C2: GeomAbs_ShapeValue<4>, GeomAbs_C3: GeomAbs_ShapeValue<5>, GeomAbs_CN: GeomAbs_ShapeValue<6>};
   Standard_Transient: {
     isInstance(_0: Standard_Transient | null, _1: EmbindString): boolean;
   };
@@ -826,7 +827,7 @@ interface EmbindModule {
   CurveOnEdgeResult: {};
   Geom: {
     makeLine(_0: gp_Pnt, _1: gp_Dir): Handle_Geom_Line;
-    trim(_0: Geom_Curve | null, _1: number, _2: number): Handle_Geom_TrimmedCurve;
+    trim(_0: Geom_Curve | null, _1: number, _2: number, _3: boolean): Handle_Geom_TrimmedCurve;
     curveFromEdge(_0: TopoDS_Edge): CurveOnEdgeResult;
     edgeFromCurve(_0: Geom_Curve | null): TopoDS_Edge;
     edgeFromBSpline(_0: any, _1: any, _2: any, _3: number, _4: boolean): TopoDS_Edge;
@@ -901,7 +902,6 @@ interface EmbindModule {
     createFromPlane(_0: gp_Pln): BRepBuilderAPI_MakeFace;
     createFromPlaneAndWire(_0: gp_Pln, _1: TopoDS_Wire, _2: boolean): BRepBuilderAPI_MakeFace;
   };
-  BRepBuilderAPI_ShellError: {ShellDone: BRepBuilderAPI_ShellErrorValue<0>, EmptyShell: BRepBuilderAPI_ShellErrorValue<1>, DisconnectedShell: BRepBuilderAPI_ShellErrorValue<2>, ShellParametersOutOfRange: BRepBuilderAPI_ShellErrorValue<3>};
   BRepBuilderAPI_MakeShell: {
     new(): BRepBuilderAPI_MakeShell;
   };
@@ -914,15 +914,16 @@ interface EmbindModule {
     createFromSolidAndShell(_0: TopoDS_Solid, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
   };
   Modeler: {
-    union(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoDS_Shape;
-    difference(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoDS_Shape;
-    intersection(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoDS_Shape;
-    thickSolid(_0: TopoDS_Solid, _1: Array<TopoDS_Shape>, _2: number, _3: number): TopoDS_Shape;
-    fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
-    chamfer(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoDS_Shape;
-    sweep(_0: Array<TopoDS_Wire>, _1: TopoDS_Wire, _2: boolean, _3: boolean): TopoDS_Shape;
-    prism(_0: TopoDS_Shape, _1: Vector3): TopoDS_Shape;
-    revolve(_0: TopoDS_Shape, _1: Axis1, _2: number): TopoDS_Shape;
+    fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoResult;
+    chamfer(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoResult;
+    prism(_0: TopoDS_Shape, _1: Vector3): TopoResult;
+    union(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    difference(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    intersection(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    revolve(_0: TopoDS_Shape, _1: Axis1, _2: number): TopoResult;
+    sweep(_0: Array<TopoDS_Wire>, _1: TopoDS_Wire, _2: boolean, _3: boolean, _4: boolean): TopoResult;
+    thickSolid(_0: TopoDS_Shape, _1: Array<TopoDS_Shape>, _2: number, _3: number): TopoResult;
+    loft(_0: Array<TopoDS_Shape>, _1: boolean, _2: GeomAbs_Shape, _3: boolean, _4: number): TopoResult;
   };
   TopExp: {
     extractVertices(_0: TopoDS_Shape): any;
@@ -948,6 +949,14 @@ interface EmbindModule {
     exportSTL(_0: Array<TopoDS_Shape>, _1: number, _2: number): any;
     exportBREP(_0: Array<TopoDS_Shape>): any;
   };
+  TopoResult: {};
+  GeomAbs_Shape: {GeomAbs_C0: GeomAbs_ShapeValue<0>, GeomAbs_G1: GeomAbs_ShapeValue<1>, GeomAbs_C1: GeomAbs_ShapeValue<2>, GeomAbs_G2: GeomAbs_ShapeValue<3>, GeomAbs_C2: GeomAbs_ShapeValue<4>, GeomAbs_C3: GeomAbs_ShapeValue<5>, GeomAbs_CN: GeomAbs_ShapeValue<6>};
+  TopAbs_ShapeEnum: {TopAbs_COMPOUND: TopAbs_ShapeEnumValue<0>, TopAbs_COMPSOLID: TopAbs_ShapeEnumValue<1>, TopAbs_SOLID: TopAbs_ShapeEnumValue<2>, TopAbs_SHELL: TopAbs_ShapeEnumValue<3>, TopAbs_FACE: TopAbs_ShapeEnumValue<4>, TopAbs_WIRE: TopAbs_ShapeEnumValue<5>, TopAbs_EDGE: TopAbs_ShapeEnumValue<6>, TopAbs_VERTEX: TopAbs_ShapeEnumValue<7>};
+  TopAbs_Orientation: {TopAbs_FORWARD: TopAbs_OrientationValue<0>, TopAbs_REVERSED: TopAbs_OrientationValue<1>, TopAbs_INTERNAL: TopAbs_OrientationValue<2>, TopAbs_EXTERNAL: TopAbs_OrientationValue<3>};
+  GeomAbs_CurveType: {GeomAbs_Line: GeomAbs_CurveTypeValue<0>, GeomAbs_Circle: GeomAbs_CurveTypeValue<1>, GeomAbs_Ellipse: GeomAbs_CurveTypeValue<2>, GeomAbs_Hyperbola: GeomAbs_CurveTypeValue<3>, GeomAbs_Parabola: GeomAbs_CurveTypeValue<4>, GeomAbs_BezierCurve: GeomAbs_CurveTypeValue<5>, GeomAbs_BSplineCurve: GeomAbs_CurveTypeValue<6>, GeomAbs_OffsetCurve: GeomAbs_CurveTypeValue<7>, GeomAbs_OtherCurve: GeomAbs_CurveTypeValue<8>};
+  BRepBuilderAPI_ShellError: {ShellDone: BRepBuilderAPI_ShellErrorValue<0>, EmptyShell: BRepBuilderAPI_ShellErrorValue<1>, DisconnectedShell: BRepBuilderAPI_ShellErrorValue<2>, ShellParametersOutOfRange: BRepBuilderAPI_ShellErrorValue<3>};
+  gp_TrsfForm: {gp_Identity: gp_TrsfFormValue<0>, gp_Rotation: gp_TrsfFormValue<1>, gp_Translation: gp_TrsfFormValue<2>, gp_PntMirror: gp_TrsfFormValue<3>, gp_Ax1Mirror: gp_TrsfFormValue<4>, gp_Ax2Mirror: gp_TrsfFormValue<5>, gp_Scale: gp_TrsfFormValue<6>, gp_CompoundTrsf: gp_TrsfFormValue<7>, gp_Other: gp_TrsfFormValue<8>};
+  gp_EulerSequence: {gp_EulerAngles: gp_EulerSequenceValue<0>, gp_YawPitchRoll: gp_EulerSequenceValue<1>, gp_Extrinsic_XYZ: gp_EulerSequenceValue<2>, gp_Extrinsic_XZY: gp_EulerSequenceValue<3>, gp_Extrinsic_YZX: gp_EulerSequenceValue<4>, gp_Extrinsic_YXZ: gp_EulerSequenceValue<5>, gp_Extrinsic_ZXY: gp_EulerSequenceValue<6>, gp_Extrinsic_ZYX: gp_EulerSequenceValue<7>, gp_Intrinsic_XYZ: gp_EulerSequenceValue<8>, gp_Intrinsic_XZY: gp_EulerSequenceValue<9>, gp_Intrinsic_YZX: gp_EulerSequenceValue<10>, gp_Intrinsic_YXZ: gp_EulerSequenceValue<11>, gp_Intrinsic_ZXY: gp_EulerSequenceValue<12>, gp_Intrinsic_ZYX: gp_EulerSequenceValue<13>, gp_Extrinsic_XYX: gp_EulerSequenceValue<14>, gp_Extrinsic_XZX: gp_EulerSequenceValue<15>, gp_Extrinsic_YZY: gp_EulerSequenceValue<16>, gp_Extrinsic_YXY: gp_EulerSequenceValue<17>, gp_Extrinsic_ZXZ: gp_EulerSequenceValue<19>, gp_Extrinsic_ZYZ: gp_EulerSequenceValue<18>, gp_Intrinsic_XYX: gp_EulerSequenceValue<20>, gp_Intrinsic_XZX: gp_EulerSequenceValue<21>, gp_Intrinsic_YZY: gp_EulerSequenceValue<22>, gp_Intrinsic_YXY: gp_EulerSequenceValue<23>, gp_Intrinsic_ZXZ: gp_EulerSequenceValue<24>, gp_Intrinsic_ZYZ: gp_EulerSequenceValue<25>};
 }
 
 export type MainModule = WasmModule & EmbindModule;

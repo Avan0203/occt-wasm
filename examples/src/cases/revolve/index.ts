@@ -38,7 +38,7 @@ async function load(context: CaseContext): Promise<void> {
 
         const axis = new Axis1(new Vector3(0, 0, 0), new Vector3(0, 1, 0));
 
-        const axesHelper = new THREE.ArrowHelper(new THREE.Vector3().copy(axis.direction), new THREE.Vector3().copy(axis.origin), 120 ,0x00ffff);
+        const axesHelper = new THREE.ArrowHelper(new THREE.Vector3().copy(axis.direction), new THREE.Vector3().copy(axis.origin), 120, 0x00ffff);
         app.addHelper(axesHelper);
 
         const material = new THREE.MeshMatcapMaterial({ matcap: texture, color: '#ccbbff', side: 2 });
@@ -67,9 +67,13 @@ async function load(context: CaseContext): Promise<void> {
                     object.dispose();
                     object = null;
                 }
-                const shape = Modeler.revolve(wire!, new Axis1(new Vector3(0, 0, 0), new Vector3(0, 1, 0)), params.angle);
-                const result = Shape.toBRepResult(shape, 0.1, 0.5);
-                object = createBrepMesh(shape, result, material);
+                const topoResult = Modeler.revolve(wire!, new Axis1(new Vector3(0, 0, 0), new Vector3(0, 1, 0)), params.angle);
+                if (!topoResult.status) {
+                    return alert(topoResult.message);
+                }
+                const result = Shape.toBRepResult(topoResult.shape, 0.1, 0.5);
+                object = createBrepMesh(topoResult.shape, result, material);
+                topoResult.deleteLater();
                 app.add(object);
             }
         }
@@ -93,7 +97,6 @@ function unload(): void {
     if (app) {
         app.dispose();
         app = undefined!;
-        wire?.deleteLater();
         wire = null;
     }
 }

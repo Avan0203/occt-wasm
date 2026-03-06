@@ -194,38 +194,6 @@ void registerBindings() {
         .constructor<const TopoDS_Compound&>()
         ;
 
-    // ========== ShapeType enum ==========
-    enum_<TopAbs_ShapeEnum>("TopAbs_ShapeEnum")
-        .value("TopAbs_COMPOUND", TopAbs_COMPOUND)
-        .value("TopAbs_COMPSOLID", TopAbs_COMPSOLID)
-        .value("TopAbs_SOLID", TopAbs_SOLID)
-        .value("TopAbs_SHELL", TopAbs_SHELL)
-        .value("TopAbs_FACE", TopAbs_FACE)
-        .value("TopAbs_WIRE", TopAbs_WIRE)
-        .value("TopAbs_EDGE", TopAbs_EDGE)
-        .value("TopAbs_VERTEX", TopAbs_VERTEX)
-        ;
-
-    // ========== Orientation enum ==========
-    enum_<TopAbs_Orientation>("TopAbs_Orientation")
-        .value("TopAbs_FORWARD", TopAbs_FORWARD)
-        .value("TopAbs_REVERSED", TopAbs_REVERSED)
-        .value("TopAbs_INTERNAL", TopAbs_INTERNAL)
-        .value("TopAbs_EXTERNAL", TopAbs_EXTERNAL)
-        ;
-
-    // ========== CurveType enum ==========
-    enum_<GeomAbs_CurveType>("GeomAbs_CurveType")
-        .value("GeomAbs_Line", GeomAbs_Line)
-        .value("GeomAbs_Circle", GeomAbs_Circle)
-        .value("GeomAbs_Ellipse", GeomAbs_Ellipse)
-        .value("GeomAbs_Hyperbola", GeomAbs_Hyperbola)
-        .value("GeomAbs_Parabola", GeomAbs_Parabola)
-        .value("GeomAbs_BezierCurve", GeomAbs_BezierCurve)
-        .value("GeomAbs_BSplineCurve", GeomAbs_BSplineCurve)
-        .value("GeomAbs_OffsetCurve", GeomAbs_OffsetCurve)
-        .value("GeomAbs_OtherCurve", GeomAbs_OtherCurve)
-        ;
 }
 
 } // namespace BRepBindings

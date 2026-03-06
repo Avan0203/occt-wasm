@@ -12,6 +12,7 @@
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
 #include <gp_Trsf.hxx>
+#include <TopoDS_Shape.hxx>
 #include <cmath>
 
 #define REGISTER_HANDLE(T)                                                    \
@@ -87,6 +88,16 @@ struct Axis1 {
     static Axis1 fromAx1(const gp_Ax1& ax1) {
         return Axis1(Vector3::fromPnt(ax1.Location()), Vector3::fromDir(ax1.Direction()));
     }
+};
+
+struct TopoResult {
+    TopoDS_Shape shape;
+    bool status;
+    std::string message;
+
+    TopoResult() = default;
+    TopoResult(const TopoDS_Shape& s, bool st, const std::string& m)
+        : shape(s), status(st), message(m) {}
 };
 
 /**

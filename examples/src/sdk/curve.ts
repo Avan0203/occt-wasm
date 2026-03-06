@@ -173,7 +173,7 @@ class Circle extends Curve3D {
             );
 
             const geomCircle = new occt.Geom_Circle(ax2, this.radius);
-            const trimmed = occt.Geom.trim(geomCircle, u, u + TWO_PI);
+            const trimmed = occt.Geom.trim(geomCircle, u, u + TWO_PI, true);
             return occt.Geom.edgeFromCurve(trimmed?.get() ?? null);
         });
         if (edge && !edge!.isNull()) {
@@ -238,14 +238,21 @@ class Arc extends Curve3D {
 
             u1 = normAngle(u1);
             u2 = normAngle(u2);
+            let trimU1: number, trimU2: number;
+            let adjustPeriodic: boolean;
             if (this.direction > 0) {
-                if (u2 >= u1) u2 -= TWO_PI;
+                // CLOCKWISE: 取另一段弧，swap 参数并用 adjustPeriodic=false 避免 OCCT 自动调整
+                [trimU1, trimU2] = [u2, u1];
+                adjustPeriodic = false;
             } else {
+                // COUNTER_CLOCKWISE
                 if (u2 <= u1) u2 += TWO_PI;
+                trimU1 = u1;
+                trimU2 = u2;
+                adjustPeriodic = true;
             }
-
             const geomCircle = new occt.Geom_Circle(ax2, this.radius);
-            const trimmed = occt.Geom.trim(geomCircle, u1, u2);
+            const trimmed = occt.Geom.trim(geomCircle, trimU1, trimU2, adjustPeriodic);
             return occt.Geom.edgeFromCurve(trimmed?.get() ?? null);
         });
         if (edge && !edge!.isNull()) {

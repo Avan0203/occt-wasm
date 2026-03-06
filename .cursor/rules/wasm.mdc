@@ -4,8 +4,11 @@ alwaysApply: true
 ---
 
 1. 函数名与参数和原occt一致，包括参数顺序
+
 2. 暴露必要的方法和类，减少暴露不必要的类和方法，胶水函数接口暴露越多，wasm体积越大
+
 3. 尽量抽取能复用的函数，并且使用，减少重复代码
+
 4. 对于多构造函数的类，绑定需要注意，C++支持多态，JS不支持多态，构造参数的数量决定了调用哪个构造函数，同一数量构造参数的构造函数只能绑定一次，且绑定主要使用的构造函数
 案例
 对于BRepBuilderAPI_MakeWire绑定有多个构造参数
@@ -18,7 +21,7 @@ alwaysApply: true
 .constructor<const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&>()
 ```
 
-1. 构造参数数量重复的构造函数可以使用静态方法绑定，且优先绑定静态方法，命名统一使用createWith或createFrom开头的函数，如BRepBuilderAPI_MakeWire
+5. 构造参数数量重复的构造函数可以使用静态方法绑定，且优先绑定静态方法，命名统一使用createWith或createFrom开头的函数，如BRepBuilderAPI_MakeWire
 
 ```cpp
 // 因为以绑定常用的方法.constructor<const TopoDS_Edge&>()，一个参数被绑定
@@ -31,3 +34,7 @@ alwaysApply: true
             BRepBuilderAPI_MakeWire wire(w, e);
             return wire;
 }));
+```
+6. 修改代码不需要修改public下和build目录下的文件，相关文件均由打包自动生成，例如(build\\occt-wasm.d.ts,public\\occt-wasm.d.ts)
+
+7. 修改C++代码后无需自动执行编译指令(pnpm build ，yarn build, npm build),每次编译耗时很长且会电脑卡顿,用户会多次修改后最后统一编译,每次修改C++代码只需要提示用户手动编译即可，无需执行build

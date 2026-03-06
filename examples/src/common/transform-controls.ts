@@ -58,25 +58,21 @@ class TransformControls extends ThreeTransformControls {
         this.attach(this.transformObject);
     }
 
-    /** mouseUp 时同步 GPUPickScene 和 TopoDS_Shape location，物体保留在 transformObject 中 */
+    /** mouseUp 时触发矩阵更新，BrepMesh.updateMatrixWorld 会自动同步 GPUPickScene 和 TopoDS_Shape */
     private syncTransform(): void {
         const groups = this.transformObject.children as BrepMesh[];
         groups.forEach((object: BrepMesh) => {
-            object.updateMatrixWorld();
-            object.syncTransform();
+            object.updateMatrixWorld(true);
         });
     }
 
     detachObject(): void {
         const groups = [...this.transformObject.children] as BrepMesh[];
         groups.forEach((object: BrepMesh) => {
-            object.updateMatrixWorld();
+            object.updateMatrixWorld(true);
             objectMatrixWorld.copy(object.matrixWorld);
             const parent = attachObjects.get(object)!;
-
-            object.removeFromParent();
-            parent.add(object);
-            object.transformToWorldMatrix(objectMatrixWorld);
+            object.reParentPreservingWorldTransform(parent, objectMatrixWorld);
         });
 
         this.resetState();

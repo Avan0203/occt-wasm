@@ -185,12 +185,6 @@ void registerBindings() {
         }));
 
     // ========== MakeShell (BRepBuilderAPI_MakeShell) - 制作Shell ==========
-    enum_<BRepBuilderAPI_ShellError>("BRepBuilderAPI_ShellError")
-        .value("ShellDone", BRepBuilderAPI_ShellDone)
-        .value("EmptyShell", BRepBuilderAPI_EmptyShell)
-        .value("DisconnectedShell", BRepBuilderAPI_DisconnectedShell)
-        .value("ShellParametersOutOfRange", BRepBuilderAPI_ShellParametersOutOfRange);
-
     class_<BRepBuilderAPI_MakeShell, base<BRepBuilderAPI_MakeShape>>("BRepBuilderAPI_MakeShell")
         .constructor<>()
         .function("shape", optional_override([](BRepBuilderAPI_MakeShell& self) -> TopoDS_Shape {

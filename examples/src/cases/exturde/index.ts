@@ -65,16 +65,18 @@ async function load(context: CaseContext): Promise<void> {
             };
 
             const rectPrism =  Modeler.prism(rectFace, dir);
-            const rectResult = Shape.toBRepResult(rectPrism, 0.1, 0.5);
-            const rectGroup = createBrepMesh(rectPrism, rectResult, material);
+            const rectResult = Shape.toBRepResult(rectPrism.shape, 0.1, 0.5);
+            const rectGroup = createBrepMesh(rectPrism.shape, rectResult, material);
             groups.push(rectGroup);
             app.add(rectGroup);
+            rectPrism.deleteLater();
 
             const trianglePrism = Modeler.prism(triangleFace, dir);
-            const triangleResult = Shape.toBRepResult(trianglePrism, 0.1, 0.5);
-            const triangleGroup = createBrepMesh(trianglePrism, triangleResult, material);
+            const triangleResult = Shape.toBRepResult(trianglePrism.shape, 0.1, 0.5);
+            const triangleGroup = createBrepMesh(trianglePrism.shape, triangleResult, material);
             groups.push(triangleGroup);
             app.add(triangleGroup);
+            trianglePrism.deleteLater();
         }
 
 
