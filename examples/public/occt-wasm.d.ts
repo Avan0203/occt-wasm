@@ -598,6 +598,11 @@ export type Axis1 = {
   direction: Vector3
 };
 
+export type BoundingBox3 = {
+  min: Vector3,
+  max: Vector3
+};
+
 export interface TopoResult extends ClassHandle {
   shape: TopoDS_Shape;
   status: boolean;
@@ -686,6 +691,7 @@ interface EmbindModule {
     getSolids(_0: TopoDS_Shape): any;
     getCompounds(_0: TopoDS_Shape): any;
     toBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
+    getBoundingBox(_0: TopoDS_Shape): BoundingBox3;
   };
   gp_Pnt: {
     new(): gp_Pnt;
@@ -923,6 +929,7 @@ interface EmbindModule {
     revolve(_0: TopoDS_Shape, _1: Axis1, _2: number): TopoResult;
     sweep(_0: Array<TopoDS_Wire>, _1: TopoDS_Wire, _2: boolean, _3: boolean, _4: boolean): TopoResult;
     thickSolid(_0: TopoDS_Shape, _1: Array<TopoDS_Shape>, _2: number, _3: number): TopoResult;
+    simplify(_0: TopoDS_Shape, _1: boolean, _2: boolean): TopoResult;
     loft(_0: Array<TopoDS_Shape>, _1: boolean, _2: GeomAbs_Shape, _3: boolean, _4: number): TopoResult;
   };
   TopExp: {

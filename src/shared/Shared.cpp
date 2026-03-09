@@ -46,6 +46,10 @@ EMSCRIPTEN_BINDINGS(Shared) {
       .field("origin", &Axis1::origin)
       .field("direction", &Axis1::direction);
 
+  value_object<BoundingBox3>("BoundingBox3")
+      .field("min", &BoundingBox3::min)
+      .field("max", &BoundingBox3::max);
+
   class_<TopoResult>("TopoResult")
       .property("shape", &TopoResult::shape, return_value_policy::reference())
       .property("status", &TopoResult::status)

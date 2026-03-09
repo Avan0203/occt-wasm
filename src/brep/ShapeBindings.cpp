@@ -13,8 +13,10 @@
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBndLib.hxx>
 #include <BRep_Builder.hxx>
 #include <BRepLib_MakeWire.hxx>
+#include <Bnd_Box.hxx>
 #include <Geom_Curve.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <GCPnts_QuasiUniformDeflection.hxx>
@@ -42,6 +44,7 @@
 #include <gp_Pnt2d.hxx>
 #include <gp_Dir.hxx>
 #include <emscripten/val.h>
+#include <limits>
 
 namespace {
 
@@ -695,7 +698,15 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
   return result;
 }
 
-
+BoundingBox3 Shape::getBoundingBox(const TopoDS_Shape& shape) {
+  if(shape.IsNull()) {
+    static const double nan = std::numeric_limits<double>::quiet_NaN();
+    return BoundingBox3(Vector3(nan, nan, nan), Vector3(nan, nan, nan));
+  }
+  Bnd_Box box;
+  BRepBndLib::Add(shape, box);
+  return BoundingBox3(Vector3::fromPnt(box.CornerMin()), Vector3::fromPnt(box.CornerMax()));
+}
 
 
 // ==================== WASM Bindings ====================
@@ -708,6 +719,7 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
 
   class_<Vertex>("Vertex")
       .class_function("toVector3", &Vertex::toVector3);
+
   class_<Edge>("Edge")
       .class_function("fromCurve", &Edge::fromCurve, allow_raw_pointers())
       .class_function("getLength", &Edge::getLength)
@@ -730,11 +742,13 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
             EdgeResult result = Edge::discretize(edge, lineDeflection, angleDeviation);
             return edgeResultToObject(result);
           }));
+
   class_<Wire>("Wire")
       .class_function("fromEdges", &Wire::fromEdges)
       .class_function("fromVertices", &Wire::fromVertices)
       .class_function("close", &Wire::close)
       .class_function("makeFace", &Wire::makeFace);
+
   class_<Face>("Face")
       .class_function("fromVertices", &Face::fromVertices)
       .class_function("area", &Face::area)
@@ -743,11 +757,14 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
             FaceResult result = Face::triangulate(face, deflection, angleDeviation);
             return faceResultToObject(result);
           }));
+        
   class_<Solid>("Solid")
       .class_function("fromFaces", &Solid::fromFaces)
       .class_function("volume", &Solid::volume);
+
   class_<Compound>("Compound")
       .class_function("fromShapes", &Compound::fromShapes);
+
   class_<Shape>("Shape")
       .class_function("isClosed", &Shape::isClosed)
       .class_function("getVertices", optional_override(
@@ -774,9 +791,11 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
           [](const TopoDS_Shape& shape) {
             return topoVectorToArray(Shape::getCompounds(shape));
           }))
+      .class_function("getBoundingBox", &Shape::getBoundingBox)
       .class_function("toBRepResult", optional_override(
           [](const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
             BRepResult result = Shape::toBRepResult(shape, lineDeflection, angleDeviation);
             return brepResultToObject(result);
           }));
+
 }

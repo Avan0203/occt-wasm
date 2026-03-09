@@ -22,6 +22,7 @@
 #include <BRepBuilderAPI_TransitionMode.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_ThruSections.hxx>
+#include <ShapeUpgrade_UnifySameDomain.hxx>
 #include <GeomAbs_Shape.hxx>
 
 
@@ -274,6 +275,19 @@ TopoResult loft(const TopoShapeArray& profile,const bool& isRuled, const GeomAbs
     }
 }
 
+TopoResult simplify(const TopoDS_Shape& shape, const bool& unifyEdges, const bool& unifyFaces){
+    if(!unifyEdges && !unifyFaces){
+        return TopoResult(shape, true, "");
+    }
+    ShapeUpgrade_UnifySameDomain unifyBuilder(shape, unifyEdges? Standard_True : Standard_False, unifyFaces? Standard_True : Standard_False, Standard_True);
+    unifyBuilder.Build();
+    TopoDS_Shape resultShape = unifyBuilder.Shape();
+    if(!resultShape.IsNull()){
+        return TopoResult(resultShape, true, "");
+    }
+    return TopoResult(TopoDS_Shape(), false, "Simplify operation failed");
+}
+
 } // anonymous namespace
 
 namespace ModelerBindings {
@@ -292,6 +306,7 @@ void registerBindings() {
         .class_function("sweep", &sweep)
         .class_function("thickSolid", &thickSolid)
         .class_function("loft", &loft)
+        .class_function("simplify", &simplify)
         ;
 }
 

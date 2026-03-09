@@ -100,6 +100,14 @@ struct TopoResult {
         : shape(s), status(st), message(m) {}
 };
 
+struct BoundingBox3 {
+    Vector3 min;
+    Vector3 max;
+
+    BoundingBox3() = default;
+    BoundingBox3(const Vector3& min_, const Vector3& max_) : min(min_), max(max_) {}
+};
+
 /**
  * Three.js Matrix4.elements (column-major, 16 doubles) -> gp_Trsf
  * Supports rotation + translation + uniform scale.

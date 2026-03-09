@@ -104,6 +104,7 @@ public:
   static std::vector<TopoDS_Wire> getWires(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Solid> getSolids(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Compound> getCompounds(const TopoDS_Shape& shape);
+  static BoundingBox3 getBoundingBox(const TopoDS_Shape& shape);
   static BRepResult toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation);
 };
 

@@ -1,4 +1,4 @@
-import { TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire } from "public/occt-wasm";
+import { BoundingBox3, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
 import { BRepResult, Edge as EdgeResult } from "@/common/brep-result";
 import { Vector3 } from "./vector3";
@@ -42,6 +42,11 @@ class Shape {
     static isClosed(shape: TopoDS_Shape): boolean {
         const { Shape } = getOCCTModule();
         return Shape.isClosed(shape);
+    }
+
+    static getBoundingBox(shape: TopoDS_Shape): BoundingBox3 {
+        const { Shape } = getOCCTModule();
+        return Shape.getBoundingBox(shape);
     }
 }
 

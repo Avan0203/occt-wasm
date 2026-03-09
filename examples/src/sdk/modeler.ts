@@ -54,6 +54,11 @@ class Modeler {
         const { Modeler } = getOCCTModule();
         return Modeler.loft(profile, isRuled, continuity, isSolid, tolerance);
     }
+
+    static simplify(shape: TopoDS_Shape, unifyEdges: boolean, unifyFaces: boolean): TopoResult {
+        const { Modeler } = getOCCTModule();
+        return Modeler.simplify(shape, unifyEdges, unifyFaces);
+    }
 }
 
 export { Modeler };
