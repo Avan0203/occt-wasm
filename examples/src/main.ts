@@ -12,6 +12,7 @@ import {
   revolveCase,
   sweepCase,
   shellCase,
+  loftCase,
 } from './cases';
 
 // 注册案例
@@ -25,6 +26,7 @@ router.register(exChangeCase);
 router.register(revolveCase);
 router.register(sweepCase);
 router.register(shellCase);
+router.register(loftCase);
 // 初始化应用
 async function initApp() {
   const viewport = document.getElementById('viewport')!;

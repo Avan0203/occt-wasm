@@ -1,6 +1,7 @@
 #include "PrimApiBindings.h"
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepBuilderAPI_MakeShell.hxx>
@@ -20,6 +21,7 @@
 #include <gp_Lin.hxx>
 #include <gp_Circ.hxx>
 #include <gp_Pln.hxx>
+#include <shared/Shared.hpp>
 #include <emscripten/bind.h>
 
 using namespace emscripten;
@@ -116,6 +118,17 @@ void registerBindings() {
         .class_function("createFromCircleAndVertices", optional_override([](const gp_Circ& circle, const TopoDS_Vertex& v1, const TopoDS_Vertex& v2) {
             BRepBuilderAPI_MakeEdge edge(circle, v1, v2);
             return edge;
+        }));
+
+    // ========== MakeVertex (BRepBuilderAPI_MakeVertex) - 制作顶点 ==========
+    class_<BRepBuilderAPI_MakeVertex, base<BRepBuilderAPI_MakeShape>>("BRepBuilderAPI_MakeVertex")
+        .constructor<const gp_Pnt&>()
+        .function("vertex", optional_override([](BRepBuilderAPI_MakeVertex& self) -> TopoDS_Vertex {
+            return self.Vertex();
+        }))
+        .class_function("createFromVector3", optional_override([](const Vector3& vector3) {
+            BRepBuilderAPI_MakeVertex vertex(Vector3::toPnt(vector3));
+            return vertex;
         }));
 
     // ========== MakeWire (BRepBuilderAPI_MakeWire) - 制作Wire ==========

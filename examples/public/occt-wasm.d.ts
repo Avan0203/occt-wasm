@@ -527,6 +527,10 @@ export interface BRepBuilderAPI_MakeEdge extends BRepBuilderAPI_MakeShape {
   vertex2(): TopoDS_Vertex;
 }
 
+export interface BRepBuilderAPI_MakeVertex extends BRepBuilderAPI_MakeShape {
+  vertex(): TopoDS_Vertex;
+}
+
 export interface BRepBuilderAPI_MakeWire extends BRepBuilderAPI_MakeShape {
   shape(): TopoDS_Shape;
   isDone(): boolean;
@@ -891,6 +895,10 @@ interface EmbindModule {
     createFromCircleParams(_0: gp_Circ, _1: number, _2: number): BRepBuilderAPI_MakeEdge;
     createFromCircleAndPoints(_0: gp_Circ, _1: gp_Pnt, _2: gp_Pnt): BRepBuilderAPI_MakeEdge;
     createFromCircleAndVertices(_0: gp_Circ, _1: TopoDS_Vertex, _2: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
+  };
+  BRepBuilderAPI_MakeVertex: {
+    new(_0: gp_Pnt): BRepBuilderAPI_MakeVertex;
+    createFromVector3(_0: Vector3): BRepBuilderAPI_MakeVertex;
   };
   BRepBuilderAPI_MakeWire: {
     new(): BRepBuilderAPI_MakeWire;

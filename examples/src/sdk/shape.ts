@@ -1,7 +1,7 @@
 import { BoundingBox3, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
 import { BRepResult, Edge as EdgeResult } from "@/common/brep-result";
-import { Vector3 } from "./vector3";
+import { Vector3, type Vector3Like } from "./vector3";
 
 class Shape {
     static toBRepResult(shape: TopoDS_Shape, lineDeflection: number, angleDeviation: number): BRepResult {
@@ -147,6 +147,13 @@ class Vertex {
     static toVector3(vertex: TopoDS_Vertex): Vector3 {
         const { Vertex } = getOCCTModule();
         return new Vector3().copy(Vertex.toVector3(vertex));
+    }
+
+    static makeVertex(point: Vector3Like): TopoDS_Vertex {
+        const occt = getOCCTModule() as any;
+        const pnt = new occt.gp_Pnt(point.x, point.y, point.z);
+        const maker = new occt.BRepBuilderAPI_MakeVertex(pnt);
+        return maker.vertex();
     }
 }
 

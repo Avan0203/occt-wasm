@@ -8,3 +8,4 @@ export * from './exchange';
 export * from './revolve';
 export * from './sweep';
 export * from './shell';
+export * from './loft';

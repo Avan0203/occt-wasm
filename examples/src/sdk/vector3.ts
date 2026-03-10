@@ -1,6 +1,6 @@
 
 import { getOCCTModule } from "./occt-loader";
-import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir ,Vector3 as Vector3Wasm} from "public/occt-wasm.js";
+import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir ,Vector3 as Vector3Wasm, TopoDS_Vertex} from "public/occt-wasm.js";
 
 type Vector3Like = {
     x: number;
@@ -131,6 +131,11 @@ class Vector3 {
         return new (getOCCTModule().gp_Dir)(this.x, this.y, this.z);
     }
 
+    toTopoDSVertex(): TopoDS_Vertex {
+        const { BRepBuilderAPI_MakeVertex } = getOCCTModule();
+        return BRepBuilderAPI_MakeVertex.createFromVector3(this).vertex();
+    }
+
     negate(): this {
         this.x = -this.x;
         this.y = -this.y;
@@ -156,6 +161,11 @@ class Vector3 {
 
     static fromDir(dir: gp_Dir): Vector3 {
         return new Vector3(dir.x(), dir.y(), dir.z());
+    }
+
+    static fromTopoDSVertex(vertex: TopoDS_Vertex): Vector3 {
+        const { Vertex } = getOCCTModule();
+        return new Vector3().copy(Vertex.toVector3(vertex));
     }
 }
 
