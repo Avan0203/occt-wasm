@@ -11,7 +11,6 @@ import { EN_Direction } from "./types";
 import type { TopoDS_Shape, TopoDS_Wire, TopoDS_Edge } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
 
-let builderInstance: SketchBuilder | null = null;
 
 class SketchBuilder {
     private start: Vector3;
@@ -25,11 +24,13 @@ class SketchBuilder {
         this.normal = new Vector3();
     }
 
+    private static instance: SketchBuilder;
+
     static getInstance(): SketchBuilder {
-        if (builderInstance === null) {
-            builderInstance = new SketchBuilder();
+        if (!SketchBuilder.instance) {
+            SketchBuilder.instance = new SketchBuilder();
         }
-        return builderInstance;
+        return SketchBuilder.instance;
     }
 
     moveTo(point: Vector3): void {
@@ -40,6 +41,22 @@ class SketchBuilder {
     lineTo(point: Vector3): void {
         this.curves.push(new Line(this.current.clone(), point.clone()));
         this.current.copy(point);
+    }
+
+    /**
+     * 二次 Bezier 曲线：从当前点经控制点 cp 到终点 end。
+     * 数学上等价于 3 控制点、degree=2 的 clamped B-Spline。
+     */
+    quadraticCurveTo(cp: Vector3, end: Vector3): void {
+        this.bSplineFromControlPoints([cp, end], { degree: 2 });
+    }
+
+    /**
+     * 三次 Bezier 曲线：从当前点经控制点 cp1、cp2 到终点 end。
+     * 数学上等价于 4 控制点、degree=3 的 clamped B-Spline。
+     */
+    bezierCurveTo(cp1: Vector3, cp2: Vector3, end: Vector3): void {
+        this.bSplineFromControlPoints([cp1, cp2, end], { degree: 3 });
     }
 
     circle(center: Vector3, endPoint: Vector3): void {
@@ -154,6 +171,10 @@ class SketchBuilder {
         this.current.set(0, 0, 0);
         this.start.set(0, 0, 0);
         this.normal.set(0, 0, 1);
+    }
+
+    getCurves(): Curve3D[] {
+        return this.curves;
     }
 
     build(): Sketch {
