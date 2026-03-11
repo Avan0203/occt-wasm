@@ -6,6 +6,7 @@ import {
   brepShowCase, 
   exturdeCase, 
   filletChamferCase ,
+  fontCase,
   sketchCase,
   boolOperateCase,
   exChangeCase,
@@ -17,6 +18,7 @@ import {
 
 // 注册案例
 router.register(basicShapesCase);
+router.register(fontCase);
 router.register(brepShowCase);
 router.register(exturdeCase);
 router.register(filletChamferCase);

@@ -1,8 +1,8 @@
 import { SketchBuilder } from './sketch';
 import fontJSON from 'public/font.json';
 import { Vector3 } from './vector3';
-import { Compound } from './shape';
-import { TopoDS_Compound, TopoDS_Shape } from 'public/occt-wasm';
+import { Compound, Wire } from './shape';
+import { TopoDS_Compound, TopoDS_Edge, TopoDS_Shape, TopoDS_Wire } from 'public/occt-wasm';
 
 /** ============================== 字体 ============================== */
 
@@ -30,7 +30,7 @@ export interface IFontLibraryWithGlyphs {
 }
 
 
-export class FontsBuilder {
+class FontsBuilder {
     private fontLib: IFontLibraryWithGlyphs;
     private sketchBuilder: SketchBuilder;
     private constructor() {
@@ -93,28 +93,37 @@ export class FontsBuilder {
 
         if (glyph.o) {
             const outline = glyph.o.trim().split(/\s+/);
-            const shapes = this.drawFontCurve(outline, scale, offsetX, offsetY);
-            fonts.push(new Font(char, scale, shapes));
+            const wires = this.drawFontCurve(outline, scale, offsetX, offsetY);
+            fonts.push(new Font(char, scale, wires));
         }
 
         return { offsetX: glyph.ha * scale };
     }
 
-    private drawFontCurve(outline: string[], scale: number, offsetX: number, offsetY: number): TopoDS_Shape[] {
-        const allShapes: TopoDS_Shape[] = [];
+    private drawFontCurve(outline: string[], scale: number, offsetX: number, offsetY: number): TopoDS_Wire[] {
+        const allWires: TopoDS_Wire[] = [];
         let [x, y, cpx, cpy, cpx1, cpy1, cpx2, cpy2] = [0, 0, 0, 0, 0, 0, 0, 0];
         const Y_NORMAL = new Vector3(0, 1, 0);
         let firstM = true;
+
+        const pushContourAsWire = (): void => {
+            if (this.sketchBuilder.getCurves().length === 0) return;
+            this.sketchBuilder.closePath();
+            const sketch = this.sketchBuilder.build();
+            const edges = sketch.getShapes();
+            if (edges.length > 0) {
+                allWires.push(Wire.fromEdges(edges as TopoDS_Edge[]));
+                sketch.dispose(); // 合并成 wire 后释放 curve 持有的 edge，避免内存泄漏
+            }
+        };
 
         for (let i = 0, l = outline.length; i < l; ) {
             const action = outline[i++];
 
             switch (action) {
                 case 'm': // moveTo - 新 contour
-                    if (!firstM && this.sketchBuilder.getCurves().length > 0) {
-                        this.sketchBuilder.closePath();
-                        const prev = this.sketchBuilder.build();
-                        allShapes.push(...prev.getShapes());
+                    if (!firstM) {
+                        pushContourAsWire();
                     }
                     this.sketchBuilder.beginPath(Y_NORMAL);
                     x = Number(outline[i++]) * scale + offsetX;
@@ -127,12 +136,12 @@ export class FontsBuilder {
                     y = Number(outline[i++]) * scale + offsetY;
                     this.sketchBuilder.lineTo(new Vector3(x, y, 0));
                     break;
-                case 'q': // quadraticCurveTo
+                case 'q': // quadraticCurveTo - facetype/typeface 格式: q endX endY controlX controlY（与 SVG 相反）
                     cpx = Number(outline[i++]) * scale + offsetX;
                     cpy = Number(outline[i++]) * scale + offsetY;
                     cpx1 = Number(outline[i++]) * scale + offsetX;
                     cpy1 = Number(outline[i++]) * scale + offsetY;
-                    this.sketchBuilder.quadraticCurveTo(new Vector3(cpx, cpy, 0), new Vector3(cpx1, cpy1, 0));
+                    this.sketchBuilder.quadraticCurveTo(new Vector3(cpx1, cpy1, 0), new Vector3(cpx, cpy, 0));
                     break;
                 case 'c': // Cubic Bezier
                     cpx1 = Number(outline[i++]) * scale + offsetX;
@@ -144,25 +153,19 @@ export class FontsBuilder {
                     this.sketchBuilder.bezierCurveTo(new Vector3(cpx1, cpy1, 0), new Vector3(cpx2, cpy2, 0), new Vector3(x, y, 0));
                     break;
                 case 'z': // closePath
-                    this.sketchBuilder.closePath();
-                    const s = this.sketchBuilder.build();
-                    allShapes.push(...s.getShapes());
+                    pushContourAsWire();
                     this.sketchBuilder.beginPath(Y_NORMAL); // 准备下一 contour
                     break;
             }
         }
 
-        // 兜底处理，如果还有曲线，则关闭路径并添加到形状列表，防止没有触发Z
-        if (this.sketchBuilder.getCurves().length > 0) {
-            this.sketchBuilder.closePath();
-            const sketch = this.sketchBuilder.build();
-            allShapes.push(...sketch.getShapes());
-        }
-        return allShapes;
+        // 兜底处理，如果还有曲线，则关闭路径并添加到 wire 列表，防止没有触发 Z
+        pushContourAsWire();
+        return allWires;
     }
 }
 
-export class Fonts {
+class Fonts {
     size: number = 0;
     private fontMap: Map<string, Font> = new Map();
     private compound: TopoDS_Compound | null = null;
@@ -187,26 +190,28 @@ export class Fonts {
     }
 }
 
-export class Font {
+class Font {
     char: string = '';
     size: number = 0;
-    private shapes: TopoDS_Shape[] = [];
+    private wires: TopoDS_Wire[] = [];
     private compound: TopoDS_Compound | null = null;
 
-    constructor(char: string, size: number, shapes: TopoDS_Shape[]) {
+    constructor(char: string, size: number, wires: TopoDS_Wire[]) {
         this.char = char;
         this.size = size;
-        this.shapes = shapes;
+        this.wires = wires;
     }
 
     getShapes(): TopoDS_Shape[] {
-        return this.shapes;
+        return this.wires;
     }
 
     getShape(): TopoDS_Compound {
         if (!this.compound) {
-            this.compound = Compound.fromShapes(this.shapes);
+            this.compound = Compound.fromShapes(this.wires);
         }
         return this.compound;
     }
 }
+
+export { FontsBuilder, Fonts, Font };

@@ -1,5 +1,6 @@
 export * from './basic-shapes';
 export * from './brep-show';
+export * from './font';
 export * from './exturde';
 export * from './fillet-chamfer';
 export * from './sketch';
