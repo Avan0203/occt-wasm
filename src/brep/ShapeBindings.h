@@ -8,6 +8,7 @@
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Face.hxx>
+#include <TopoDS_Shell.hxx>
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Compound.hxx>
 #include <GeomAbs_CurveType.hxx>
@@ -55,11 +56,12 @@ struct BRepResult {
 class Vertex {
 public:
   static Vector3 toVector3(const TopoDS_Vertex& vertex);
+  static TopoDS_Vertex fromPoint(const Vector3& point);
 };
 
 class Edge {
 public:
-  static TopoDS_Edge fromCurve(const Geom_Curve* curve);
+  static TopoDS_Edge fromPoints(const Vector3& p1, const Vector3& p2);
   static double getLength(const TopoDS_Edge& edge);
   static bool isIntersect(const TopoDS_Edge& edge1, const TopoDS_Edge& edge2, double tolerance);
   static Vector3Array intersections(const TopoDS_Edge& edge1, const TopoDS_Edge& edge2, double tolerance);
@@ -82,6 +84,11 @@ public:
   static TopoDS_Face fromVertices(const Vector3Array& outerVertices, const Vector3ArrayArray& innerVertices);
   static double area(const TopoDS_Face& face);
   static FaceResult triangulate(const TopoDS_Face& face, double deflection, double angleDeviation);
+};
+
+class Shell {
+public:
+  static TopoDS_Shell fromFaces(const TopoFaceArray& faces);
 };
 
 class Solid {

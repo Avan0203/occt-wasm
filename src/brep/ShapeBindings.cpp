@@ -1,4 +1,5 @@
 #include "BRepBindings.h"
+#include "TopoDS_Vertex.hxx"
 #include "TopoDS_Wire.hxx"
 #include "brep/ShapeBindings.h"
 #include "shared/Shared.hpp"
@@ -11,6 +12,7 @@
 #include <GProp_GProps.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_MakeSolid.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBndLib.hxx>
@@ -182,12 +184,16 @@ Vector3 Vertex::toVector3(const TopoDS_Vertex& vertex) {
   return Vector3::fromPnt(BRep_Tool::Pnt(vertex));
 }
 
+TopoDS_Vertex Vertex::fromPoint(const Vector3& point) {
+  BRepBuilderAPI_MakeVertex maker(Vector3::toPnt(point));
+  return maker.Vertex();
+}
+
 // ==================== Edge ====================
 
-TopoDS_Edge Edge::fromCurve(const Geom_Curve* curve) {
-  Handle(Geom_Curve) curveHandle(curve);
-  BRepBuilderAPI_MakeEdge builder(curveHandle);
-  return builder.Edge();
+TopoDS_Edge Edge::fromPoints(const Vector3& p1, const Vector3& p2) {
+  BRepBuilderAPI_MakeEdge maker(Vector3::toPnt(p1), Vector3::toPnt(p2));
+  return maker.IsDone() ? maker.Edge() : TopoDS_Edge();
 }
 
 double Edge::getLength(const TopoDS_Edge& edge) {
@@ -491,6 +497,24 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
   return result;
 }
 
+// ==================== Shell ====================
+
+TopoDS_Shell Shell::fromFaces(const TopoFaceArray& faces) {
+  std::vector<TopoDS_Face> faceList = emscripten::vecFromJSArray<TopoDS_Face>(faces);
+  if (faceList.empty()) {
+      return TopoDS_Shell();
+  }
+  BRep_Builder builder;
+  TopoDS_Shell shell;
+  builder.MakeShell(shell);
+  for (const auto& face : faceList) {
+      if (!face.IsNull()) {
+          builder.Add(shell, face);
+      }
+  }
+  return shell;
+}
+
 // ==================== Solid ====================
 
 TopoDS_Solid Solid::fromFaces(const TopoFaceArray& faces) {
@@ -718,10 +742,11 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
   register_vector<uint32_t>("Uint32Vector");
 
   class_<Vertex>("Vertex")
-      .class_function("toVector3", &Vertex::toVector3);
+      .class_function("toVector3", &Vertex::toVector3)
+      .class_function("fromPoint", &Vertex::fromPoint);
 
   class_<Edge>("Edge")
-      .class_function("fromCurve", &Edge::fromCurve, allow_raw_pointers())
+      .class_function("fromPoints", &Edge::fromPoints)
       .class_function("getLength", &Edge::getLength)
       .class_function("isIntersect", optional_override(
           [](const TopoDS_Edge& e1, const TopoDS_Edge& e2, emscripten::val optTol) {
@@ -757,6 +782,9 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
             FaceResult result = Face::triangulate(face, deflection, angleDeviation);
             return faceResultToObject(result);
           }));
+
+  class_<Shell>("Shell")
+      .class_function("fromFaces", &Shell::fromFaces);
         
   class_<Solid>("Solid")
       .class_function("fromFaces", &Solid::fromFaces)

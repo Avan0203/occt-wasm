@@ -1,4 +1,4 @@
-import { BoundingBox3, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire } from "public/occt-wasm";
+import { BoundingBox3, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, TopoDS_Shell, TopoDS_Solid, TopoDS_Vertex, TopoDS_Wire } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
 import { BRepResult, Edge as EdgeResult } from "@/common/brep-result";
 import { Vector3, type Vector3Like } from "./vector3";
@@ -57,6 +57,13 @@ class Compound {
     }
 }
 
+
+class Shell {
+    static fromFaces(faces: TopoDS_Face[]): TopoDS_Shell {
+        const { Shell } = getOCCTModule();
+        return Shell.fromFaces(faces);
+    }
+}
 
 class Solid {
     static fromFaces(faces: TopoDS_Face[]): TopoDS_Solid {
@@ -150,10 +157,9 @@ class Vertex {
     }
 
     static makeVertex(point: Vector3Like): TopoDS_Vertex {
-        const occt = getOCCTModule() as any;
-        const pnt = new occt.gp_Pnt(point.x, point.y, point.z);
-        const maker = new occt.BRepBuilderAPI_MakeVertex(pnt);
-        return maker.vertex();
+        const { Vertex } = getOCCTModule();
+        const v = new Vector3(point.x, point.y, point.z);
+        return Vertex.fromPoint(v);
     }
 }
 
@@ -164,5 +170,6 @@ export {
     Shape,
     Compound,
     Face,
+    Shell,
     Solid,
 }

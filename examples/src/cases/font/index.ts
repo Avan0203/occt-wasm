@@ -5,14 +5,12 @@ import { App } from '@/common/app';
 import { FontsBuilder } from '@/sdk/font';
 import { Shape } from '@/sdk';
 import type { BrepMesh } from '@/common/object';
-import type { TopoDS_Compound } from 'public/occt-wasm';
 
 const DEFAULT_TEXT = '你好，occt-wasm';
 const FONT_SIZE = 2;
 
 let app: App | null = null;
 let currentMesh: BrepMesh | null = null;
-let currentShape: TopoDS_Compound | null = null;
 
 async function load(context: CaseContext): Promise<void> {
     const { container, gui } = context;
@@ -32,16 +30,11 @@ async function load(context: CaseContext): Promise<void> {
                     currentMesh.dispose();
                     currentMesh = null;
                 }
-                if (currentShape && !currentShape.isDeleted()) {
-                    currentShape.deleteLater();
-                    currentShape = null;
-                }
                 const text = String(params.text || '').trim();
                 if (!text) return;
                 const builder = FontsBuilder.getInstance();
                 const fonts = builder.createFonts(text, FONT_SIZE);
                 const shape = fonts.getShape();
-                currentShape = shape;
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
                 currentMesh = createBrepMesh(shape, brepResult, material);
                 app.add(currentMesh);
@@ -61,10 +54,6 @@ async function load(context: CaseContext): Promise<void> {
 }
 
 function unload(): void {
-    if (currentShape && !currentShape.isDeleted()) {
-        currentShape.deleteLater();
-        currentShape = null;
-    }
     currentMesh = null;
     if (app) {
         app.dispose();

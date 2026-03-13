@@ -14,6 +14,7 @@
 #include <gp_Trsf.hxx>
 #include <TopoDS_Shape.hxx>
 #include <cmath>
+#include <utility>
 
 #define REGISTER_HANDLE(T)                                                    \
     class_<Handle(T)>("Handle_" #T)                                           \
@@ -90,6 +91,78 @@ struct Axis1 {
     }
 };
 
+struct Axis2;
+
+struct Plane {
+    Vector3 origin;
+    Vector3 normal;
+
+    Plane() = default;
+    Plane(const Vector3& origin_, const Vector3& normal_) : origin(origin_), normal(normal_) {}
+
+    static gp_Pln toPln(const Plane& plane) {
+        return gp_Pln(Vector3::toPnt(plane.origin), Vector3::toDir(plane.normal));
+    }
+
+    static Plane fromPln(const gp_Pln& pln) {
+        return Plane(Vector3::fromPnt(pln.Location()), Vector3::fromDir(pln.Axis().Direction()));
+    }
+
+    static gp_Ax2 toAx2(const Plane& plane) {
+        return gp_Ax2(Vector3::toPnt(plane.origin), Vector3::toDir(plane.normal));
+    }
+
+    static Plane fromAxis2(const Axis2& axis);
+};
+
+struct Axis2 {
+    Vector3 origin;
+    Vector3 xDirection;
+    Vector3 yDirection;
+
+    Axis2() = default;
+    Axis2(const Vector3& origin_, const Vector3& xDirection_, const Vector3& yDirection_) : origin(origin_), xDirection(xDirection_), yDirection(yDirection_) {}
+
+    static gp_Ax2 toAx2(const Axis2& axis) {
+        return gp_Ax2(Vector3::toPnt(axis.origin), Vector3::toDir(axis.xDirection), Vector3::toDir(axis.yDirection));
+    }
+
+    static Axis2 fromAx2(const gp_Ax2& ax2) {
+        return Axis2(Vector3::fromPnt(ax2.Location()), Vector3::fromDir(ax2.XDirection()), Vector3::fromDir(ax2.YDirection()));
+    }
+
+    static Plane toPlane(const Axis2& axis) {
+        return Plane::fromAxis2(axis);
+    }
+
+    static Axis2 fromPlane(const Plane& plane) {
+        return Axis2::fromAx2(Plane::toAx2(plane));
+    }
+};
+
+inline Plane Plane::fromAxis2(const Axis2& axis) {
+    gp_Ax2 ax2 = Axis2::toAx2(axis);
+    return Plane(Vector3::fromPnt(ax2.Location()), Vector3::fromDir(ax2.Direction()));
+}
+
+struct Axis3 {
+    Vector3 origin;
+    Vector3 xDirection;
+    Vector3 yDirection;
+    Vector3 zDirection;
+
+    Axis3() = default;
+    Axis3(const Vector3& origin_, const Vector3& xDirection_, const Vector3& yDirection_, const Vector3& zDirection_) : origin(origin_), xDirection(xDirection_), yDirection(yDirection_), zDirection(zDirection_) {}
+
+    static gp_Ax3 toAx3(const Axis3& axis) {
+        return gp_Ax3(Vector3::toPnt(axis.origin), Vector3::toDir(axis.zDirection), Vector3::toDir(axis.xDirection));
+    }
+
+    static Axis3 fromAx3(const gp_Ax3& ax3) {
+        return Axis3(Vector3::fromPnt(ax3.Location()), Vector3::fromDir(ax3.XDirection()), Vector3::fromDir(ax3.YDirection()), Vector3::fromDir(ax3.Direction()));
+    }
+};
+
 struct TopoResult {
     TopoDS_Shape shape;
     bool status;
@@ -98,6 +171,9 @@ struct TopoResult {
     TopoResult() = default;
     TopoResult(const TopoDS_Shape& s, bool st, const std::string& m)
         : shape(s), status(st), message(m) {}
+
+    /** 移出 shape，调用后 TopoResult 内的 shape 为空，所有权转移给返回值 */
+    TopoDS_Shape takeShape() { return std::move(shape); }
 };
 
 struct BoundingBox3 {

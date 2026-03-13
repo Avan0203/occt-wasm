@@ -40,6 +40,9 @@ export interface Wire extends ClassHandle {
 export interface Face extends ClassHandle {
 }
 
+export interface Shell extends ClassHandle {
+}
+
 export interface Solid extends ClassHandle {
 }
 
@@ -479,87 +482,7 @@ export interface CurveOnEdgeResult extends ClassHandle {
 export interface Geom extends ClassHandle {
 }
 
-export interface BRepBuilderAPI_Command extends ClassHandle {
-  isDone(): boolean;
-  isDone(): boolean;
-  isDone(): boolean;
-  isDone(): boolean;
-  isDone(): boolean;
-  isDone(): boolean;
-  isDone(): boolean;
-}
-
-export interface BRepBuilderAPI_MakeShape extends BRepBuilderAPI_Command {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakeBox extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakeSphere extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakeCylinder extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakeCone extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakeTorus extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-}
-
-export interface BRepPrimAPI_MakePrism extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  firstShape(): TopoDS_Shape;
-  lastShape(): TopoDS_Shape;
-}
-
-export interface BRepBuilderAPI_MakeEdge extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  isDone(): boolean;
-  edge(): TopoDS_Edge;
-  vertex1(): TopoDS_Vertex;
-  vertex2(): TopoDS_Vertex;
-}
-
-export interface BRepBuilderAPI_MakeVertex extends BRepBuilderAPI_MakeShape {
-  vertex(): TopoDS_Vertex;
-}
-
-export interface BRepBuilderAPI_MakeWire extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  isDone(): boolean;
-  wire(): TopoDS_Wire;
-  addEdge(_0: TopoDS_Edge): void;
-  addWire(_0: TopoDS_Wire): void;
-  edge(): TopoDS_Edge;
-  vertex(): TopoDS_Vertex;
-}
-
-export interface BRepBuilderAPI_MakeFace extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  isDone(): boolean;
-  face(): TopoDS_Face;
-  addWire(_0: TopoDS_Wire): void;
-}
-
-export interface BRepBuilderAPI_MakeShell extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  isDone(): boolean;
-  shell(): TopoDS_Shell;
-  error(): BRepBuilderAPI_ShellError;
-}
-
-export interface BRepBuilderAPI_MakeSolid extends BRepBuilderAPI_MakeShape {
-  shape(): TopoDS_Shape;
-  isDone(): boolean;
-  solid(): TopoDS_Solid;
-  addShell(_0: TopoDS_Shell): void;
+export interface GeometryFactory extends ClassHandle {
 }
 
 export interface Modeler extends ClassHandle {
@@ -602,6 +525,24 @@ export type Axis1 = {
   direction: Vector3
 };
 
+export type Axis2 = {
+  origin: Vector3,
+  xDirection: Vector3,
+  yDirection: Vector3
+};
+
+export type Plane = {
+  origin: Vector3,
+  normal: Vector3
+};
+
+export type Axis3 = {
+  origin: Vector3,
+  xDirection: Vector3,
+  yDirection: Vector3,
+  zDirection: Vector3
+};
+
 export type BoundingBox3 = {
   min: Vector3,
   max: Vector3
@@ -612,6 +553,7 @@ export interface TopoResult extends ClassHandle {
   status: boolean;
   get message(): string;
   set message(value: EmbindString);
+  takeShape(): TopoDS_Shape;
 }
 
 export interface GeomAbs_ShapeValue<T extends number> {
@@ -658,14 +600,15 @@ interface EmbindModule {
   };
   Vertex: {
     toVector3(_0: TopoDS_Vertex): Vector3;
+    fromPoint(_0: Vector3): TopoDS_Vertex;
   };
   Edge: {
     getLength(_0: TopoDS_Edge): number;
     isIntersect(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): boolean;
     trim(_0: TopoDS_Edge, _1: number, _2: number): TopoDS_Edge;
     discretize(_0: TopoDS_Edge, _1: any, _2: any): any;
-    fromCurve(_0: Geom_Curve | null): TopoDS_Edge;
     intersections(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: any): Array<Vector3>;
+    fromPoints(_0: Vector3, _1: Vector3): TopoDS_Edge;
     pointAt(_0: TopoDS_Edge, _1: number): Vector3;
   };
   Wire: {
@@ -678,6 +621,9 @@ interface EmbindModule {
     area(_0: TopoDS_Face): number;
     triangulate(_0: TopoDS_Face, _1: number, _2: number): any;
     fromVertices(_0: Array<Vector3>, _1: Array<Array<Vector3>>): TopoDS_Face;
+  };
+  Shell: {
+    fromFaces(_0: Array<TopoDS_Face>): TopoDS_Shell;
   };
   Solid: {
     volume(_0: TopoDS_Solid): number;
@@ -843,89 +789,12 @@ interface EmbindModule {
     edgeFromBSpline(_0: any, _1: any, _2: any, _3: number, _4: boolean): TopoDS_Edge;
     edgeFromBSplineWithWeights(_0: any, _1: any, _2: any, _3: number, _4: boolean, _5: any): TopoDS_Edge;
   };
-  BRepBuilderAPI_Command: {};
-  BRepBuilderAPI_MakeShape: {};
-  BRepPrimAPI_MakeBox: {
-    new(_0: number, _1: number, _2: number): BRepPrimAPI_MakeBox;
-    createWithPoint(_0: gp_Pnt, _1: number, _2: number, _3: number): BRepPrimAPI_MakeBox;
-    createWithPoints(_0: gp_Pnt, _1: gp_Pnt): BRepPrimAPI_MakeBox;
-    createWithAxes(_0: gp_Ax2, _1: number, _2: number, _3: number): BRepPrimAPI_MakeBox;
-  };
-  BRepPrimAPI_MakeSphere: {
-    new(_0: number): BRepPrimAPI_MakeSphere;
-    createWithPoint(_0: gp_Pnt, _1: number): BRepPrimAPI_MakeSphere;
-    createWithAxes(_0: gp_Ax2, _1: number): BRepPrimAPI_MakeSphere;
-    createWithRadiusAndAngle(_0: number, _1: number): BRepPrimAPI_MakeSphere;
-    createWithPointAndAngle(_0: gp_Pnt, _1: number, _2: number): BRepPrimAPI_MakeSphere;
-    createWithAxesAndAngle(_0: gp_Ax2, _1: number, _2: number): BRepPrimAPI_MakeSphere;
-  };
-  BRepPrimAPI_MakeCylinder: {
-    new(_0: number, _1: number): BRepPrimAPI_MakeCylinder;
-    createWithAxes(_0: gp_Ax2, _1: number, _2: number): BRepPrimAPI_MakeCylinder;
-    createWithRadiusHeightAndAngle(_0: number, _1: number, _2: number): BRepPrimAPI_MakeCylinder;
-    createWithAxesAndAngle(_0: gp_Ax2, _1: number, _2: number, _3: number): BRepPrimAPI_MakeCylinder;
-  };
-  BRepPrimAPI_MakeCone: {
-    new(_0: number, _1: number, _2: number): BRepPrimAPI_MakeCone;
-    createWithAxes(_0: gp_Ax2, _1: number, _2: number, _3: number): BRepPrimAPI_MakeCone;
-    createWithAngle(_0: number, _1: number, _2: number, _3: number): BRepPrimAPI_MakeCone;
-    createWithAxesAndAngle(_0: gp_Ax2, _1: number, _2: number, _3: number, _4: number): BRepPrimAPI_MakeCone;
-  };
-  BRepPrimAPI_MakeTorus: {
-    new(_0: number, _1: number): BRepPrimAPI_MakeTorus;
-    createWithAxes(_0: gp_Ax2, _1: number, _2: number): BRepPrimAPI_MakeTorus;
-    createWithAngle(_0: number, _1: number, _2: number): BRepPrimAPI_MakeTorus;
-    createWithAxesAndAngle(_0: gp_Ax2, _1: number, _2: number, _3: number): BRepPrimAPI_MakeTorus;
-  };
-  BRepPrimAPI_MakePrism: {
-    new(_0: TopoDS_Shape, _1: gp_Vec): BRepPrimAPI_MakePrism;
-    createWithVector(_0: TopoDS_Shape, _1: gp_Vec): BRepPrimAPI_MakePrism;
-    createWithVectorAndOptions(_0: TopoDS_Shape, _1: gp_Vec, _2: boolean, _3: boolean): BRepPrimAPI_MakePrism;
-    createWithDirection(_0: TopoDS_Shape, _1: gp_Dir): BRepPrimAPI_MakePrism;
-    createWithDirectionAndOptions(_0: TopoDS_Shape, _1: gp_Dir, _2: boolean, _3: boolean, _4: boolean): BRepPrimAPI_MakePrism;
-  };
-  BRepBuilderAPI_MakeEdge: {
-    new(_0: gp_Pnt, _1: gp_Pnt): BRepBuilderAPI_MakeEdge;
-    createFromVertices(_0: TopoDS_Vertex, _1: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
-    createFromLine(_0: gp_Lin): BRepBuilderAPI_MakeEdge;
-    createFromLineParams(_0: gp_Lin, _1: number, _2: number): BRepBuilderAPI_MakeEdge;
-    createFromLineAndPoints(_0: gp_Lin, _1: gp_Pnt, _2: gp_Pnt): BRepBuilderAPI_MakeEdge;
-    createFromLineAndVertices(_0: gp_Lin, _1: TopoDS_Vertex, _2: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
-    createFromCircle(_0: gp_Circ): BRepBuilderAPI_MakeEdge;
-    createFromCircleParams(_0: gp_Circ, _1: number, _2: number): BRepBuilderAPI_MakeEdge;
-    createFromCircleAndPoints(_0: gp_Circ, _1: gp_Pnt, _2: gp_Pnt): BRepBuilderAPI_MakeEdge;
-    createFromCircleAndVertices(_0: gp_Circ, _1: TopoDS_Vertex, _2: TopoDS_Vertex): BRepBuilderAPI_MakeEdge;
-  };
-  BRepBuilderAPI_MakeVertex: {
-    new(_0: gp_Pnt): BRepBuilderAPI_MakeVertex;
-    createFromVector3(_0: Vector3): BRepBuilderAPI_MakeVertex;
-  };
-  BRepBuilderAPI_MakeWire: {
-    new(): BRepBuilderAPI_MakeWire;
-    new(_0: TopoDS_Edge): BRepBuilderAPI_MakeWire;
-    new(_0: TopoDS_Edge, _1: TopoDS_Edge): BRepBuilderAPI_MakeWire;
-    new(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: TopoDS_Edge): BRepBuilderAPI_MakeWire;
-    new(_0: TopoDS_Edge, _1: TopoDS_Edge, _2: TopoDS_Edge, _3: TopoDS_Edge): BRepBuilderAPI_MakeWire;
-    createFromWire(_0: TopoDS_Wire): BRepBuilderAPI_MakeWire;
-    createFromWireAndEdge(_0: TopoDS_Wire, _1: TopoDS_Edge): BRepBuilderAPI_MakeWire;
-  };
-  BRepBuilderAPI_MakeFace: {
-    new(): BRepBuilderAPI_MakeFace;
-    new(_0: TopoDS_Face): BRepBuilderAPI_MakeFace;
-    createFromWire(_0: TopoDS_Wire, _1: boolean): BRepBuilderAPI_MakeFace;
-    createFromPlane(_0: gp_Pln): BRepBuilderAPI_MakeFace;
-    createFromPlaneAndWire(_0: gp_Pln, _1: TopoDS_Wire, _2: boolean): BRepBuilderAPI_MakeFace;
-  };
-  BRepBuilderAPI_MakeShell: {
-    new(): BRepBuilderAPI_MakeShell;
-  };
-  BRepBuilderAPI_MakeSolid: {
-    new(): BRepBuilderAPI_MakeSolid;
-    new(_0: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
-    new(_0: TopoDS_Shell, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
-    new(_0: TopoDS_Shell, _1: TopoDS_Shell, _2: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
-    createFromSolid(_0: TopoDS_Solid): BRepBuilderAPI_MakeSolid;
-    createFromSolidAndShell(_0: TopoDS_Solid, _1: TopoDS_Shell): BRepBuilderAPI_MakeSolid;
+  GeometryFactory: {
+    Box(_0: number, _1: number, _2: number, _3: Axis2): TopoResult;
+    Sphere(_0: number, _1: Axis2): TopoResult;
+    Cylinder(_0: number, _1: number, _2: Axis2): TopoResult;
+    Cone(_0: number, _1: number, _2: number, _3: Axis2): TopoResult;
+    Torus(_0: number, _1: number, _2: Axis2): TopoResult;
   };
   Modeler: {
     fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoResult;

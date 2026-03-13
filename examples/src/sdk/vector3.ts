@@ -132,8 +132,8 @@ class Vector3 {
     }
 
     toTopoDSVertex(): TopoDS_Vertex {
-        const { BRepBuilderAPI_MakeVertex } = getOCCTModule();
-        return BRepBuilderAPI_MakeVertex.createFromVector3(this).vertex();
+        const { Vertex } = getOCCTModule();
+        return Vertex.fromPoint(this);
     }
 
     negate(): this {
@@ -141,6 +141,22 @@ class Vector3 {
         this.y = -this.y;
         this.z = -this.z;
         return this;
+    }
+
+    static ZERO(): Vector3 {
+        return new Vector3(0, 0, 0);
+    }
+
+    static X(): Vector3 {
+        return new Vector3(1, 0, 0);
+    }
+
+    static Y(): Vector3 {
+        return new Vector3(0, 1, 0);
+    }
+    
+    static Z(): Vector3 {
+        return new Vector3(0, 0, 1);
     }
 
     static fromVec3(vec3: Vector3Wasm): Vector3 {

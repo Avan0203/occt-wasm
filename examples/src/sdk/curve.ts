@@ -127,15 +127,9 @@ class Line extends Curve3D {
     build(): void {
         if (!this.isDirty) return;
         super.build();
-        const occt = getOCCTModule();
-        const edge = gc((c) => {
-            const p1 = c(this.start.toPnt());
-            const p2 = c(this.end.toPnt());
-            const makeEdge = c(new occt.BRepBuilderAPI_MakeEdge(p1, p2));
-            if (!makeEdge.isDone()) return null;
-            return makeEdge.edge();
-        });
-        if (edge && !edge!.isNull()) {
+        const { Edge } = getOCCTModule();
+        const edge = Edge.fromPoints(this.start, this.end);
+        if (edge && !edge.isNull()) {
             this.shape = edge;
         }
     }

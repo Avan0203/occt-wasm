@@ -42,15 +42,32 @@ EMSCRIPTEN_BINDINGS(Shared) {
       .field("x", &Vector3::x)
       .field("y", &Vector3::y)
       .field("z", &Vector3::z);
+
   value_object<Axis1>("Axis1")
       .field("origin", &Axis1::origin)
       .field("direction", &Axis1::direction);
+
+  value_object<Axis2>("Axis2")
+      .field("origin", &Axis2::origin)
+      .field("xDirection", &Axis2::xDirection)
+      .field("yDirection", &Axis2::yDirection);
+
+  value_object<Plane>("Plane")
+      .field("origin", &Plane::origin)
+      .field("normal", &Plane::normal);
+
+  value_object<Axis3>("Axis3")
+      .field("origin", &Axis3::origin)
+      .field("xDirection", &Axis3::xDirection)
+      .field("yDirection", &Axis3::yDirection)
+      .field("zDirection", &Axis3::zDirection);
 
   value_object<BoundingBox3>("BoundingBox3")
       .field("min", &BoundingBox3::min)
       .field("max", &BoundingBox3::max);
 
   class_<TopoResult>("TopoResult")
+      .function("takeShape", &TopoResult::takeShape, return_value_policy::take_ownership())
       .property("shape", &TopoResult::shape, return_value_policy::reference())
       .property("status", &TopoResult::status)
       .property("message", &TopoResult::message);
