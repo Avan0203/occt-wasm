@@ -51,7 +51,7 @@ async function load(context: CaseContext): Promise<void> {
         const texture = textureLoader.load('/matcaps_64px.png');
 
         const boxShape = ShapeFactory.Box(2, 6, 2);
-        boxShape.setLocationFromMatrix4(new THREE.Matrix4().makeTranslation(0, -2, 0));
+        boxShape.setLocationFromMatrix4(new THREE.Matrix4().makeTranslation(0, -2, 0).elements);
 
         const triangleFace = Face.fromVertices(
             [new Vector3(5, -2, 0), new Vector3(8, -2, 0), new Vector3(6.5, -2, 2)],

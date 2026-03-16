@@ -2,6 +2,7 @@ import { BoundingBox3, TopoDS_Compound, TopoDS_Edge, TopoDS_Face, TopoDS_Shape, 
 import { getOCCTModule } from "./occt-loader";
 import { BRepResult, Edge as EdgeResult } from "@/common/brep-result";
 import { Vector3, type Vector3Like } from "./vector3";
+import { ShapeType, getShapeTypeEnum } from "./types";
 
 class Shape {
     static toBRepResult(shape: TopoDS_Shape, lineDeflection: number, angleDeviation: number): BRepResult {
@@ -47,6 +48,16 @@ class Shape {
     static getBoundingBox(shape: TopoDS_Shape): BoundingBox3 {
         const { Shape } = getOCCTModule();
         return Shape.getBoundingBox(shape);
+    }
+
+    static getSubShape(shape: TopoDS_Shape, index: number, type: ShapeType): TopoDS_Shape {
+        const { Shape } = getOCCTModule();
+        return Shape.getSubShape(shape, index, getShapeTypeEnum(type));
+    }
+
+    static removeSubShapes(shape: TopoDS_Shape, subShapes: TopoDS_Shape[]): TopoDS_Shape {
+        const { Shape } = getOCCTModule();
+        return Shape.removeSubShapes(shape, subShapes);
     }
 }
 

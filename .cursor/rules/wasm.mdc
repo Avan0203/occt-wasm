@@ -21,7 +21,7 @@ alwaysApply: true
 .constructor<const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&, const TopoDS_Edge&>()
 ```
 
-5. 构造参数数量重复的构造函数可以使用静态方法绑定，且优先绑定静态方法，命名统一使用createWith或createFrom开头的函数，如BRepBuilderAPI_MakeWire
+1. 构造参数数量重复的构造函数可以使用静态方法绑定，且优先绑定静态方法，命名统一使用createWith或createFrom开头的函数，如BRepBuilderAPI_MakeWire
 
 ```cpp
 // 因为以绑定常用的方法.constructor<const TopoDS_Edge&>()，一个参数被绑定
@@ -35,6 +35,7 @@ alwaysApply: true
             return wire;
 }));
 ```
-6. 修改代码不需要修改public下和build目录下的文件，相关文件均由打包自动生成，例如(build\\occt-wasm.d.ts,public\\occt-wasm.d.ts)
 
-7. 修改C++代码后无需自动执行编译指令(pnpm build ，yarn build, npm build),每次编译耗时很长且会电脑卡顿,用户会多次修改后最后统一编译,每次修改C++代码只需要提示用户手动编译即可，无需执行build
+1. 修改代码不需要修改public下和build目录下的文件，相关文件均由打包自动生成，例如(build\\occt-wasm.d.ts,public\\occt-wasm.d.ts)
+
+2. 修改C++代码后无需自动执行编译指令(pnpm build ，yarn build, npm build),每次编译耗时很长且会电脑卡顿,用户会多次修改后最后统一编译,每次修改C++代码只需要提示用户手动编译即可，无需执行build

@@ -641,7 +641,9 @@ interface EmbindModule {
     getSolids(_0: TopoDS_Shape): any;
     getCompounds(_0: TopoDS_Shape): any;
     toBRepResult(_0: TopoDS_Shape, _1: number, _2: number): any;
+    removeSubShapes(_0: TopoDS_Shape, _1: Array<TopoDS_Shape>): TopoDS_Shape;
     getBoundingBox(_0: TopoDS_Shape): BoundingBox3;
+    getSubShape(_0: TopoDS_Shape, _1: number, _2: TopAbs_ShapeEnum): TopoDS_Shape;
   };
   gp_Pnt: {
     new(): gp_Pnt;

@@ -5,6 +5,8 @@ import { OBJECT_MANAGER } from "./object-manager";
 import { Vertex, Edge, Face } from "./brep-result";
 import { LineGeometry, LineMaterial, LineSegments2 } from "three/examples/jsm/Addons.js";
 import { ObjectID } from "./id-tool";
+import { Shape as ShapeSDK } from "@/sdk/shape";
+import { ShapeType } from "@/sdk";
 
 const _m = new THREE.Matrix4();
 const _pm = new THREE.Matrix4();
@@ -41,7 +43,7 @@ function disposeObject(object: BrepNode) {
 
 class BrepGeometry<T extends Vertex | Edge | Face> extends THREE.BufferGeometry {
     readonly brepId = ObjectID.generate();
-    constructor(private _data: T) {
+    constructor(private _data: T, public shapeIndex: number = -1) {
         super();
         OBJECT_MANAGER.addUseId(this.objectId, this.brepId);
     }
@@ -68,7 +70,7 @@ class BrepGeometry<T extends Vertex | Edge | Face> extends THREE.BufferGeometry 
 
 class BrepLineGeometry extends LineGeometry {
     readonly brepId = ObjectID.generate();
-    constructor(private _data: Edge) {
+    constructor(private _data: Edge, public shapeIndex: number = -1) {
         super();
         OBJECT_MANAGER.addUseId(this.objectId, this.brepId);
     }
@@ -112,7 +114,13 @@ class BrepFace extends THREE.Mesh implements BrepNode {
     }
 
     get shape(): TopoDS_Shape | null {
-        return this.geometry.shape;
+        const mesh = getBrepMeshFromBrepObject(this);
+        if (!mesh) return null;
+        const root = mesh.shape;
+        if (!root || root.isDeleted()) return null;
+        const index = this.geometry.shapeIndex;
+        if (index < 1) return null;
+        return ShapeSDK.getSubShape(root, index, ShapeType.FACE);
     }
 
     getData(): Face {
@@ -138,7 +146,13 @@ class BrepPoint extends THREE.Points implements BrepNode {
     }
 
     get shape(): TopoDS_Shape | null {
-        return this.geometry.shape;
+        const mesh = getBrepMeshFromBrepObject(this);
+        if (!mesh) return null;
+        const root = mesh.shape;
+        if (!root || root.isDeleted()) return null;
+        const index = this.geometry.shapeIndex;
+        if (index < 1) return null;
+        return ShapeSDK.getSubShape(root, index, ShapeType.VERTEX);
     }
 
     getData(): Vertex {
@@ -164,7 +178,13 @@ class BrepEdge extends LineSegments2 implements BrepNode {
     }
 
     get shape(): TopoDS_Shape | null {
-        return this.geometry.shape;
+        const mesh = getBrepMeshFromBrepObject(this);
+        if (!mesh) return null;
+        const root = mesh.shape;
+        if (!root || root.isDeleted()) return null;
+        const index = this.geometry.shapeIndex;
+        if (index < 1) return null;
+        return ShapeSDK.getSubShape(root, index, ShapeType.EDGE);
     }
 
     getData(): Edge {
@@ -256,12 +276,6 @@ class BrepMesh extends BrepRenderBase {
         }
     }
 
-    /** 重写：渲染前自动同步 GPUPickScene 和 TopoDS_Shape location，position.set 等可无感使用 */
-    updateMatrixWorld(force?: boolean): void {
-        super.updateMatrixWorld(force);
-        this._syncTransform(this.matrixWorld);
-    }
-
     /** 更换父级并保持世界变换（供 TransformControls detach 等内部使用） */
     reParentPreservingWorldTransform(newParent: THREE.Object3D, worldMatrix?: THREE.Matrix4): void {
         const matrix = worldMatrix ?? this.matrixWorld.clone();
@@ -270,21 +284,41 @@ class BrepMesh extends BrepRenderBase {
         this._applyWorldMatrix(matrix);
     }
 
-    private _applyWorldMatrix(worldMatrix: THREE.Matrix4): void {
-        _m.copy(worldMatrix);
-        _pm.copy(this.parent!.matrixWorld!);
-        _m.premultiply(_pm.invert());
-        _m.decompose(this.position, this.quaternion, this.scale);
-        this._syncTransform(worldMatrix);
+    /**
+* @description: 将物体强制设定世界坐标系的位置
+* @param {THREE.Matrix4} matrixWorld
+* @return {void}
+*/
+    transformToMatrixWorld(matrixWorld: THREE.Matrix4): void {
+        if (this.parent === null) {
+            this.matrix.copy(matrixWorld);
+            matrixWorld.decompose(this.position, this.quaternion, this.scale);
+        } else {
+            const parentMatrixInverse = this.parent.matrixWorld.clone().invert();
+            this.matrix.multiplyMatrices(parentMatrixInverse, matrixWorld);
+            this.matrix.decompose(this.position, this.quaternion, this.scale);
+        }
+        this.matrixWorld.copy(matrixWorld);
+        this._syncTransform(this.matrixWorld);
     }
 
-    private _syncTransform(worldMatrix: THREE.Matrix4): void {
+
+
+    protected _syncTransform(worldMatrix: THREE.Matrix4): void {
         const gpuObject = OBJECT_MANAGER.getGPUGroup(this.id.toString());
         if (gpuObject) {
             worldMatrix.decompose(gpuObject.position, gpuObject.quaternion, gpuObject.scale);
             gpuObject.updateMatrixWorld(true);
         }
         this.shape.setLocationFromMatrix4(worldMatrix.elements);
+    }
+
+    private _applyWorldMatrix(worldMatrix: THREE.Matrix4): void {
+        _m.copy(worldMatrix);
+        _pm.copy(this.parent!.matrixWorld!);
+        _m.premultiply(_pm.invert());
+        _m.decompose(this.position, this.quaternion, this.scale);
+        this._syncTransform(worldMatrix);
     }
 }
 

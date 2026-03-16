@@ -60,10 +60,3 @@ export function getOCCTModule(): MainModule {
   }
   return moduleInstance;
 }
-
-
-declare global {
-  interface Window {
-    wasm: MainModule;
-  }
-}

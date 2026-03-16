@@ -51,13 +51,13 @@ export function parseBRepResult2Geometry(result: BRepResult): ResultGeometry {
   const { vertices, edges, faces } = result;
   const [pointsGeo, edgesGeo, facesGeo]: [BrepGeometry<Vertex>[], BrepLineGeometry[], BrepGeometry<Face>[]] = [[], [], []];
 
-  vertices.forEach((vertex) => {
-    const geometry = new BrepGeometry(vertex);
+  vertices.forEach((vertex, i) => {
+    const geometry = new BrepGeometry(vertex, i + 1);
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertex.position, 3));
     pointsGeo.push(geometry);
   });
 
-  edges.forEach((edge) => {
+  edges.forEach((edge, i) => {
     let lineSegments: Float32Array;
     if (edge.position.length > 6) {
       // 将LineLoop转换成LineSegment
@@ -65,14 +65,14 @@ export function parseBRepResult2Geometry(result: BRepResult): ResultGeometry {
     } else {
       lineSegments = edge.position;
     }
-    const geometry = new BrepLineGeometry(edge);
+    const geometry = new BrepLineGeometry(edge, i + 1);
     geometry.setPositions(lineSegments);
     edgesGeo.push(geometry);
   });
 
 
-  faces.forEach((face) => {
-    const geometry = new BrepGeometry(face);
+  faces.forEach((face, i) => {
+    const geometry = new BrepGeometry(face, i + 1);
     geometry.setAttribute('position', new THREE.BufferAttribute(face.position, 3));
     geometry.setIndex([...face.index]);
     geometry.setAttribute('uv', new THREE.BufferAttribute(face.uv, 2));
@@ -341,7 +341,8 @@ export function shapeNodeToBrepRenderNode(node: ShapeNode, defaultMaterial: THRE
     if (isCompound) {
       return createCompoundWithChildren(node.shape!, getCompoundChildren(node), node, defaultMaterial);
     }
-    const material = getMaterial(node.color, defaultMaterial);
+    const material = defaultMaterial.clone();
+    (material as THREE.MeshStandardMaterial).color.set(node.color || faceMaterial.color);
     const brepResult = Shape.toBRepResult(node.shape!, 0.1, 0.5);
     const mesh = createBrepMesh(node.shape!, brepResult, material);
     node.name && (mesh.name = node.name);

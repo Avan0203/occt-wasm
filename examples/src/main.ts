@@ -14,6 +14,7 @@ import {
   sweepCase,
   shellCase,
   loftCase,
+  serializeCase,
 } from './cases';
 
 // 注册案例
@@ -29,6 +30,7 @@ router.register(revolveCase);
 router.register(sweepCase);
 router.register(shellCase);
 router.register(loftCase);
+router.register(serializeCase);
 // 初始化应用
 async function initApp() {
   const viewport = document.getElementById('viewport')!;

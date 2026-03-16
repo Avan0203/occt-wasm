@@ -3,6 +3,7 @@ export * from './brep-show';
 export * from './font';
 export * from './exturde';
 export * from './fillet-chamfer';
+export * from './serialize';
 export * from './sketch';
 export * from './bool-operate';
 export * from './exchange';
