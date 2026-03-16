@@ -1,25 +1,25 @@
-# Chili3D 重构方案：Transform 与 SubShape ID 解耦
+# 重构方案：Transform 与 SubShape ID 解耦
 
 ## 1. 背景与问题
 
 ### 1.1 现状
 
-- Mesh 顶点坐标将 shape 的 `TopLoc_Location` 烘焙进世界坐标
-- `shape.matrix` 变更时，`onTransformChanged()` 清空 mesh 缓存，下次访问时重新 Mesher、重建 BufferGeometry
-- Sub-shape（Face/Edge/Vertex）直接持有 TopoDS 引用；父 shape 的 location 变化后，这些引用与其解耦，造成错误行为
-- Chamfer/Fillet 等需要子拓扑时，依赖可能已过期的 TopoDS 引用
+- brepmesh的 shape 的 转化成toBrepResult，返回子拓扑点线面
+- `brepMesh.matrix` 变更时，`_syncTransform()`,修改location
+- 此时Brep Face，Edge，Vertex已经直接持有 TopoDS 引用；父 shape 的 location 变化后，子拓扑无法感知变化
+- Chamfer/Fillet 等需要选择子拓扑时，依赖可能已过期的 TopoDS 引用
 
 ### 1.2 目标
 
-- 降低对象创建：Transform 变化时不再重建 Mesher 与 BufferGeometry
+- 降低对象创建：Transform 变化时不再重建 重新toBrepResult
 - 解决 sub-shape 引用失效：用 ID + Index 映射替代直接 TopoDS 引用
-- 明确职责：Transform 统一由 `node.transform` 承载，Mesh 使用 shape 局部坐标
+- 明确职责：Transform 统一由 Shape.locate 承载，Mesh 使用 shape 局部坐标
 
 ---
 
 ## 2. 方案概述
 
-| 变更类型               | TopoDS_Shape | Mesher | BufferGeometry |
+| 变更类型               | TopoDS_Shape | toBrepResult | BufferGeometry |
 | ---------------------- | ------------ | ------ | -------------- |
 | 纯变换（Move/Rotate）  | 不创建       | 不运行 | 不创建         |
 | 几何/拓扑变化          | 可能新建     | 运行   | 创建           |
@@ -28,11 +28,11 @@
 
 ## 3. 详细设计
 
-### 3.1 Transform 与 Mesh 解耦
+### 3.1 父shape与子拓扑 解耦
 
 #### 3.1.1 约定
 
-- **TopoDS_Shape**：`TopLoc_Location` 保持 identity
+- **TopoDS_Shape**：`TopLoc_Location` 保持 始终为自身相对坐标系
 - **node.transform**：所有放置、移动、旋转由 `VisualNode.transform` 表示
 - **Mesh 顶点**：shape 局部空间，不烘焙 shape 的 location
 

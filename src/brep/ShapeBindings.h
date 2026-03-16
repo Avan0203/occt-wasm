@@ -12,6 +12,7 @@
 #include <TopoDS_Solid.hxx>
 #include <TopoDS_Compound.hxx>
 #include <GeomAbs_CurveType.hxx>
+#include <TopAbs_ShapeEnum.hxx>
 #include <vector>
 
 class Geom_Curve;
@@ -111,6 +112,8 @@ public:
   static std::vector<TopoDS_Wire> getWires(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Solid> getSolids(const TopoDS_Shape& shape);
   static std::vector<TopoDS_Compound> getCompounds(const TopoDS_Shape& shape);
+  static TopoDS_Shape getSubShape(const TopoDS_Shape& shape, int index, TopAbs_ShapeEnum type);
+  static TopoDS_Shape removeSubShapes(const TopoDS_Shape& shape, const TopoShapeArray& toRemove);
   static BoundingBox3 getBoundingBox(const TopoDS_Shape& shape);
   static BRepResult toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation);
 };

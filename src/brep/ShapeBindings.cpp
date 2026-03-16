@@ -18,6 +18,7 @@
 #include <BRepBndLib.hxx>
 #include <BRep_Builder.hxx>
 #include <BRepLib_MakeWire.hxx>
+#include <BRepTools_ReShape.hxx>
 #include <Bnd_Box.hxx>
 #include <Geom_Curve.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
@@ -623,6 +624,26 @@ std::vector<TopoDS_Compound> Shape::getCompounds(const TopoDS_Shape& shape) {
   return compounds;
 }
 
+TopoDS_Shape Shape::getSubShape(const TopoDS_Shape& shape, int index, TopAbs_ShapeEnum type) {
+  TopTools_IndexedMapOfShape map;
+  TopExp::MapShapes(shape, type, map);
+  if (index < 1 || index > map.Extent()) {
+    return TopoDS_Shape();
+  }
+  return map(index);
+}
+
+TopoDS_Shape Shape::removeSubShapes(const TopoDS_Shape& shape, const TopoShapeArray& toRemove) {
+  std::vector<TopoDS_Shape> list = emscripten::vecFromJSArray<TopoDS_Shape>(toRemove);
+  BRepTools_ReShape reshape;
+  for (const TopoDS_Shape& s : list) {
+    if (!s.IsNull()) {
+      reshape.Remove(s);
+    }
+  }
+  return reshape.Apply(shape);
+}
+
 bool Shape::isClosed(const TopoDS_Shape& shape) {
   return BRep_Tool::IsClosed(shape);
 }
@@ -819,6 +840,8 @@ EMSCRIPTEN_BINDINGS(ShapeBindings) {
           [](const TopoDS_Shape& shape) {
             return topoVectorToArray(Shape::getCompounds(shape));
           }))
+      .class_function("getSubShape", &Shape::getSubShape)
+      .class_function("removeSubShapes", &Shape::removeSubShapes)
       .class_function("getBoundingBox", &Shape::getBoundingBox)
       .class_function("toBRepResult", optional_override(
           [](const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
