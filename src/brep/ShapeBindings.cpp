@@ -46,6 +46,7 @@
 #include <gp_Vec.hxx>
 #include <gp_Pnt2d.hxx>
 #include <gp_Dir.hxx>
+#include <BRepAlgoAPI_Section.hxx>
 #include <emscripten/val.h>
 #include <limits>
 
@@ -753,6 +754,12 @@ BoundingBox3 Shape::getBoundingBox(const TopoDS_Shape& shape) {
   return BoundingBox3(Vector3::fromPnt(box.CornerMin()), Vector3::fromPnt(box.CornerMax()));
 }
 
+
+TopoDS_Shape Shape::section(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
+  BRepAlgoAPI_Section section(shape1, shape2, Standard_True);
+  section.Build();
+  return section.IsDone() ? section.Shape() : TopoDS_Shape();
+}
 
 // ==================== WASM Bindings ====================
 

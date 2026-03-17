@@ -12,7 +12,7 @@ import { App } from '@/common/app';
 import { SketchBuilder } from '@/sdk/sketch';
 import { Vector3 as Vec3 } from '@/sdk/vector3';
 import { createBrepMesh } from '@/common/shape-converter';
-import { Shape } from '@/sdk';
+import { Axis2, Shape } from '@/sdk';
 
 let app: App;
 
@@ -49,13 +49,13 @@ async function load(context: CaseContext): Promise<void> {
                 isSelectingPoints = true;
                 sketchToolsFolder.show();
                 sketchToolsFolder.open();
-                planeFolder.show();
-                planeFolder.open();
+                // planeFolder.show();
+                // planeFolder.open();
                 planeHelper.visible = true;
             } else {
                 isSelectingPoints = false;
                 sketchToolsFolder.hide();
-                planeFolder.hide();
+                // planeFolder.hide();
                 planeHelper.visible = false;
             }
             selectedPoints.length = 0;
@@ -76,9 +76,9 @@ async function load(context: CaseContext): Promise<void> {
                 app.setWorkingPlane(params.planeNormal, params.planeDistance);
                 fakePlane.set(params.planeNormal, params.planeDistance);
                 planeHelper.updateMatrixWorld(true);
-                nx.setValue(params.planeNormal.x);
-                ny.setValue(params.planeNormal.y);
-                nz.setValue(params.planeNormal.z);
+                // nx.setValue(params.planeNormal.x);
+                // ny.setValue(params.planeNormal.y);
+                // nz.setValue(params.planeNormal.z);
 
             },
             drawLine: () => {
@@ -126,31 +126,33 @@ async function load(context: CaseContext): Promise<void> {
             }
         };
 
+        const axis = Axis2.Y();
+
         const drawFunc = {
             line: () => {
                 if (selectedPoints.length < 2) return false;
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 builder.lineTo(selectedPoints[1]);
                 return true;
             },
             circle: () => {
                 if (selectedPoints.length < 2) return false;
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 builder.circle(selectedPoints[0], selectedPoints[1]);
                 return true;
             },
             arc: () => {
                 if (selectedPoints.length < 3) return false;
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 builder.arc(selectedPoints[0], selectedPoints[1], selectedPoints[2]);
                 return true;
             },
             ellipse: () => {
                 if (selectedPoints.length < 3) return false;
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 const radiusX = selectedPoints[1].distanceTo(selectedPoints[0]);
                 const radiusY = selectedPoints[2].distanceTo(selectedPoints[0]);
@@ -159,13 +161,13 @@ async function load(context: CaseContext): Promise<void> {
             },
             bSpline: () => {
                 if (selectedPoints.length < 4) return false;
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 builder.bSplineFromControlPoints(selectedPoints.slice(1));
                 return true;
             },
             polyline: () => {
-                builder.beginPath(params.planeNormal);
+                builder.beginPath(axis);
                 builder.moveTo(selectedPoints[0]);
                 for (let i = 1; i < selectedPoints.length; i++) {
                     builder.lineTo(selectedPoints[i]);
@@ -222,17 +224,6 @@ async function load(context: CaseContext): Promise<void> {
         planeHelper.geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
         app.addHelper(planeHelper);
         planeHelper.visible = false;
-
-
-
-        const planeFolder = gui.addFolder('Edit Working Plane');
-        const nx = planeFolder.add(params.planeNormal, 'x', -1, 1, 0.01);
-        const ny = planeFolder.add(params.planeNormal, 'y', -1, 1, 0.01);
-        const nz = planeFolder.add(params.planeNormal, 'z', -1, 1, 0.01);
-        planeFolder.add(params, 'planeDistance', -10, 10, 0.01);
-        planeFolder.add(params, 'updatePlaneHelper');
-
-        planeFolder.hide();
 
         const sketchToolsFolder = gui.addFolder('Sketch Tools');
         sketchToolsFolder.add(params, 'drawLine').name('Line');

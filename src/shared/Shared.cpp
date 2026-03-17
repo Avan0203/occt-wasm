@@ -37,6 +37,7 @@ EMSCRIPTEN_BINDINGS(Shared) {
 
   register_optional<double>();
   register_optional<std::string>();
+  register_optional<NumberArray>();
 
   value_object<Vector3>("Vector3")
       .field("x", &Vector3::x)

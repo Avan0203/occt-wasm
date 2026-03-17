@@ -6,7 +6,6 @@
 #include "TopoDS_Solid.hxx"
 #include "TopoDS_Wire.hxx"
 #include "shared/Shared.hpp"
-#include "utils/UtilsBindings.h"
 #include <TopoDS.hxx>
 #include <TopoDS_Shape.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>

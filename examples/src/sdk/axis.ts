@@ -1,4 +1,5 @@
 import { gp_Ax1, gp_Ax2, gp_Ax3, gp_Pln } from "public/occt-wasm";
+import { Matrix4 } from "three";
 import { Vector3, Vector3Like } from "./vector3";
 
 class Axis1 {
@@ -79,6 +80,19 @@ class Axis2 {
         this.yDirection.negate();
     }
 
+    angleOnAxis(v: Vector3): number {
+        return Math.atan2(v.x * this.xDirection.x + v.y * this.xDirection.y + v.z * this.xDirection.z,
+            v.x * this.yDirection.x + v.y * this.yDirection.y + v.z * this.yDirection.z);
+    }
+
+    applyMatrix(matrix: Matrix4): this {
+        this.origin.applyMatrix4(matrix);
+        this.direction.transformDirection(matrix);
+        this.xDirection.transformDirection(matrix);
+        this.yDirection.transformDirection(matrix);
+        return this;
+    }
+
     static Y(): Axis2 {
         return new Axis2(Vector3.ZERO(), Vector3.Y(), Vector3.X(), Vector3.Z());
     }
@@ -135,8 +149,17 @@ class Axis3 {
         this.zDirection.negate();
     }
 
+    applyMatrix(matrix: Matrix4): this {
+        this.origin.applyMatrix4(matrix);
+        this.direction.transformDirection(matrix);
+        this.xDirection.transformDirection(matrix);
+        this.yDirection.transformDirection(matrix);
+        this.zDirection.transformDirection(matrix);
+        return this;
+    }
+
     static Y(): Axis3 {
-        return new Axis3(Vector3.ZERO(), Vector3.Y(), Vector3.X(), Vector3.Z(), Vector3.Y());
+        return new Axis3(Vector3.ZERO(), Vector3.Y(), Vector3.Z(), Vector3.X(), Vector3.Y());
     }
     static Z(): Axis3 {
         return new Axis3(Vector3.ZERO(), Vector3.Z(), Vector3.X(), Vector3.Y(), Vector3.Z());

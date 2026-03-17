@@ -3,10 +3,9 @@
 // Include all binding headers
 #include "math/MathBindings.h"
 #include "geometry/GeometryBindings.h"
-#include "geometry/GeomBindings.h"
+#include "geometry/CurveBindings.h"
 #include "geometry/ModelerBindings.h"
 #include "brep/BRepBindings.h"
-#include "utils/UtilsBindings.h"
 #include "exchange/ExchangeBindings.h"
 
 EMSCRIPTEN_BINDINGS(occt_wasm_module) {
@@ -14,10 +13,9 @@ EMSCRIPTEN_BINDINGS(occt_wasm_module) {
     // Order matters - register base types first
     MathBindings::registerBindings();
     BRepBindings::registerBindings();
-    GeomBindings::registerBindings();
+    CurveBindings::registerBindings();
     GeometryBindings::registerBindings();
     ModelerBindings::registerBindings();
-    UtilsBindings::registerBindings();
     ExchangeBindings::registerBindings();
 }
 

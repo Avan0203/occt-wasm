@@ -116,6 +116,7 @@ public:
   static TopoDS_Shape removeSubShapes(const TopoDS_Shape& shape, const TopoShapeArray& toRemove);
   static BoundingBox3 getBoundingBox(const TopoDS_Shape& shape);
   static BRepResult toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation);
+  static TopoDS_Shape section(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2);
 };
 
 #endif // SHAPE_BINDINGS_H

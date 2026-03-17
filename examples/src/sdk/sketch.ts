@@ -10,18 +10,19 @@ import {
 import { EN_Direction } from "./types";
 import type { TopoDS_Shape, TopoDS_Wire, TopoDS_Edge } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
+import { Axis2 } from "./axis";
 
 
 class SketchBuilder {
     private start: Vector3;
     private current: Vector3;
     private curves: Curve3D[] = [];
-    private normal: Vector3;
+    private axis: Axis2;
 
     private constructor() {
         this.start = new Vector3();
         this.current = new Vector3();
-        this.normal = new Vector3();
+        this.axis = new Axis2();
     }
 
     private static instance: SketchBuilder;
@@ -161,16 +162,16 @@ class SketchBuilder {
         this.current.copy(this.start);
     }
 
-    beginPath(normal: Vector3Like): void {
+    beginPath(axis: Axis2): void {
         this.reset();
-        this.normal.copy(normal);
+        this.axis.copy(axis);
     }
 
     reset(): void {
         this.curves.length = 0;
         this.current.set(0, 0, 0);
         this.start.set(0, 0, 0);
-        this.normal.set(0, 0, 1);
+        this.axis.copy(Axis2.Y());
     }
 
     getCurves(): Curve3D[] {
@@ -180,7 +181,7 @@ class SketchBuilder {
     build(): Sketch {
         const curves = [...this.curves];
         const sketch = new Sketch(curves);
-        sketch.normal.copy(this.normal);
+        sketch.axis.copy(this.axis);
         this.reset();
         return sketch;
     }
@@ -190,7 +191,7 @@ class Sketch {
     private curves: Curve3D[];
     readonly start = new Vector3();
     readonly end = new Vector3();
-    readonly normal = new Vector3();
+    readonly axis = new Axis2();
 
     constructor(curves: Curve3D[]) {
         this.curves = curves;
@@ -212,7 +213,7 @@ class Sketch {
     getShapes(): TopoDS_Shape[] {
         const shapes: TopoDS_Shape[] = [];
         for (const curve of this.curves) {
-            curve.setNormal(this.normal);
+            curve.setAxis(this.axis);
             curve.build();
             if (curve.shape != null && !curve.shape.isDeleted()) {
                 shapes.push(curve.shape);

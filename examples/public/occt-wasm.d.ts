@@ -359,147 +359,13 @@ export interface TopoDS_Solid extends TopoDS_Shape {
 export interface TopoDS_Compound extends TopoDS_Shape {
 }
 
-export interface Standard_Transient extends ClassHandle {
-  getRefCount(): number;
-}
-
-export interface Handle_Geom_Geometry extends ClassHandle {
-  isNull(): boolean;
-  get(): Geom_Geometry | null;
-}
-
-export interface Geom_Geometry extends Standard_Transient {
-  copy(): Handle_Geom_Geometry;
-  transform(_0: gp_Trsf): void;
-  transformed(_0: gp_Trsf): Handle_Geom_Geometry;
-}
-
-export interface Geom_Curve extends Geom_Geometry {
-  isClosed(): boolean;
-  isPeriodic(): boolean;
-  period(): number;
-  reverse(): void;
-  firstParameter(): number;
-  lastParameter(): number;
-  value(_0: number): gp_Pnt;
-  d0(_0: number): gp_Pnt;
-  d1(_0: number): any;
-  isCN(_0: number): boolean;
-  reversed(): Handle_Geom_Curve;
-  continuity(): GeomAbs_Shape;
-}
-
-export interface Geom_Conic extends Geom_Curve {
-  axis(): gp_Ax1;
-  xAxis(): gp_Ax1;
-  yAxis(): gp_Ax1;
-  eccentricity(): number;
-  location(): gp_Pnt;
-  setLocation(_0: gp_Pnt): void;
-  location(): gp_Pnt;
-  setLocation(_0: gp_Pnt): void;
-}
-
-export interface Geom_BoundedCurve extends Geom_Curve {
-  startPoint(): gp_Pnt;
-  endPoint(): gp_Pnt;
-}
-
-export interface Geom_Line extends Geom_Curve {
-  position(): gp_Ax1;
-  setPosition(_0: gp_Ax1): void;
-  setDirection(_0: gp_Dir): void;
-  setLocation(_0: gp_Pnt): void;
-}
-
-export interface Geom_Circle extends Geom_Conic {
-  radius(): number;
-  setRadius(_0: number): void;
-}
-
-export interface Geom_Ellipse extends Geom_Conic {
-  majorRadius(): number;
-  minorRadius(): number;
-  setMajorRadius(_0: number): void;
-  setMinorRadius(_0: number): void;
-  focus1(): gp_Pnt;
-  focus2(): gp_Pnt;
-}
-
-export interface Geom_TrimmedCurve extends Geom_BoundedCurve {
-  setTrim(_0: number, _1: number, _2: boolean, _3: boolean): void;
-  basisCurve(): Handle_Geom_Curve;
-}
-
-export interface Geom_OffsetCurve extends Geom_Curve {
-  offset(): number;
-  direction(): gp_Dir;
-  basisCurve(): Handle_Geom_Curve;
-}
-
-export interface Geom_BezierCurve extends Geom_BoundedCurve {
-  degree(): number;
-  nbPoles(): number;
-  pole(_0: number): gp_Pnt;
-  weight(_0: number): number;
-  setPole(_0: number, _1: gp_Pnt): void;
-  setPoleWithWeight(_0: number, _1: gp_Pnt, _2: number): void;
-  setWeight(_0: number, _1: number): void;
-}
-
-export interface Geom_BSplineCurve extends Geom_BoundedCurve {
-  degree(): number;
-  nbKnots(): number;
-  knot(_0: number): number;
-  setKnot(_0: number, _1: number): void;
-  nbPoles(): number;
-  pole(_0: number): gp_Pnt;
-  weight(_0: number): number;
-  setWeight(_0: number, _1: number): void;
-}
-
-export interface Handle_Geom_Curve extends ClassHandle {
-  get(): Geom_Curve | null;
-  isNull(): boolean;
-}
-
-export interface Handle_Geom_Line extends ClassHandle {
-  get(): Geom_Line | null;
-  isNull(): boolean;
-}
-
-export interface Handle_Geom_TrimmedCurve extends ClassHandle {
-  get(): Geom_TrimmedCurve | null;
-  isNull(): boolean;
-}
-
-export interface CurveOnEdgeResult extends ClassHandle {
-  curve: Handle_Geom_TrimmedCurve;
-  first: number;
-  last: number;
-}
-
-export interface Geom extends ClassHandle {
+export interface CurveFactory extends ClassHandle {
 }
 
 export interface GeometryFactory extends ClassHandle {
 }
 
 export interface Modeler extends ClassHandle {
-}
-
-export interface TopExp extends ClassHandle {
-}
-
-export interface TopExp_Explorer extends ClassHandle {
-  more(): boolean;
-  next(): void;
-  current(): TopoDS_Shape;
-  reInit(): void;
-  value(): TopoDS_Shape;
-  clear(): void;
-  depth(): number;
-  init(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): void;
 }
 
 export interface ShapeNode extends ClassHandle {
@@ -748,48 +614,11 @@ interface EmbindModule {
     new(): TopoDS_Compound;
     new(_0: TopoDS_Compound): TopoDS_Compound;
   };
-  Standard_Transient: {
-    isInstance(_0: Standard_Transient | null, _1: EmbindString): boolean;
-  };
-  Handle_Geom_Geometry: {
-    new(): Handle_Geom_Geometry;
-  };
-  Geom_Geometry: {};
-  Geom_Curve: {};
-  Geom_Conic: {};
-  Geom_BoundedCurve: {};
-  Geom_Line: {
-    new(_0: gp_Ax1): Geom_Line;
-    new(_0: gp_Pnt, _1: gp_Dir): Geom_Line;
-  };
-  Geom_Circle: {
-    new(_0: gp_Ax2, _1: number): Geom_Circle;
-  };
-  Geom_Ellipse: {
-    new(_0: gp_Ax2, _1: number, _2: number): Geom_Ellipse;
-  };
-  Geom_TrimmedCurve: {};
-  Geom_OffsetCurve: {};
-  Geom_BezierCurve: {};
-  Geom_BSplineCurve: {};
-  Handle_Geom_Curve: {
-    new(): Handle_Geom_Curve;
-  };
-  Handle_Geom_Line: {
-    new(): Handle_Geom_Line;
-    create(_0: gp_Pnt, _1: gp_Dir): Handle_Geom_Line;
-  };
-  Handle_Geom_TrimmedCurve: {
-    new(): Handle_Geom_TrimmedCurve;
-  };
-  CurveOnEdgeResult: {};
-  Geom: {
-    makeLine(_0: gp_Pnt, _1: gp_Dir): Handle_Geom_Line;
-    trim(_0: Geom_Curve | null, _1: number, _2: number, _3: boolean): Handle_Geom_TrimmedCurve;
-    curveFromEdge(_0: TopoDS_Edge): CurveOnEdgeResult;
-    edgeFromCurve(_0: Geom_Curve | null): TopoDS_Edge;
-    edgeFromBSpline(_0: any, _1: any, _2: any, _3: number, _4: boolean): TopoDS_Edge;
-    edgeFromBSplineWithWeights(_0: any, _1: any, _2: any, _3: number, _4: boolean, _5: any): TopoDS_Edge;
+  CurveFactory: {
+    BSpline(_0: Array<Vector3>, _1: Array<number>, _2: Array<number>, _3: number, _4: boolean, _5?: Array<number>): TopoDS_Edge;
+    Line(_0: Vector3, _1: Vector3): TopoDS_Edge;
+    Circle(_0: Vector3, _1: number, _2: number, _3: number, _4: boolean, _5: Vector3): TopoDS_Edge;
+    Ellipse(_0: Vector3, _1: number, _2: number, _3: Vector3): TopoDS_Edge;
   };
   GeometryFactory: {
     Box(_0: number, _1: number, _2: number, _3: Axis2): TopoResult;
@@ -810,19 +639,6 @@ interface EmbindModule {
     thickSolid(_0: TopoDS_Shape, _1: Array<TopoDS_Shape>, _2: number, _3: number): TopoResult;
     simplify(_0: TopoDS_Shape, _1: boolean, _2: boolean): TopoResult;
     loft(_0: Array<TopoDS_Shape>, _1: boolean, _2: GeomAbs_Shape, _3: boolean, _4: number): TopoResult;
-  };
-  TopExp: {
-    extractVertices(_0: TopoDS_Shape): any;
-    extractEdges(_0: TopoDS_Shape): any;
-    extractFaces(_0: TopoDS_Shape): any;
-    extractWires(_0: TopoDS_Shape): any;
-    extractShells(_0: TopoDS_Shape): any;
-    extractSolids(_0: TopoDS_Shape): any;
-    countShapes(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum): number;
-  };
-  TopExp_Explorer: {
-    new(): TopExp_Explorer;
-    new(_0: TopoDS_Shape, _1: TopAbs_ShapeEnum, _2: TopAbs_ShapeEnum): TopExp_Explorer;
   };
   ShapeNode: {};
   Exchange: {

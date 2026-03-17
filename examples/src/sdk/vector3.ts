@@ -1,4 +1,4 @@
-
+import type { Matrix4 } from "three";
 import { getOCCTModule } from "./occt-loader";
 import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir ,Vector3 as Vector3Wasm, TopoDS_Vertex} from "public/occt-wasm.js";
 
@@ -43,6 +43,20 @@ class Vector3 {
         this.x -= v.x;
         this.y -= v.y;
         this.z -= v.z;
+        return this;
+    }
+
+    subVectors(v1: Vector3Like, v2: Vector3Like): this {
+        this.x = v1.x - v2.x;
+        this.y = v1.y - v2.y;
+        this.z = v1.z - v2.z;
+        return this;
+    }
+
+    addVectors(v1: Vector3Like, v2: Vector3Like): this {
+        this.x = v1.x + v2.x;
+        this.y = v1.y + v2.y;
+        this.z = v1.z + v2.z;
         return this;
     }
 
@@ -141,6 +155,27 @@ class Vector3 {
         this.y = -this.y;
         this.z = -this.z;
         return this;
+    }
+
+    /** 与 Three.js Vector3.applyMatrix4 一致 */
+    applyMatrix4(m: Matrix4): this {
+        const x = this.x, y = this.y, z = this.z;
+        const e = m.elements;
+        const w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+        this.x = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+        this.y = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+        this.z = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+        return this;
+    }
+
+    /** 与 Three.js Vector3.transformDirection 一致，用于方向向量 */
+    transformDirection(m: Matrix4): this {
+        const x = this.x, y = this.y, z = this.z;
+        const e = m.elements;
+        this.x = e[0] * x + e[4] * y + e[8] * z;
+        this.y = e[1] * x + e[5] * y + e[9] * z;
+        this.z = e[2] * x + e[6] * y + e[10] * z;
+        return this.normalize();
     }
 
     static ZERO(): Vector3 {
