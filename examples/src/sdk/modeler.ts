@@ -20,19 +20,19 @@ class Modeler {
         return Modeler.prism(shape, direction);
     }
 
-    static union(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
-        const { Modeler } = getOCCTModule();
-        return Modeler.union(target, compare, tolerance);
+    static fuse(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
+        const { Modeler } = getOCCTModule() as any;
+        return Modeler.fuse(target, compare, tolerance);
     }
 
-    static difference(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
-        const { Modeler } = getOCCTModule();
-        return Modeler.difference(target, compare, tolerance);
+    static cut(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
+        const { Modeler } = getOCCTModule() as any;
+        return Modeler.cut(target, compare, tolerance);
     }
 
-    static intersection(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
-        const { Modeler } = getOCCTModule();
-        return Modeler.intersection(target, compare, tolerance);
+    static common(target: TopoDS_Shape[], compare: TopoDS_Shape[], tolerance = Constants.EPSILON): TopoResult {
+        const { Modeler } = getOCCTModule() as any;
+        return Modeler.common(target, compare, tolerance);
     }
 
     static revolve(shape: TopoDS_Shape, axis: Axis1, angle = Constants.TWO_PI): TopoResult {

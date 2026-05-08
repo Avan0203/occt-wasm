@@ -29,7 +29,8 @@
 #include <Precision.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp.hxx>
-#include <TopTools_IndexedMapOfShape.hxx>
+#include <NCollection_IndexedMap.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
 #include <TopLoc_Location.hxx>
 #include <Poly_Triangulation.hxx>
@@ -222,8 +223,8 @@ Vector3Array Edge::intersections(const TopoDS_Edge& edge1, const TopoDS_Edge& ed
   IntTools_EdgeEdge iee;
   performEdgeEdge(iee, edge1, edge2, tolerance);
   if (!iee.IsDone()) return Vector3Array(result);
-  const IntTools_SequenceOfCommonPrts& parts = iee.CommonParts();
-  for (Standard_Integer i = 1; i <= parts.Length(); ++i)
+  const NCollection_Sequence<IntTools_CommonPrt>& parts = iee.CommonParts();
+  for (int i = 1; i <= parts.Length(); ++i)
     appendCommonPrtPoints(result, parts(i));
   return Vector3Array(result);
 }
@@ -243,10 +244,10 @@ EdgeResult Edge::discretize(const TopoDS_Edge& edge, double lineDeflection = Con
   }
 
   BRepAdaptor_Curve curve(edge);
-  Standard_Real first = curve.FirstParameter();
-  Standard_Real last = curve.LastParameter();
+  double first = curve.FirstParameter();
+  double last = curve.LastParameter();
 
-  if (Abs(last - first) < Precision::Confusion()) {
+  if (std::abs(last - first) < Precision::Confusion()) {
       gp_Pnt pnt = curve.Value(first);
       result.position.push_back(static_cast<float>(pnt.X()));
       result.position.push_back(static_cast<float>(pnt.Y()));
@@ -259,13 +260,13 @@ EdgeResult Edge::discretize(const TopoDS_Edge& edge, double lineDeflection = Con
   if (discretizer.NbPoints() == 0) {
       GCPnts_QuasiUniformDeflection quasiDiscretizer(curve, lineDeflection, first, last);
       if (!quasiDiscretizer.IsDone()) {
-          Standard_Integer nbPoints = 100;
+          int nbPoints = 100;
           GCPnts_UniformAbscissa uniformDiscretizer(curve, nbPoints, first, last);
           if (uniformDiscretizer.IsDone()) {
-              Standard_Integer nbPnts = uniformDiscretizer.NbPoints();
+              int nbPnts = uniformDiscretizer.NbPoints();
               result.position.reserve(nbPnts * 3);
-              for (Standard_Integer i = 1; i <= nbPnts; i++) {
-                  Standard_Real param = uniformDiscretizer.Parameter(i);
+              for (int i = 1; i <= nbPnts; i++) {
+                  double param = uniformDiscretizer.Parameter(i);
                   gp_Pnt pnt = curve.Value(param);
                   result.position.push_back(static_cast<float>(pnt.X()));
                   result.position.push_back(static_cast<float>(pnt.Y()));
@@ -275,10 +276,10 @@ EdgeResult Edge::discretize(const TopoDS_Edge& edge, double lineDeflection = Con
           return result;
       }
 
-      Standard_Integer nbPoints = quasiDiscretizer.NbPoints();
+      int nbPoints = quasiDiscretizer.NbPoints();
       result.position.reserve(nbPoints * 3);
-      for (Standard_Integer i = 1; i <= nbPoints; i++) {
-          Standard_Real param = quasiDiscretizer.Parameter(i);
+      for (int i = 1; i <= nbPoints; i++) {
+          double param = quasiDiscretizer.Parameter(i);
           gp_Pnt pnt = curve.Value(param);
           result.position.push_back(static_cast<float>(pnt.X()));
           result.position.push_back(static_cast<float>(pnt.Y()));
@@ -287,10 +288,10 @@ EdgeResult Edge::discretize(const TopoDS_Edge& edge, double lineDeflection = Con
       return result;
   }
 
-  Standard_Integer nbPoints = discretizer.NbPoints();
+  int nbPoints = discretizer.NbPoints();
   result.position.reserve(nbPoints * 3);
 
-  for (Standard_Integer i = 1; i <= nbPoints; i++) {
+  for (int i = 1; i <= nbPoints; i++) {
       gp_Pnt pnt = discretizer.Value(i);
       result.position.push_back(static_cast<float>(pnt.X()));
       result.position.push_back(static_cast<float>(pnt.Y()));
@@ -382,7 +383,7 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
   TopLoc_Location loc;
   Handle(Poly_Triangulation) triangulation = BRep_Tool::Triangulation(face, loc);
 
-  BRepMesh_IncrementalMesh mesher(face, deflection, Standard_False, angleDeviation, Standard_True);
+  BRepMesh_IncrementalMesh mesher(face, deflection, false, angleDeviation, true);
   triangulation = BRep_Tool::Triangulation(face, loc);
 
   if (triangulation.IsNull()) {
@@ -390,13 +391,13 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
   }
 
   const gp_Trsf& trsf = loc.Transformation();
-  Standard_Boolean isMirrored = trsf.VectorialPart().Determinant() < 0;
-  Standard_Boolean isReversed = (face.Orientation() == TopAbs_REVERSED);
+  bool isMirrored = trsf.VectorialPart().Determinant() < 0;
+  bool isReversed = (face.Orientation() == TopAbs_REVERSED);
 
-  Standard_Integer nbNodes = triangulation->NbNodes();
+  int nbNodes = triangulation->NbNodes();
   result.position.reserve(nbNodes * 3);
 
-  for (Standard_Integer i = 1; i <= nbNodes; i++) {
+  for (int i = 1; i <= nbNodes; i++) {
       gp_Pnt pnt = triangulation->Node(i);
       if (!loc.IsIdentity()) {
           pnt.Transform(trsf);
@@ -406,12 +407,12 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
       result.position.push_back(static_cast<float>(pnt.Z()));
   }
 
-  Standard_Integer nbTriangles = triangulation->NbTriangles();
+  int nbTriangles = triangulation->NbTriangles();
   result.index.reserve(nbTriangles * 3);
 
-  for (Standard_Integer i = 1; i <= nbTriangles; i++) {
+  for (int i = 1; i <= nbTriangles; i++) {
       Poly_Triangle triangle = triangulation->Triangle(i);
-      Standard_Integer n1, n2, n3;
+      int n1, n2, n3;
       triangle.Get(n1, n2, n3);
 
       n1--; n2--; n3--;
@@ -429,7 +430,7 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
 
   if (triangulation->HasNormals()) {
       result.normal.reserve(nbNodes * 3);
-      for (Standard_Integer i = 1; i <= nbNodes; i++) {
+      for (int i = 1; i <= nbNodes; i++) {
           gp_Dir normal = triangulation->Normal(i);
           if ((isReversed ^ isMirrored)) {
               normal.Reverse();
@@ -446,12 +447,12 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
   } else {
       Poly_Connect connect(triangulation);
       result.normal.reserve(nbNodes * 3);
-      for (Standard_Integer i = 1; i <= nbNodes; i++) {
+      for (int i = 1; i <= nbNodes; i++) {
           gp_Vec normalVec(0.0, 0.0, 0.0);
 
-          for (Standard_Integer j = 1; j <= nbTriangles; j++) {
+          for (int j = 1; j <= nbTriangles; j++) {
               Poly_Triangle triangle = triangulation->Triangle(j);
-              Standard_Integer n1, n2, n3;
+              int n1, n2, n3;
               triangle.Get(n1, n2, n3);
 
               if (n1 == i || n2 == i || n3 == i) {
@@ -489,7 +490,7 @@ FaceResult Face::triangulate(const TopoDS_Face& face, double deflection = Consta
 
   if (triangulation->HasUVNodes()) {
       result.uv.reserve(nbNodes * 2);
-      for (Standard_Integer i = 1; i <= nbNodes; i++) {
+      for (int i = 1; i <= nbNodes; i++) {
           gp_Pnt2d uvPnt = triangulation->UVNode(i);
           result.uv.push_back(static_cast<float>(uvPnt.X()));
           result.uv.push_back(static_cast<float>(uvPnt.Y()));
@@ -567,7 +568,7 @@ TopoDS_Compound Compound::fromShapes(const TopoShapeArray& shapes) {
 
 std::vector<TopoDS_Vertex> Shape::getVertices(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Vertex> vertices;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_VERTEX, map);
   for (int i = 1; i <= map.Extent(); i++) {
       vertices.push_back(TopoDS::Vertex(map(i)));
@@ -577,7 +578,7 @@ std::vector<TopoDS_Vertex> Shape::getVertices(const TopoDS_Shape& shape) {
 
 std::vector<TopoDS_Edge> Shape::getEdges(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Edge> edges;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_EDGE, map);
   for (int i = 1; i <= map.Extent(); i++) {
       edges.push_back(TopoDS::Edge(map(i)));
@@ -587,7 +588,7 @@ std::vector<TopoDS_Edge> Shape::getEdges(const TopoDS_Shape& shape) {
 
 std::vector<TopoDS_Face> Shape::getFaces(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Face> faces;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_FACE, map);
   for (int i = 1; i <= map.Extent(); i++) {
       faces.push_back(TopoDS::Face(map(i)));
@@ -597,7 +598,7 @@ std::vector<TopoDS_Face> Shape::getFaces(const TopoDS_Shape& shape) {
 
 std::vector<TopoDS_Wire> Shape::getWires(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Wire> wires;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_WIRE, map);
   for (int i = 1; i <= map.Extent(); i++) {
       wires.push_back(TopoDS::Wire(map(i)));
@@ -607,7 +608,7 @@ std::vector<TopoDS_Wire> Shape::getWires(const TopoDS_Shape& shape) {
 
 std::vector<TopoDS_Solid> Shape::getSolids(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Solid> solids;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_SOLID, map);
   for (int i = 1; i <= map.Extent(); i++) {
       solids.push_back(TopoDS::Solid(map(i)));
@@ -617,7 +618,7 @@ std::vector<TopoDS_Solid> Shape::getSolids(const TopoDS_Shape& shape) {
 
 std::vector<TopoDS_Compound> Shape::getCompounds(const TopoDS_Shape& shape) {
   std::vector<TopoDS_Compound> compounds;
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, TopAbs_COMPOUND, map);
   for (int i = 1; i <= map.Extent(); i++) {
       compounds.push_back(TopoDS::Compound(map(i)));
@@ -626,7 +627,7 @@ std::vector<TopoDS_Compound> Shape::getCompounds(const TopoDS_Shape& shape) {
 }
 
 TopoDS_Shape Shape::getSubShape(const TopoDS_Shape& shape, int index, TopAbs_ShapeEnum type) {
-  TopTools_IndexedMapOfShape map;
+  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
   TopExp::MapShapes(shape, type, map);
   if (index < 1 || index > map.Extent()) {
     return TopoDS_Shape();
@@ -652,7 +653,7 @@ bool Shape::isClosed(const TopoDS_Shape& shape) {
 BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
   BRepResult result;
 
-  BRepMesh_IncrementalMesh mesher(shape, lineDeflection, Standard_False, angleDeviation, Standard_True);
+  BRepMesh_IncrementalMesh mesher(shape, lineDeflection, false, angleDeviation, true);
 
   std::vector<TopoDS_Vertex> vertices = Shape::getVertices(shape);
   for (const TopoDS_Vertex& v : vertices) {
@@ -677,10 +678,10 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
       Handle(Poly_Polygon3D) polygon3D = BRep_Tool::Polygon3D(edge, loc);
 
       if (!polygon3D.IsNull()) {
-          const TColgp_Array1OfPnt& nodes = polygon3D->Nodes();
+          const auto& nodes = polygon3D->Nodes();
           brepEdge.position.reserve(nodes.Length() * 3);
 
-          for (Standard_Integer i = nodes.Lower(); i <= nodes.Upper(); i++) {
+          for (int i = nodes.Lower(); i <= nodes.Upper(); i++) {
               gp_Pnt pnt = nodes.Value(i);
               if (!loc.IsIdentity()) {
                   pnt.Transform(loc.Transformation());
@@ -691,14 +692,13 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
           }
       } else {
           Handle(Poly_Triangulation) triangulation;
-          Handle(Poly_PolygonOnTriangulation) polygonOnTri;
-          BRep_Tool::PolygonOnTriangulation(edge, polygonOnTri, triangulation, loc);
+          Handle(Poly_PolygonOnTriangulation) polygonOnTri = BRep_Tool::PolygonOnTriangulation(edge, triangulation, loc);
 
           if (!polygonOnTri.IsNull() && !triangulation.IsNull()) {
-              const TColStd_Array1OfInteger& indices = polygonOnTri->Nodes();
+              const auto& indices = polygonOnTri->Nodes();
               brepEdge.position.reserve(indices.Length() * 3);
 
-              for (Standard_Integer i = indices.Lower(); i <= indices.Upper(); i++) {
+              for (int i = indices.Lower(); i <= indices.Upper(); i++) {
                   gp_Pnt pnt = triangulation->Node(indices.Value(i));
                   if (!loc.IsIdentity()) {
                       pnt.Transform(loc.Transformation());
@@ -756,7 +756,7 @@ BoundingBox3 Shape::getBoundingBox(const TopoDS_Shape& shape) {
 
 
 TopoDS_Shape Shape::section(const TopoDS_Shape& shape1, const TopoDS_Shape& shape2) {
-  BRepAlgoAPI_Section section(shape1, shape2, Standard_True);
+  BRepAlgoAPI_Section section(shape1, shape2, true);
   section.Build();
   return section.IsDone() ? section.Shape() : TopoDS_Shape();
 }

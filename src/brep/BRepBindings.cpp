@@ -15,7 +15,6 @@
 #include <TopoDS_Iterator.hxx>
 #include <TopExp_Explorer.hxx>
 #include <TopExp.hxx>
-#include <TopTools_IndexedMapOfShape.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <GeomAbs_CurveType.hxx>
 #include <BRep_Tool.hxx>

@@ -1,8 +1,6 @@
 #include "CurveBindings.h"
 #include "shared/Shared.hpp"
-#include <TColgp_Array1OfPnt.hxx>
-#include <TColStd_Array1OfReal.hxx>
-#include <TColStd_Array1OfInteger.hxx>
+#include <NCollection_Array1.hxx>
 #include <Geom_Circle.hxx>
 #include <Geom_Ellipse.hxx>
 #include <Geom_TrimmedCurve.hxx>
@@ -47,13 +45,13 @@ TopoDS_Edge CurveFactory::BSpline(const Vector3Array& controlPoints, const Numbe
     int multCount = static_cast<int>(multVec.size());
     if (poleCount < 2 || knotCount < 1 || multCount != knotCount)
         return TopoDS_Edge();
-    TColgp_Array1OfPnt poles(1, poleCount);
+    NCollection_Array1<gp_Pnt> poles(1, poleCount);
     for (int i = 0; i < poleCount; i++)
         poles.SetValue(i + 1, Vector3::toPnt(poleList[i]));
-    TColStd_Array1OfReal knotArr(1, knotCount);
+    NCollection_Array1<double> knotArr(1, knotCount);
     for (int i = 0; i < knotCount; i++)
         knotArr.SetValue(i + 1, knotVec[i]);
-    TColStd_Array1OfInteger multArr(1, multCount);
+    NCollection_Array1<int> multArr(1, multCount);
     for (int i = 0; i < multCount; i++)
         multArr.SetValue(i + 1, static_cast<int>(multVec[i]));
     Handle(Geom_BSplineCurve) bspline;
@@ -61,7 +59,7 @@ TopoDS_Edge CurveFactory::BSpline(const Vector3Array& controlPoints, const Numbe
         bspline = new Geom_BSplineCurve(poles, knotArr, multArr, degree, periodic);
     } else {
         std::vector<double> weightVec = emscripten::convertJSArrayToNumberVector<double>(*weights);
-        TColStd_Array1OfReal weightArr(1, poleCount);
+        NCollection_Array1<double> weightArr(1, poleCount);
         for (int i = 0; i < poleCount; i++)
             weightArr.SetValue(i + 1, weightVec[i]);
         bspline = new Geom_BSplineCurve(poles, weightArr, knotArr, multArr, degree, periodic);

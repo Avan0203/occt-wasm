@@ -3,6 +3,7 @@ import fontJSON from 'public/font.json';
 import { Vector3 } from './vector3';
 import { Compound, Wire } from './shape';
 import { TopoDS_Compound, TopoDS_Edge, TopoDS_Shape, TopoDS_Wire } from 'public/occt-wasm';
+import { Axis2 } from './axis';
 
 /** ============================== 字体 ============================== */
 
@@ -125,7 +126,7 @@ class FontsBuilder {
                     if (!firstM) {
                         pushContourAsWire();
                     }
-                    this.sketchBuilder.beginPath(Y_NORMAL);
+                    this.sketchBuilder.beginPath(Axis2.Y());
                     x = Number(outline[i++]) * scale + offsetX;
                     y = Number(outline[i++]) * scale + offsetY;
                     this.sketchBuilder.moveTo(new Vector3(x, y, 0));
@@ -154,7 +155,7 @@ class FontsBuilder {
                     break;
                 case 'z': // closePath
                     pushContourAsWire();
-                    this.sketchBuilder.beginPath(Y_NORMAL); // 准备下一 contour
+                    this.sketchBuilder.beginPath(Axis2.Y()); // 准备下一 contour
                     break;
             }
         }

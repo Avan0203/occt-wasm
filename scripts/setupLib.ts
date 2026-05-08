@@ -97,7 +97,7 @@ const libs: LibItem[] = [
     {
         namespace: "occt",
         url: "https://github.com/Open-Cascade-SAS/OCCT.git",
-        tag: "V7_9_3",
+        tag: "V8_0_0",
         patches: [],
         cmd: []
     },

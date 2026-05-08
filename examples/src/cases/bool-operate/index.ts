@@ -19,7 +19,7 @@ async function load(context: CaseContext): Promise<void> {
     const { container, gui } = context;
     try {
         const params = {
-            operation: 'union',
+            operation: 'fuse',
             addBox: () => {
                 const shape = ShapeFactory.Box(2, 2, 2);
                 const brepResult = Shape.toBRepResult(shape, 0.1, 0.5);
@@ -55,13 +55,13 @@ async function load(context: CaseContext): Promise<void> {
                 const target = selection[1] as BrepMesh;
 
                 const result = (() => {
-                    switch (params.operation as 'union' | 'intersection' | 'difference') {
-                        case 'union':
-                            return Modeler.union([compare.shape], [target.shape], Number.EPSILON);
-                        case 'intersection':
-                            return Modeler.intersection([compare.shape], [target.shape], Number.EPSILON);
-                        case 'difference':
-                            return Modeler.difference([compare.shape], [target.shape], Number.EPSILON);
+                    switch (params.operation as 'fuse' | 'common' | 'cut') {
+                        case 'fuse':
+                            return Modeler.fuse([compare.shape], [target.shape], Number.EPSILON);
+                        case 'common':
+                            return Modeler.common([compare.shape], [target.shape], Number.EPSILON);
+                        case 'cut':
+                            return Modeler.cut([compare.shape], [target.shape], Number.EPSILON);
                     }
                 })();
 
@@ -95,7 +95,7 @@ async function load(context: CaseContext): Promise<void> {
         shapeFolder.open();
 
         const boolFolder = gui.addFolder('Bool');
-        boolFolder.add(params, 'operation', ['union', 'intersection', 'difference']);
+        boolFolder.add(params, 'operation', ['fuse', 'common', 'cut']);
         boolFolder.add(params, 'build');
         boolFolder.open();
 

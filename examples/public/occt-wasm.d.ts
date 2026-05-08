@@ -631,9 +631,9 @@ interface EmbindModule {
     fillet(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoResult;
     chamfer(_0: TopoDS_Shape, _1: Array<TopoDS_Edge>, _2: number): TopoResult;
     prism(_0: TopoDS_Shape, _1: Vector3): TopoResult;
-    union(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
-    difference(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
-    intersection(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    fuse(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    cut(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
+    common(_0: Array<TopoDS_Shape>, _1: Array<TopoDS_Shape>, _2: number): TopoResult;
     revolve(_0: TopoDS_Shape, _1: Axis1, _2: number): TopoResult;
     sweep(_0: Array<TopoDS_Wire>, _1: TopoDS_Wire, _2: boolean, _3: boolean, _4: boolean): TopoResult;
     thickSolid(_0: TopoDS_Shape, _1: Array<TopoDS_Shape>, _2: number, _3: number): TopoResult;

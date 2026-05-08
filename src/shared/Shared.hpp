@@ -13,8 +13,7 @@
 #include <gp_Vec.hxx>
 #include <gp_Trsf.hxx>
 #include <TopoDS_Shape.hxx>
-#include <TopTools_SequenceOfShape.hxx>
-#include <TopTools_ListOfShape.hxx>
+#include <NCollection_List.hxx>
 #include <cmath>
 #include <utility>
 
@@ -237,18 +236,9 @@ EMSCRIPTEN_DECLARE_VAL_TYPE(TopoSolidArray)
 EMSCRIPTEN_DECLARE_VAL_TYPE(TopoCompoundArray)
 EMSCRIPTEN_DECLARE_VAL_TYPE(GpPntArray)
 
-inline TopTools_SequenceOfShape topoShapeArrayToSequenceOfShape(const TopoShapeArray& shapes) {
-    std::vector<TopoDS_Shape> shapeSequence = emscripten::vecFromJSArray<TopoDS_Shape>(shapes);
-    TopTools_SequenceOfShape result;
-    for (auto& shape : shapeSequence) {
-        result.Append(shape);
-    }
-    return result;
-}
-
-inline TopTools_ListOfShape topoShapeArrayToListOfShape(const TopoShapeArray& shapes) {
+inline NCollection_List<TopoDS_Shape> topoShapeArrayToNCollectionListOfShape(const TopoShapeArray& shapes) {
     std::vector<TopoDS_Shape> shapeList = emscripten::vecFromJSArray<TopoDS_Shape>(shapes);
-    TopTools_ListOfShape result;
+    NCollection_List<TopoDS_Shape> result;
     for (auto& shape : shapeList) {
         result.Append(shape);
     }

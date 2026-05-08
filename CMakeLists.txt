@@ -32,55 +32,94 @@ set(OCCT_TOOLKITS
     # Visualization
     TKService TKV3d
     # XCAF Framework
-    TKCDF TKLCAF TKCAF TKXCAF
+    TKCDF TKLCAF TKCAF TKVCAF TKXCAF
     # DataExchange
     TKDE TKXSBase TKDESTEP TKDEIGES TKDESTL
 )
 
 # ------------------------------------------------------------
-# 2. Collect PACKAGES
+# 2. Collect toolkit/package mapping (OCCT 8.0 layout)
+# src/<Module>/<Toolkit>/<Package>
 # ------------------------------------------------------------
-set(OCCT_USED_PACKAGES "")
+include("${OCCT_SOURCE_DIR}/src/MODULES.cmake")
+
+set(OCCT_TOOLKIT_PACKAGE_DIRS "")
+set(OCCT_PACKAGE_DIRS "")
 foreach(toolkit ${OCCT_TOOLKITS})
-    set(PACKAGES_FILE "${OCCT_SOURCE_DIR}/src/${toolkit}/PACKAGES")
-    if(EXISTS "${PACKAGES_FILE}")
-        file(STRINGS "${PACKAGES_FILE}" PKGS)
-        list(APPEND OCCT_USED_PACKAGES ${PKGS})
+    set(TOOLKIT_FOUND FALSE)
+
+    foreach(module ${OCCT_LIST_OF_MODULES})
+        set(MODULE_TOOLKITS_FILE "${OCCT_SOURCE_DIR}/src/${module}/TOOLKITS.cmake")
+        if(NOT EXISTS "${MODULE_TOOLKITS_FILE}")
+            continue()
+        endif()
+
+        include("${MODULE_TOOLKITS_FILE}")
+        set(MODULE_TOOLKITS_VAR "OCCT_${module}_LIST_OF_TOOLKITS")
+        if(NOT DEFINED ${MODULE_TOOLKITS_VAR})
+            continue()
+        endif()
+
+        list(FIND ${MODULE_TOOLKITS_VAR} "${toolkit}" TOOLKIT_INDEX)
+        if(TOOLKIT_INDEX EQUAL -1)
+            continue()
+        endif()
+
+        set(TOOLKIT_DIR "${OCCT_SOURCE_DIR}/src/${module}/${toolkit}")
+        set(PACKAGES_CMAKE_FILE "${TOOLKIT_DIR}/PACKAGES.cmake")
+        if(NOT EXISTS "${PACKAGES_CMAKE_FILE}")
+            message(FATAL_ERROR "Missing PACKAGES.cmake for toolkit ${toolkit}: ${PACKAGES_CMAKE_FILE}")
+        endif()
+
+        include("${PACKAGES_CMAKE_FILE}")
+        set(TOOLKIT_PACKAGES_VAR "OCCT_${toolkit}_LIST_OF_PACKAGES")
+        if(NOT DEFINED ${TOOLKIT_PACKAGES_VAR})
+            message(FATAL_ERROR "Missing package list variable ${TOOLKIT_PACKAGES_VAR} in ${PACKAGES_CMAKE_FILE}")
+        endif()
+
+        list(APPEND OCCT_TOOLKIT_PACKAGE_DIRS "${TOOLKIT_DIR}")
+        foreach(pkg ${${TOOLKIT_PACKAGES_VAR}})
+            list(APPEND OCCT_PACKAGE_DIRS "${TOOLKIT_DIR}/${pkg}")
+        endforeach()
+
+        set(TOOLKIT_FOUND TRUE)
+        break()
+    endforeach()
+
+    if(NOT TOOLKIT_FOUND)
+        message(FATAL_ERROR "Toolkit ${toolkit} not found in OCCT 8.0 module layout")
     endif()
 endforeach()
-list(REMOVE_DUPLICATES OCCT_USED_PACKAGES)
+
+list(REMOVE_DUPLICATES OCCT_TOOLKIT_PACKAGE_DIRS)
+list(REMOVE_DUPLICATES OCCT_PACKAGE_DIRS)
 
 # ------------------------------------------------------------
-# 3. Exclude visualization-dependent XCAF packages
+# 3. Exclude visualization-dependent XCAF package sources
 # ------------------------------------------------------------
-list(REMOVE_ITEM OCCT_USED_PACKAGES
-    XCAFApp
-)
+list(FILTER OCCT_PACKAGE_DIRS EXCLUDE REGEX ".*/XCAFApp$")
 
 # ------------------------------------------------------------
 # 4. Include directories
 # ------------------------------------------------------------
 set(OCCT_INCLUDE_DIRS "")
-foreach(pkg ${OCCT_USED_PACKAGES})
-    list(APPEND OCCT_INCLUDE_DIRS "${OCCT_SOURCE_DIR}/src/${pkg}")
-endforeach()
+list(APPEND OCCT_INCLUDE_DIRS ${OCCT_PACKAGE_DIRS})
 list(APPEND OCCT_INCLUDE_DIRS
     "${OCCT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_BINARY_DIR}/include"
-    # Header-only: excluded packages still needed for compilation
-    "${OCCT_SOURCE_DIR}/src/XCAFApp"
-    "${OCCT_SOURCE_DIR}/src/TPrsStd"
+    # Header-only: excluded package still needed for compilation
+    "${OCCT_SOURCE_DIR}/src/DataExchange/TKXCAF/XCAFApp"
 )
 
 # ------------------------------------------------------------
 # 5. Collect OCCT sources
 # ------------------------------------------------------------
 set(OCCT_SOURCES "")
-foreach(pkg ${OCCT_USED_PACKAGES})
+foreach(pkg_dir ${OCCT_PACKAGE_DIRS})
     file(GLOB PKG_SRCS CONFIGURE_DEPENDS
-        "${OCCT_SOURCE_DIR}/src/${pkg}/*.cxx"
-        "${OCCT_SOURCE_DIR}/src/${pkg}/*.cpp"
-        "${OCCT_SOURCE_DIR}/src/${pkg}/*.c"
+        "${pkg_dir}/*.cxx"
+        "${pkg_dir}/*.cpp"
+        "${pkg_dir}/*.c"
     )
     list(APPEND OCCT_SOURCES ${PKG_SRCS})
 endforeach()

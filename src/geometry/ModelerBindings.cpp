@@ -101,8 +101,8 @@ TopoResult prism(const TopoDS_Shape& shape, const Vector3& direction) {
  * @return {TopoResult} 布尔运算后的shape
  */
 TopoResult booleanOperate(BRepAlgoAPI_BooleanOperation& boolOperator, const TopoShapeArray& args, const TopoShapeArray& tools, double fuzzyValue){
-    TopTools_ListOfShape argsList = topoShapeArrayToListOfShape(args);
-    TopTools_ListOfShape toolsList = topoShapeArrayToListOfShape(tools);
+    NCollection_List<TopoDS_Shape> argsList = topoShapeArrayToNCollectionListOfShape(args);
+    NCollection_List<TopoDS_Shape> toolsList = topoShapeArrayToNCollectionListOfShape(tools);
 
     boolOperator.SetFuzzyValue(fuzzyValue);
     boolOperator.SetToFillHistory(false);
@@ -133,7 +133,7 @@ TopoResult fuse(const TopoShapeArray& args, const TopoShapeArray& tools, double 
  * @param {TopoShapeArray&} tools
  * @return {TopoResult} 差集后的shape
  */
-TopoResult difference(const TopoShapeArray& args, const TopoShapeArray& tools, double fuzzyValue = Constants::EPSILON) {
+TopoResult cut(const TopoShapeArray& args, const TopoShapeArray& tools, double fuzzyValue = Constants::EPSILON) {
     BRepAlgoAPI_Cut boolOperator;
     return booleanOperate(boolOperator, args, tools, fuzzyValue);
 }
@@ -144,7 +144,7 @@ TopoResult difference(const TopoShapeArray& args, const TopoShapeArray& tools, d
  * @param {TopoShapeArray&} tools
  * @return {TopoResult} 交集后的shape
  */
-TopoResult intersection(const TopoShapeArray& args, const TopoShapeArray& tools, double fuzzyValue = Constants::EPSILON) {
+TopoResult common(const TopoShapeArray& args, const TopoShapeArray& tools, double fuzzyValue = Constants::EPSILON) {
     BRepAlgoAPI_Common boolOperator;
     return booleanOperate(boolOperator, args, tools, fuzzyValue);
 }
@@ -224,7 +224,7 @@ TopoResult thickSolid(const TopoDS_Shape& shape, const TopoShapeArray& faces, do
     if (solid.IsNull()) {
         return TopoResult(TopoDS_Shape(), false, "Input shape is not a solid");
     }
-    TopTools_ListOfShape facesList = topoShapeArrayToListOfShape(faces);
+    NCollection_List<TopoDS_Shape> facesList = topoShapeArrayToNCollectionListOfShape(faces);
 
     BRepOffsetAPI_MakeThickSolid makeThickSolid;
     makeThickSolid.MakeThickSolidByJoin(solid, facesList, thickness, tolerance);
@@ -278,7 +278,7 @@ TopoResult simplify(const TopoDS_Shape& shape, const bool& unifyEdges, const boo
     if(!unifyEdges && !unifyFaces){
         return TopoResult(shape, true, "");
     }
-    ShapeUpgrade_UnifySameDomain unifyBuilder(shape, unifyEdges? Standard_True : Standard_False, unifyFaces? Standard_True : Standard_False, Standard_True);
+    ShapeUpgrade_UnifySameDomain unifyBuilder(shape, unifyEdges ? true : false, unifyFaces ? true : false, true);
     unifyBuilder.Build();
     TopoDS_Shape resultShape = unifyBuilder.Shape();
     if(!resultShape.IsNull()){
@@ -298,9 +298,9 @@ void registerBindings() {
         .class_function("fillet", &fillet)
         .class_function("chamfer", &chamfer)
         .class_function("prism", &prism)
-        .class_function("union", &fuse)
-        .class_function("difference", &difference)
-        .class_function("intersection", &intersection)
+        .class_function("fuse", &fuse)
+        .class_function("cut", &cut)
+        .class_function("common", &common)
         .class_function("revolve", &revolve)
         .class_function("sweep", &sweep)
         .class_function("thickSolid", &thickSolid)

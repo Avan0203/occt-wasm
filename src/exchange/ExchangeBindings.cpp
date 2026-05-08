@@ -70,7 +70,7 @@ std::string getLabelNameNoRef(const TDF_Label& label) {
     if (!label.FindAttribute(nameAttr->GetID(), nameAttr)) {
         return std::string();
     }
-    Standard_Integer len = nameAttr->Get().LengthOfCString();
+    int len = nameAttr->Get().LengthOfCString();
     char* buf = new char[len + 1];
     nameAttr->Get().ToUTF8CString(buf);
     std::string name(buf, len);
@@ -284,10 +284,10 @@ void addNodeToDocument(const ShapeNode& node,
     const TDF_Label& parentLabel) {
 
     if (node.shape.has_value()) {
-        TDF_Label label = shapeTool->AddShape(node.shape.value(), Standard_False);
+        TDF_Label label = shapeTool->AddShape(node.shape.value(), false);
         if (!node.name.empty()) {
             TDataStd_Name::Set(label,
-                TCollection_ExtendedString(node.name.c_str(), Standard_True));
+                TCollection_ExtendedString(node.name.c_str(), true));
         }
         if (node.color.has_value()) {
             colorTool->SetColor(label, parseHexColor(node.color.value()), XCAFDoc_ColorSurf);
@@ -303,10 +303,10 @@ void addNodeToDocument(const ShapeNode& node,
     TopoDS_Compound compound;
     BRep_Builder builder;
     builder.MakeCompound(compound);
-    TDF_Label asmLabel = shapeTool->AddShape(compound, Standard_True);
+    TDF_Label asmLabel = shapeTool->AddShape(compound, true);
     if (!node.name.empty()) {
         TDataStd_Name::Set(asmLabel,
-            TCollection_ExtendedString(node.name.c_str(), Standard_True));
+            TCollection_ExtendedString(node.name.c_str(), true));
     }
     if (node.color.has_value()) {
         colorTool->SetColor(asmLabel, parseHexColor(node.color.value()), XCAFDoc_ColorSurf);
@@ -444,12 +444,12 @@ std::optional<ShapeNode> importSTL(const Uint8Array& buffer) {
 val exportSTL(const TopoShapeArray& input, double linearDeflection, double angularDeflection) {
     TopoDS_Compound compound = Compound::fromShapes(input);
 
-    BRepMesh_IncrementalMesh mesh(compound, linearDeflection, Standard_False, angularDeflection);
+    BRepMesh_IncrementalMesh mesh(compound, linearDeflection, false, angularDeflection);
     mesh.Perform();
 
     std::string tmpFile = "/tmp/temp_export.stl";
     StlAPI_Writer writer;
-    writer.ASCIIMode() = Standard_False;
+    writer.ASCIIMode() = false;
     if (!writer.Write(compound, tmpFile.c_str())) {
         return val::null();
     }
