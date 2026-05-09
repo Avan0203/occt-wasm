@@ -4,7 +4,7 @@ import { createBrepMesh } from '@/common/shape-converter';
 import { GeomAbs_Shape, TopoDS_Shape } from 'public/occt-wasm';
 import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
-import { Modeler, Shape, Vector3, Vertex, SketchBuilder, getOCCTModule } from '@/sdk';
+import { Modeler, Shape, Vector3, Vertex, SketchBuilder, getOCCTModule, Axis2 } from '@/sdk';
 
 let app: App;
 
@@ -43,7 +43,7 @@ async function load(context: CaseContext): Promise<void> {
 
         // 2. 正方形 wire：normal 为 X 方向，尺寸 3，中心在原点
         // 在 YZ 平面 (x=0)，正方形从 -1.5 到 1.5，四角：(0,-1.5,-1.5) (0,1.5,-1.5) (0,1.5,1.5) (0,-1.5,1.5)
-        builder.beginPath(new Vector3(1, 0, 0));
+        builder.beginPath(Axis2.X());
         builder.moveTo(new Vector3(0, -1.5, -1.5));
         builder.lineTo(new Vector3(0, 1.5, -1.5));
         builder.lineTo(new Vector3(0, 1.5, 1.5));
@@ -53,7 +53,7 @@ async function load(context: CaseContext): Promise<void> {
         profileShapes.push(squareWire);
 
         // 3. 圆形 wire：normal 为 X 方向，圆心在 (3, 0, 0)，半径 1.5 与正方形半尺寸一致
-        builder.beginPath(new Vector3(1, 0, 0));
+        builder.beginPath(new Axis2(new Vector3(3, 0, 0), Vector3.X(), Vector3.Y(), Vector3.Z()));
         builder.circle(new Vector3(3, 0, 0), new Vector3(3, 1.5, 0));
         const circleWire = builder.build().toWire();
         profileShapes.push(circleWire);

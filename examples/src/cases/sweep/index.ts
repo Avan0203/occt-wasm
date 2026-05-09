@@ -3,7 +3,7 @@ import { Case, CaseContext } from '@/router';
 import { createBrepMesh } from '@/common/shape-converter';
 import { BrepMesh } from '@/common/object';
 import { App } from '@/common/app';
-import { EN_Direction, Vector3, gc } from '@/sdk';
+import { EN_Direction, Vector3, gc, Axis2 } from '@/sdk';
 import { SketchBuilder } from '@/sdk/sketch';
 import { Modeler, Shape } from '@/sdk';
 
@@ -38,7 +38,7 @@ async function load(context: CaseContext): Promise<void> {
         const builder = SketchBuilder.getInstance();
 
         // U 形 path：在 XZ 平面 (y=0)，法向需为 (0,1,0)
-        builder.beginPath(new Vector3(0, 1, 0));
+        builder.beginPath(Axis2.Y());
         builder.moveTo(new Vector3(3, 0, 2));
         builder.lineTo(new Vector3(0, 0, 2));
         builder.arc(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, -2), EN_Direction.CLOCKWISE);
@@ -53,7 +53,7 @@ async function load(context: CaseContext): Promise<void> {
 
 
         // 圆形 profile：在 path 起点 (3,0,2) 处的垂直平面（YZ 平面），圆心在 path 起点
-        builder.beginPath(new Vector3(1, 0, 0));
+        builder.beginPath(new Axis2(new Vector3(3, 0, 2), Vector3.X(), Vector3.Y(), Vector3.Z()));
         builder.moveTo(new Vector3(3, 0, 2));
         builder.circle(new Vector3(3, 0, 2), new Vector3(3, 1, 2));
         const profileSketch = builder.build();
