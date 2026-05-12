@@ -85,10 +85,7 @@ void registerBindings() {
         .constructor<>()
         .constructor<const TopoDS_Shape&>()
         .constructor<const TopoDS_Shape&, bool, bool>()
-        .function("initialize", 
-            optional_override([](TopoDS_Iterator& self, const TopoDS_Shape& shape, bool cumOri, bool cumLoc) {
-                self.Initialize(shape, cumOri, cumLoc);
-            }))
+        .function("initialize", &TopoDS_Iterator::Initialize)
         .function("more", &TopoDS_Iterator::More)
         .function("next", &TopoDS_Iterator::Next)
         .function("value", &TopoDS_Iterator::Value)
@@ -104,10 +101,8 @@ void registerBindings() {
         .function("shapeType", &TopoDS_Shape::ShapeType)
         .function("shapeTypeString", &getShapeTypeString)
         // Location - simplified for frontend
-        .function("location", 
-            optional_override([](const TopoDS_Shape& shape) -> TopLoc_Location {
-                return shape.Location();
-            }))
+        .function("location",
+            select_overload<const TopLoc_Location&() const>(&TopoDS_Shape::Location))
         .function("setLocation", 
             optional_override([](TopoDS_Shape& shape, const TopLoc_Location& loc) {
                 shape.Location(loc);
@@ -126,18 +121,11 @@ void registerBindings() {
                 shape.Location(TopLoc_Location(trsf));
             }))
         // Orientation - simplified for frontend
-        .function("orientation", 
-            optional_override([](const TopoDS_Shape& shape) -> TopAbs_Orientation {
-                return shape.Orientation();
-            }))
-        .function("setOrientation", 
-            optional_override([](TopoDS_Shape& shape, TopAbs_Orientation orient) {
-                shape.Orientation(orient);
-            }))
-        .function("oriented", 
-            optional_override([](const TopoDS_Shape& shape, TopAbs_Orientation orient) -> TopoDS_Shape {
-                return shape.Oriented(orient);
-            }))
+        .function("orientation",
+            select_overload<TopAbs_Orientation() const>(&TopoDS_Shape::Orientation))
+        .function("setOrientation",
+            select_overload<void(TopAbs_Orientation)>(&TopoDS_Shape::Orientation))
+        .function("oriented", &TopoDS_Shape::Oriented)
         .function("reverse", &TopoDS_Shape::Reverse)
         .function("reversed", &TopoDS_Shape::Reversed)
         // Comparison

@@ -30,18 +30,19 @@
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp.hxx>
 #include <NCollection_IndexedMap.hxx>
+#include <NCollection_IndexedDataMap.hxx>
+#include <NCollection_List.hxx>
 #include <TopTools_ShapeMapHasher.hxx>
 #include <TopoDS.hxx>
 #include <TopLoc_Location.hxx>
 #include <Poly_Triangulation.hxx>
+#include <Poly_PolygonOnTriangulation.hxx>
 #include <Poly_Connect.hxx>
 #include <Poly_Triangle.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <GCPnts_TangentialDeflection.hxx>
 #include <GCPnts_QuasiUniformDeflection.hxx>
 #include <GCPnts_UniformAbscissa.hxx>
-#include <Poly_Polygon3D.hxx>
-#include <Poly_PolygonOnTriangulation.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_Pnt.hxx>
 #include <gp_Vec.hxx>
@@ -177,6 +178,18 @@ emscripten::val topoVectorToArray(const std::vector<TopoType>& shapes) {
         result.call<void>("push", shape);
     }
     return result;
+}
+
+template<typename TopoType, typename CastFn>
+std::vector<TopoType> getSubShapesByType(const TopoDS_Shape& shape, TopAbs_ShapeEnum type, CastFn castFn) {
+    std::vector<TopoType> subShapes;
+    NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
+    TopExp::MapShapes(shape, type, map);
+    subShapes.reserve(map.Extent());
+    for (int i = 1; i <= map.Extent(); ++i) {
+        subShapes.push_back(castFn(map(i)));
+    }
+    return subShapes;
 }
 
 } // namespace
@@ -567,63 +580,39 @@ TopoDS_Compound Compound::fromShapes(const TopoShapeArray& shapes) {
 // ==================== Shape ====================
 
 std::vector<TopoDS_Vertex> Shape::getVertices(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Vertex> vertices;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_VERTEX, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      vertices.push_back(TopoDS::Vertex(map(i)));
-  }
-  return vertices;
+  return getSubShapesByType<TopoDS_Vertex>(shape, TopAbs_VERTEX, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Vertex(subShape);
+  });
 }
 
 std::vector<TopoDS_Edge> Shape::getEdges(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Edge> edges;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_EDGE, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      edges.push_back(TopoDS::Edge(map(i)));
-  }
-  return edges;
+  return getSubShapesByType<TopoDS_Edge>(shape, TopAbs_EDGE, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Edge(subShape);
+  });
 }
 
 std::vector<TopoDS_Face> Shape::getFaces(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Face> faces;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_FACE, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      faces.push_back(TopoDS::Face(map(i)));
-  }
-  return faces;
+  return getSubShapesByType<TopoDS_Face>(shape, TopAbs_FACE, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Face(subShape);
+  });
 }
 
 std::vector<TopoDS_Wire> Shape::getWires(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Wire> wires;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_WIRE, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      wires.push_back(TopoDS::Wire(map(i)));
-  }
-  return wires;
+  return getSubShapesByType<TopoDS_Wire>(shape, TopAbs_WIRE, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Wire(subShape);
+  });
 }
 
 std::vector<TopoDS_Solid> Shape::getSolids(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Solid> solids;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_SOLID, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      solids.push_back(TopoDS::Solid(map(i)));
-  }
-  return solids;
+  return getSubShapesByType<TopoDS_Solid>(shape, TopAbs_SOLID, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Solid(subShape);
+  });
 }
 
 std::vector<TopoDS_Compound> Shape::getCompounds(const TopoDS_Shape& shape) {
-  std::vector<TopoDS_Compound> compounds;
-  NCollection_IndexedMap<TopoDS_Shape, TopTools_ShapeMapHasher> map;
-  TopExp::MapShapes(shape, TopAbs_COMPOUND, map);
-  for (int i = 1; i <= map.Extent(); i++) {
-      compounds.push_back(TopoDS::Compound(map(i)));
-  }
-  return compounds;
+  return getSubShapesByType<TopoDS_Compound>(shape, TopAbs_COMPOUND, [](const TopoDS_Shape& subShape) {
+      return TopoDS::Compound(subShape);
+  });
 }
 
 TopoDS_Shape Shape::getSubShape(const TopoDS_Shape& shape, int index, TopAbs_ShapeEnum type) {
@@ -653,8 +642,6 @@ bool Shape::isClosed(const TopoDS_Shape& shape) {
 BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection, double angleDeviation) {
   BRepResult result;
 
-  BRepMesh_IncrementalMesh mesher(shape, lineDeflection, false, angleDeviation, true);
-
   std::vector<TopoDS_Vertex> vertices = Shape::getVertices(shape);
   for (const TopoDS_Vertex& v : vertices) {
       gp_Pnt p = BRep_Tool::Pnt(v);
@@ -663,6 +650,28 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
       brepVertex.shape = v;
       result.vertices.push_back(brepVertex);
   }
+
+  // 先 mesh 所有 face，edge polygon 由 BRepMesh 在此过程中协同生成在 face 的 triangulation 上
+  std::vector<TopoDS_Face> faces = Shape::getFaces(shape);
+  for (const TopoDS_Face& face : faces) {
+      FaceResult faceResult = Face::triangulate(face, lineDeflection, angleDeviation);
+
+      if (faceResult.position.empty() || faceResult.index.empty()) {
+          continue;
+      }
+
+      BRepFace brepFace;
+      brepFace.position = std::move(faceResult.position);
+      brepFace.index = std::move(faceResult.index);
+      brepFace.uv = std::move(faceResult.uv);
+      brepFace.normal = std::move(faceResult.normal);
+      brepFace.shape = face;
+      result.faces.push_back(brepFace);
+  }
+
+  // 建立 edge -> 相邻 face 列表的映射，用于从 face triangulation 上读取与 face 边界完全对齐的 edge 离散点
+  NCollection_IndexedDataMap<TopoDS_Shape, NCollection_List<TopoDS_Shape>, TopTools_ShapeMapHasher> edgeFaceMap;
+  TopExp::MapShapesAndAncestors(shape, TopAbs_EDGE, TopAbs_FACE, edgeFaceMap);
 
   std::vector<TopoDS_Edge> edges = Shape::getEdges(shape);
   for (const TopoDS_Edge& edge : edges) {
@@ -674,71 +683,50 @@ BRepResult Shape::toBRepResult(const TopoDS_Shape& shape, double lineDeflection,
       brepEdge.type = Edge::getCurveType(edge);
       brepEdge.shape = edge;
 
-      TopLoc_Location loc;
-      Handle(Poly_Polygon3D) polygon3D = BRep_Tool::Polygon3D(edge, loc);
-
-      if (!polygon3D.IsNull()) {
-          const auto& nodes = polygon3D->Nodes();
-          brepEdge.position.reserve(nodes.Length() * 3);
-
-          for (int i = nodes.Lower(); i <= nodes.Upper(); i++) {
-              gp_Pnt pnt = nodes.Value(i);
-              if (!loc.IsIdentity()) {
-                  pnt.Transform(loc.Transformation());
+      bool gotFromFace = false;
+      const NCollection_List<TopoDS_Shape>* adjFaces = edgeFaceMap.Seek(edge);
+      if (adjFaces != nullptr) {
+          for (const TopoDS_Shape& adjShape : *adjFaces) {
+              const TopoDS_Face& adjFace = TopoDS::Face(adjShape);
+              TopLoc_Location faceLoc;
+              Handle(Poly_Triangulation) faceTri = BRep_Tool::Triangulation(adjFace, faceLoc);
+              if (faceTri.IsNull()) {
+                  continue;
               }
-              brepEdge.position.push_back(static_cast<float>(pnt.X()));
-              brepEdge.position.push_back(static_cast<float>(pnt.Y()));
-              brepEdge.position.push_back(static_cast<float>(pnt.Z()));
-          }
-      } else {
-          Handle(Poly_Triangulation) triangulation;
-          Handle(Poly_PolygonOnTriangulation) polygonOnTri = BRep_Tool::PolygonOnTriangulation(edge, triangulation, loc);
+              Handle(Poly_PolygonOnTriangulation) poly = BRep_Tool::PolygonOnTriangulation(edge, faceTri, faceLoc);
+              if (poly.IsNull()) {
+                  continue;
+              }
 
-          if (!polygonOnTri.IsNull() && !triangulation.IsNull()) {
-              const auto& indices = polygonOnTri->Nodes();
-              brepEdge.position.reserve(indices.Length() * 3);
-
-              for (int i = indices.Lower(); i <= indices.Upper(); i++) {
-                  gp_Pnt pnt = triangulation->Node(indices.Value(i));
-                  if (!loc.IsIdentity()) {
-                      pnt.Transform(loc.Transformation());
+              int nbNodes = poly->NbNodes();
+              brepEdge.position.reserve(nbNodes * 3);
+              for (int i = 1; i <= nbNodes; i++) {
+                  gp_Pnt pnt = faceTri->Node(poly->Node(i));
+                  if (!faceLoc.IsIdentity()) {
+                      pnt.Transform(faceLoc.Transformation());
                   }
                   brepEdge.position.push_back(static_cast<float>(pnt.X()));
                   brepEdge.position.push_back(static_cast<float>(pnt.Y()));
                   brepEdge.position.push_back(static_cast<float>(pnt.Z()));
               }
-          } else {
-              EdgeResult disc = Edge::discretize(edge, lineDeflection, angleDeviation);
-              if (disc.position.size() >= 6) {
-                  brepEdge.position = disc.position;
-              } else {
-                  continue;
+
+              if (brepEdge.position.size() >= 6) {
+                  gotFromFace = true;
+                  break;
               }
+              brepEdge.position.clear();
           }
       }
 
-      if (brepEdge.position.size() < 6) {
-          continue;
+      if (!gotFromFace) {
+          EdgeResult disc = Edge::discretize(edge, lineDeflection, angleDeviation);
+          if (disc.position.size() < 6) {
+              continue;
+          }
+          brepEdge.position = std::move(disc.position);
       }
 
       result.edges.push_back(brepEdge);
-  }
-
-  std::vector<TopoDS_Face> faces = Shape::getFaces(shape);
-  for (const TopoDS_Face& face : faces) {
-      FaceResult faceResult = Face::triangulate(face, lineDeflection, angleDeviation);
-
-      if (faceResult.position.empty() || faceResult.index.empty()) {
-          continue;
-      }
-
-      BRepFace brepFace;
-      brepFace.position = faceResult.position;
-      brepFace.index = faceResult.index;
-      brepFace.uv = faceResult.uv;
-      brepFace.normal = faceResult.normal;
-      brepFace.shape = face;
-      result.faces.push_back(brepFace);
   }
 
   return result;
