@@ -42,34 +42,36 @@ async function load(context: CaseContext): Promise<void> {
 
         let globalShapeNode: ShapeNode | undefined;
 
-        fetch('public/test.stp').then(response => response.arrayBuffer()).then(arrayBuffer => {
-            const shapeNode = handleImportFile(arrayBuffer, 'STEP');
-            console.log('shapeNode: ', shapeNode);
-            if (shapeNode) {
-                globalShapeNode = shapeNode;
-                sceneRoot = shapeNodeToBrepRenderNode(shapeNode, defaultMaterial)
-                if (sceneRoot) {
-                    app.add(sceneRoot);
-                    app.fitToView();
-                };
-            }
-        });
+        fetch('public/test.stp')
+            .then(response => response.arrayBuffer())
+            .then(async (arrayBuffer) => {
+                const shapeNode = await handleImportFile(arrayBuffer, 'STEP');
+                if (shapeNode) {
+                    globalShapeNode = shapeNode;
+                    sceneRoot = shapeNodeToBrepRenderNode(shapeNode, defaultMaterial)
+                    if (sceneRoot) {
+                        app.add(sceneRoot);
+                        app.fitToView();
+                    }
+                }
+            })
+            .catch((error) => console.error('Failed to load test.stp:', error));
 
         const params = {
             exportType: 'STEP',
             importFile: () => importFile.click(),
-            exportFile: () => {
+            exportFile: async () => {
                 if (!globalShapeNode) {
                     console.error('No shape node to export');
                     return;
                 }
-                let res = null;
+                let res: Uint8Array | null = null;
                 switch (params.exportType) {
                     case 'STEP':
-                        res = Exchange.exportSTEP(globalShapeNode);
+                        res = await Exchange.exportSTEP(globalShapeNode);
                         break;
                     case 'IGES':
-                        res = Exchange.exportIGES(globalShapeNode);
+                        res = await Exchange.exportIGES(globalShapeNode);
                         break;
                     case 'BREP': {
                         const shapes = collectShapesFromShapeNode(globalShapeNode);
@@ -81,12 +83,15 @@ async function load(context: CaseContext): Promise<void> {
                     case 'STL': {
                         const shapes = collectShapesFromShapeNode(globalShapeNode);
                         if (shapes.length > 0) {
-                            res = Exchange.exportSTL(shapes, 0.1, 0.5);
+                            res = await Exchange.exportSTL(shapes, 0.1, 0.5);
                         }
                         break;
                     }
                 }
-                // download the res
+                if (!res) {
+                    console.error('Export failed or produced empty result');
+                    return;
+                }
                 const blob = new Blob([res as unknown as ArrayBuffer], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -97,52 +102,43 @@ async function load(context: CaseContext): Promise<void> {
             }
         };
 
-        function handleImportFile(buffer: ArrayBuffer, type: string): ShapeNode | undefined {
-            let shapeNode: ShapeNode | undefined;
-
+        async function handleImportFile(buffer: ArrayBuffer, type: string): Promise<ShapeNode | undefined> {
             const uint8Array = new Uint8Array(buffer);
             switch (type) {
                 case 'STEP':
                 case 'STP':
-                    shapeNode = Exchange.importSTEP(uint8Array) ?? undefined;
-                    break;
+                    return (await Exchange.importSTEP(uint8Array)) ?? undefined;
                 case 'IGES':
-                    shapeNode = Exchange.importIGES(uint8Array) ?? undefined;
-                    break;
+                    return (await Exchange.importIGES(uint8Array)) ?? undefined;
                 case 'BREP': {
                     const topoShape = Exchange.importBREP(uint8Array);
-                    shapeNode = {
+                    return {
                         shape: topoShape,
                         name: '',
                         color: undefined,
                         getChildren: () => [],
                     } as unknown as ShapeNode;
-                    break;
                 }
                 case 'STL':
-                    shapeNode = Exchange.importSTL(uint8Array) ?? undefined;
-                    break;
+                    return (await Exchange.importSTL(uint8Array)) ?? undefined;
                 default:
                     console.error('Unsupported file type:', type);
-                    break;
+                    return undefined;
             }
-            return shapeNode;
         }
 
         importFile.onchange = (event) => {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (file) {
                 const reader = new FileReader();
-                //清理老的 globalShapeNode
                 if(globalShapeNode){
                     globalShapeNode.delete();
                     globalShapeNode = undefined;
                 }
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     const arrayBuffer = e.target?.result as ArrayBuffer;
                     if (arrayBuffer) {
-                        const shapeNode = handleImportFile(arrayBuffer, file.name.split('.').pop()!.toUpperCase());
-                        console.log('shapeNode: ', shapeNode);
+                        const shapeNode = await handleImportFile(arrayBuffer, file.name.split('.').pop()!.toUpperCase());
                         if (shapeNode) {
                             if (sceneRoot) {
                                 app.remove(sceneRoot);
@@ -154,8 +150,7 @@ async function load(context: CaseContext): Promise<void> {
                             if (sceneRoot) {
                                 app.add(sceneRoot);
                                 app.fitToView();
-                            };
-
+                            }
                         }
                     }
                 };

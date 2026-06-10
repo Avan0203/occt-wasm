@@ -6,10 +6,15 @@
     "scripts": {
         "prepare": "tsx scripts/setupLib.ts",
         "clean:build": "tsx scripts/cleanBuild.ts",
-        "build": "tsx scripts/build.ts",
-        "build:win": "call source\\emsdk\\emsdk_env.bat && pnpm run build:core",
-        "build:unix": "source source/emsdk/emsdk_env.sh && pnpm run build:core",
-        "build:core": "pnpm clean:build && cd build && emcmake cmake .. -G Ninja && cmake --build .",
+        "build": "tsx scripts/build.ts --mode=SPLIT",
+        "build:clean": "tsx scripts/build.ts --mode=SPLIT --clean",
+        "build:split": "tsx scripts/build.ts --mode=SPLIT",
+        "build:monolith": "tsx scripts/build.ts --mode=MONOLITH",
+        "build:exchange": "tsx scripts/build.ts --mode=SPLIT --target=occt-wasm-exchange",
+        "build:core-wasm": "tsx scripts/build.ts --mode=SPLIT --target=occt-wasm-core",
+        "build:win": "call source\\emsdk\\emsdk_env.bat && pnpm run build:split",
+        "build:unix": "source source/emsdk/emsdk_env.sh && pnpm run build:split",
+        "build:core": "pnpm run build:split",
         "dev": "cd examples && vite"
     },
     "devDependencies": {

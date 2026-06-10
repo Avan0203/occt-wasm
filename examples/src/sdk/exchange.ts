@@ -1,5 +1,6 @@
 import { ShapeNode, TopoDS_Shape } from "public/occt-wasm";
 import { getOCCTModule } from "./occt-loader";
+import { ensureExchange } from "./exchange-loader";
 import { Constants } from "./utils";
 
 /** 自定义序列化格式：单个节点的 JSON 表示（树结构 + 可选 BRep base64） */
@@ -41,19 +42,22 @@ function hasValidShape(shape: TopoDS_Shape | undefined): boolean {
 }
 
 class Exchange {
-    static importSTEP(buffer: Uint8Array): ShapeNode {
+    static async importSTEP(buffer: Uint8Array): Promise<ShapeNode | null> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
-        return Exchange.importSTEP(buffer) as ShapeNode;
+        return Exchange.importSTEP(buffer) as ShapeNode | null;
     }
 
-    static importIGES(buffer: Uint8Array): ShapeNode {
+    static async importIGES(buffer: Uint8Array): Promise<ShapeNode | null> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
-        return Exchange.importIGES(buffer) as ShapeNode;
+        return Exchange.importIGES(buffer) as ShapeNode | null;
     }
 
-    static importSTL(buffer: Uint8Array): ShapeNode {
+    static async importSTL(buffer: Uint8Array): Promise<ShapeNode | null> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
-        return Exchange.importSTL(buffer) as ShapeNode;
+        return Exchange.importSTL(buffer) as ShapeNode | null;
     }
 
     static importBREP(buffer: Uint8Array): TopoDS_Shape {
@@ -61,17 +65,24 @@ class Exchange {
         return Exchange.importBREP(buffer);
     }
 
-    static exportSTEP(shapeNode: ShapeNode): Uint8Array {
+    static async exportSTEP(shapeNode: ShapeNode): Promise<Uint8Array> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
         return Exchange.exportSTEP(shapeNode);
     }
 
-    static exportIGES(shapeNode: ShapeNode): Uint8Array {
+    static async exportIGES(shapeNode: ShapeNode): Promise<Uint8Array> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
         return Exchange.exportIGES(shapeNode);
     }
 
-    static exportSTL(shapes: TopoDS_Shape[], linearDeflection = Constants.LINE_DEFLECTION, angularDeflection = Constants.ANGLE_DEFLECTION): Uint8Array {
+    static async exportSTL(
+        shapes: TopoDS_Shape[],
+        linearDeflection = Constants.LINE_DEFLECTION,
+        angularDeflection = Constants.ANGLE_DEFLECTION,
+    ): Promise<Uint8Array> {
+        await ensureExchange();
         const { Exchange } = getOCCTModule();
         return Exchange.exportSTL(shapes, linearDeflection, angularDeflection);
     }

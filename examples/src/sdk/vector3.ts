@@ -1,6 +1,6 @@
 import type { Matrix4 } from "three";
 import { getOCCTModule } from "./occt-loader";
-import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir ,Vector3 as Vector3Wasm, TopoDS_Vertex} from "public/occt-wasm.js";
+import type { gp_Pnt, gp_XYZ, gp_Vec, gp_Dir ,Vector3 as Vector3Wasm, TopoDS_Vertex} from "public/occt-wasm";
 
 type Vector3Like = {
     x: number;

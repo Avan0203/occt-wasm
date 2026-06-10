@@ -24,6 +24,14 @@
   - 影响范围：边离散数据提取链路（`Shape::toBRepResult`）。  
   - 建议：重点验证复杂模型的 edge 折线提取与渲染结果。
 
+## P1（WASM 拆分）
+
+- **Exchange 侧模块须异步 `loadDynamicLibrary` / `dlopen`**  
+  - 背景：构建产物拆为 `occt-wasm-core` + `occt-wasm-exchange.wasm`，`-sAUTOLOAD_DYLIBS=0` 延迟加载。  
+  - 约束：Exchange ~7MB，Chromium 主线程同步编译 WASM 上限约 8MB，必须 `loadAsync: true`。
+  - SIDE_MODULE 链接不能带 `INITIAL_HEAP` / `ALLOW_MEMORY_GROWTH`（会触发 IMPORTED_MEMORY 冲突）。
+  - 详见：`docs/adr/0001-wasm-core-exchange-split.md`。
+
 ## P2（后续优化项）
 
 - **绑定暴露面仍偏大，未纳入本轮**  
